@@ -33,13 +33,16 @@ Proxy dev: `/api`, `/health` → `:8000`; `/ws` → `:8001`.
 
 ```text
 jdd/
+├── docs/              # Documentación general (arquitectura, flujos)
 ├── frontend/          # Cliente TS (Three.js + ECS)
 ├── go/cmd/            # game-server, persistence-api, registry, gateway-ws
 ├── rust/terrain-service/
 ├── shared/game-data/  # session.json, acciones, combate…
 ├── database/init/     # Schema + seeds Postgres
-└── instructions/ai/   # Docs de arquitectura
+└── instructions/ai/   # Docs de arquitectura (detalle para implementación)
 ```
+
+**Documentación:** [docs/README.md](docs/README.md) — organización, servicios y diagramas de flujo.
 
 ## Base de datos
 
