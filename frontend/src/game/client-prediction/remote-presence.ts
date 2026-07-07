@@ -23,6 +23,8 @@ interface RemoteEntry {
  */
 export class RemotePresence {
   private readonly remotes = new Map<string, RemoteEntry>();
+  /** Jugadores que salieron; ignora `player_state` en vuelo hasta un nuevo join. */
+  private readonly leftPlayerIds = new Set<string>();
   private readonly material = new MeshStandardMaterial({ color: REMOTE_COLOR });
 
   /**
@@ -43,6 +45,9 @@ export class RemotePresence {
     if (event.player_id === this.localPlayerId) {
       return;
     }
+    if (this.leftPlayerIds.has(event.player_id)) {
+      return;
+    }
     if (!event.bloque_id) {
       return;
     }
@@ -55,6 +60,7 @@ export class RemotePresence {
     if (event.player_id === this.localPlayerId) {
       return;
     }
+    this.leftPlayerIds.delete(event.player_id);
     const entry = this.ensureRemote(event.player_id);
     const nowMs = performance.now();
     entry.buffer.push({
@@ -78,6 +84,7 @@ export class RemotePresence {
 
   /** Elimina la réplica al salir otro jugador. */
   onPlayerLeft(playerId: string): void {
+    this.leftPlayerIds.add(playerId);
     const entry = this.remotes.get(playerId);
     if (!entry) {
       return;

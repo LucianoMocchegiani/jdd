@@ -90,11 +90,14 @@ export class WorldRealtimeClient {
     const batch = this.inboundQueue.splice(0);
     // Aplicar solo el último player_state por jugador (descarta backlog).
     const latestStateByPlayer = new Map<string, { msg: RealtimeInboundMessage; receivedAtMs: number }>();
+    const playerLeft: Array<{ msg: RealtimeInboundMessage; receivedAtMs: number }> = [];
     const rest: Array<{ msg: RealtimeInboundMessage; receivedAtMs: number }> = [];
 
     for (const entry of batch) {
       if (entry.msg.type === 'player_state') {
         latestStateByPlayer.set(entry.msg.player_id, entry);
+      } else if (entry.msg.type === 'player_left') {
+        playerLeft.push(entry);
       } else {
         rest.push(entry);
       }
@@ -108,6 +111,10 @@ export class WorldRealtimeClient {
         this.lastAppliedAtMs = performance.now();
         this.handlers.onSessionEvent?.({ ...msg, receivedAtMs });
       }
+    }
+    // `player_left` al final: gana sobre `player_state` en vuelo del mismo batch.
+    for (const entry of playerLeft) {
+      dispatchMessage(entry.msg, this.handlers);
     }
 
     return batch.length;
