@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "submergedCountFamilies": ["liquid", "granular"],
+  "typeOverrides": {
+    "agua": { "family": "liquid", "contributesTo": ["submerged"] },
+    "agua_sucia": { "family": "liquid", "contributesTo": ["submerged"] },
+    "lava": {
+      "family": "liquid",
+      "contributesTo": ["submerged"],
+      "conditions": {
+        "onEnter": [{ "conditionId": "burning", "durationMs": 2500 }]
+      }
+    },
+    "pantano": { "family": "liquid", "contributesTo": ["submerged"] },
+    "lodo": { "family": "liquid", "contributesTo": ["submerged"] },
+    "barro": { "family": "liquid", "contributesTo": ["submerged"] },
+    "arena_movediza": { "family": "granular", "contributesTo": ["submerged"] },
+    "arena": { "family": "granular", "contributesTo": ["ground", "submerged"] },
+    "tierra": { "family": "solid", "contributesTo": ["ground"] },
+    "piedra": { "family": "solid", "contributesTo": ["ground"] },
+    "roca": { "family": "solid", "contributesTo": ["ground"] },
+    "madera": { "family": "solid", "contributesTo": ["ground"] },
+    "hierba": { "family": "solid", "contributesTo": ["ground"] },
+    "nieve": {
+      "family": "granular",
+      "contributesTo": ["ground", "submerged"],
+      "conditions": {
+        "onEnter": [{ "conditionId": "chilled", "durationMs": 6000 }],
+        "onStay": [{ "conditionId": "chilled", "durationMs": 6000 }]
+      }
+    }
+  },
+  "defaultByPhysics": {
+    "solido": { "family": "solid", "contributesTo": ["ground"] },
+    "liquido": { "family": "liquid", "contributesTo": ["submerged"] },
+    "gas": { "family": "gas", "contributesTo": [] },
+    "energia": { "family": "energy", "contributesTo": [] }
+  }
+}

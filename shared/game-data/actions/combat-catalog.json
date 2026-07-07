@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "actions": {
+    "attack": {
+      "impact": {
+        "worldDamage": {
+          "reach": 2,
+          "damage": 15
+        }
+      }
+    }
+  }
+}

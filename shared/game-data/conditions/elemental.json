@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "conditions": [
+    {
+      "id": "burning",
+      "description": "Quemadura por calor: DOT y tint anaranjado; típica de lava o ambiente muy caliente.",
+      "lifecycle": { "durationMs": 3000, "stackable": false },
+      "effects": {
+        "tick": { "intervalMs": 500, "damage": 4 }
+      },
+      "appearance": { "tint": 16096790 }
+    },
+    {
+      "id": "chilled",
+      "description": "Enfriamiento (nieve): ralentiza el movimiento; DOT acumulado en HUD hasta tener HP de jugador.",
+      "lifecycle": { "durationMs": 6000, "stackable": false },
+      "effects": {
+        "movement": { "speedMultiplier": 0.5 },
+        "tick": { "intervalMs": 1000, "damage": 2 }
+      },
+      "appearance": { "tint": 8241404 }
+    }
+  ]
+}

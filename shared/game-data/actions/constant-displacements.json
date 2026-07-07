@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "constantDisplacementOrder": ["run", "swim", "walk"],
+  "actions": [
+    {
+      "id": "run",
+      "description": "Correr en suelo mientras se mantiene Shift+W (velocidad ×1.6).",
+      "control": {
+        "inputIntent": "run_forward",
+        "slot": "constant_displacements",
+        "type": "sustained",
+        "when": { "medium": "ground" }
+      },
+      "movement": { "speedMultiplier": 1.6 },
+      "appearance": { "state": "run", "clip": "run" }
+    },
+    {
+      "id": "swim",
+      "control": {
+        "inputIntent": "constant_displacements_move",
+        "slot": "constant_displacements",
+        "type": "sustained",
+        "when": { "medium": ["submerged_partial", "submerged_full"] }
+      },
+      "movement": { "speedMultiplier": 1 },
+      "appearance": { "state": "swim", "clip": "swim" }
+    },
+    {
+      "id": "walk",
+      "description": "Caminar en suelo con WASD relativo a la orientación de la cámara.",
+      "control": {
+        "inputIntent": "constant_displacements_move",
+        "slot": "constant_displacements",
+        "type": "sustained",
+        "when": { "medium": "ground" }
+      },
+      "movement": { "speedMultiplier": 1 },
+      "appearance": { "state": "walk", "clip": "walk" }
+    }
+  ],
+  "impulseActions": [
+    {
+      "id": "jump",
+      "description": "Salto en suelo (impulso vertical); conserva velocidad horizontal.",
+      "control": {
+        "inputIntent": "jump",
+        "slot": "impulse_displacements",
+        "type": "one_shot",
+        "when": { "medium": "ground" }
+      },
+      "movement": {
+        "impulseZ": 7,
+        "preserveVelocityXY": true
+      },
+      "appearance": { "state": "jump", "clip": "jump" }
+    }
+  ]
+}

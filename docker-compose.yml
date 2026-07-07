@@ -1,0 +1,197 @@
+# JDD — Juego de Dioses (stack Go/Rust + frontend TS)
+#
+# Uso:
+#   docker compose up --build
+#
+# Frontend:  http://localhost:8080
+# REST:       http://localhost:8000/api/bloques
+# WS directo: ws://localhost:8001/ws
+# WS gateway: ws://localhost:8082/ws
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: jdd-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-juegodioses}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-juegodioses123}
+      POSTGRES_DB: ${POSTGRES_DB:-juego_dioses}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-juegodioses} -d ${POSTGRES_DB:-juego_dioses}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jdd
+
+  redis:
+    image: redis:7-alpine
+    container_name: jdd-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jdd
+
+  persistence-api:
+    build:
+      context: .
+      dockerfile: go/cmd/persistence-api/Dockerfile
+    container_name: jdd-persistence-api
+    environment:
+      HTTP_PORT: 8000
+      DATABASE_URL: postgres://${POSTGRES_USER:-juegodioses}:${POSTGRES_PASSWORD:-juegodioses123}@postgres:5432/${POSTGRES_DB:-juego_dioses}
+      REDIS_URL: redis://redis:6379
+      MAX_DESTROY_PER_BLOCK_PER_SEC: 50
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jdd
+    restart: unless-stopped
+
+  terrain-service:
+    build:
+      context: .
+      dockerfile: rust/terrain-service/Dockerfile
+    container_name: jdd-terrain-service
+    environment:
+      HTTP_PORT: 8002
+      DATABASE_URL: postgres://${POSTGRES_USER:-juegodioses}:${POSTGRES_PASSWORD:-juegodioses123}@postgres:5432/${POSTGRES_DB:-juego_dioses}
+      REDIS_URL: redis://redis:6379
+      SESSION_JSON_PATH: /app/shared/game-data/game/session.json
+      RUST_LOG: info
+      CHUNK_RATE_LIMIT: 64
+      WORKER_COUNT: 12
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jdd
+    restart: unless-stopped
+
+  registry:
+    build:
+      context: .
+      dockerfile: go/cmd/registry/Dockerfile
+    container_name: jdd-registry
+    environment:
+      HTTP_PORT: 8003
+      REDIS_URL: redis://redis:6379
+      MAX_PLAYERS_PER_ECO: 50
+      GAME_HEARTBEAT_TTL_SEC: 120
+    ports:
+      - "8003:8003"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - jdd
+    restart: unless-stopped
+
+  game-server:
+    build:
+      context: .
+      dockerfile: go/cmd/game-server/Dockerfile
+    container_name: jdd-game-server
+    environment:
+      HTTP_PORT: 8001
+      REDIS_URL: redis://redis:6379
+      TERRAIN_SERVICE_URL: http://terrain-service:8002
+      REGISTRY_URL: http://registry:8003
+      WS_PUBLIC_URL: ws://game-server:8001/ws
+      GAME_INSTANCE_ID: game-1
+      ENV: dev
+      JWT_SECRET: ${JWT_SECRET:-dev-secret}
+      WIRE_FORMAT: ${WIRE_FORMAT:-json}
+      SESSION_JSON_PATH: /app/shared/game-data/game/session.json
+    ports:
+      - "8001:8001"
+    depends_on:
+      redis:
+        condition: service_healthy
+      terrain-service:
+        condition: service_started
+      registry:
+        condition: service_started
+    networks:
+      - jdd
+    restart: unless-stopped
+
+  gateway-ws:
+    build:
+      context: .
+      dockerfile: go/cmd/gateway-ws/Dockerfile
+    container_name: jdd-gateway-ws
+    environment:
+      HTTP_PORT: 8082
+      REGISTRY_URL: http://registry:8003
+      DEFAULT_GAME_WS_URL: ws://game-server:8001/ws
+      JWT_SECRET: ${JWT_SECRET:-dev-secret}
+      ENV: dev
+    ports:
+      - "8082:8082"
+    depends_on:
+      - registry
+      - game-server
+    networks:
+      - jdd
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: jdd-frontend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - persistence-api
+      - gateway-ws
+    networks:
+      - jdd
+    restart: unless-stopped
+
+  # Seed mapa Lago y Montaña (Go worldgen). Profile tools — no arranca con `up` normal.
+  seed-lago:
+    build:
+      context: .
+      dockerfile: go/cmd/seed/Dockerfile
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-juegodioses}:${POSTGRES_PASSWORD:-juegodioses123}@postgres:5432/${POSTGRES_DB:-juego_dioses}?sslmode=disable
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jdd
+    profiles:
+      - tools
+    restart: "no"
+
+volumes:
+  postgres_data:
+
+networks:
+  jdd:
+    driver: bridge

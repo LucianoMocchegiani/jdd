@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Terreno WebSocket — mensajes server → cliente",
+  "description": "Contrato Fase 0 terreno-ws.md. Espejo en world-events.ts y terrain_ws_messages.py.",
+  "definitions": {
+    "terrain_ws_particle": {
+      "type": "object",
+      "required": ["id", "x", "y", "z", "tipo_nombre", "tipo_fisico"],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "x": { "type": "integer" },
+        "y": { "type": "integer" },
+        "z": { "type": "integer" },
+        "tipo_nombre": { "type": "string" },
+        "tipo_fisico": { "enum": ["solido", "liquido", "gas", "energia"] }
+      },
+      "additionalProperties": false
+    },
+    "terrain_type_entry": {
+      "type": "object",
+      "required": ["nombre", "tipo_fisico"],
+      "properties": {
+        "nombre": { "type": "string" },
+        "tipo_fisico": { "enum": ["solido", "liquido", "gas", "energia"] },
+        "color": { "type": ["string", "null"] },
+        "viscosidad": { "type": ["number", "null"] },
+        "opacidad": { "type": ["number", "null"] }
+      },
+      "additionalProperties": true
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["type", "bloque_id", "types"],
+      "properties": {
+        "type": { "const": "terrain_types" },
+        "bloque_id": { "type": "string" },
+        "types": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/terrain_type_entry" }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["type", "bloque_id", "chunk_cx", "chunk_cy", "z_min", "z_max", "seq", "particles"],
+      "properties": {
+        "type": { "const": "terrain_chunk" },
+        "bloque_id": { "type": "string" },
+        "chunk_cx": { "type": "integer" },
+        "chunk_cy": { "type": "integer" },
+        "z_min": { "type": "integer" },
+        "z_max": { "type": "integer" },
+        "seq": { "type": "integer" },
+        "particles": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/terrain_ws_particle" }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["type", "bloque_id", "seq"],
+      "properties": {
+        "type": { "const": "terrain_chunk_done" },
+        "bloque_id": { "type": "string" },
+        "seq": { "type": "integer" },
+        "chunks_sent": { "type": "integer" }
+      },
+      "additionalProperties": false
+    }
+  ]
+}

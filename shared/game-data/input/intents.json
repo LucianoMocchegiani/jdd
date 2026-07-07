@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "inputIntents": [
+    "move_forward",
+    "move_backward",
+    "move_left",
+    "move_right",
+    "run_forward",
+    "jump",
+    "attack_light"
+  ],
+  "derivedIntents": ["constant_displacements_move"]
+}

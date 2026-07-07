@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package jd;
+
+option go_package = "github.com/juego-de-dioses/jd/pkg/jd/contracts;jdcontracts";
+
+// Resultado daño hacia game-server (broadcast WS).
+message ParticleDestroyedEvent {
+  string bloque_id = 1;
+  string particle_id = 2;
+  int32 x = 3;
+  int32 y = 4;
+  int32 z = 5;
+}
+
+// Bloque creado o re-seedeado (persistence → terrain).
+message BlockSeeded {
+  string bloque_id = 1;
+  bool is_new_block = 2;
+  uint64 block_version = 3;
+}

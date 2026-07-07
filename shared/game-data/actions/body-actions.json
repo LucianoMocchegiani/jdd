@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "actions": [
+    {
+      "id": "attack",
+      "description": "Ataque ligero a corto alcance en suelo o agua parcial; bloquea locomoción mientras dura.",
+      "control": {
+        "inputIntent": "attack_light",
+        "slot": "body_actions",
+        "type": "one_shot",
+        "when": {
+          "not": {
+            "medium": ["air", "submerged_full"]
+          }
+        },
+        "interrupt": {
+          "blocks": ["run", "walk", "swim", "jump"]
+        }
+      },
+      "appearance": {
+        "state": "attack",
+        "clip": "attack"
+      },
+      "impact": {
+        "worldDamage": {
+          "reach": 2,
+          "damage": 15
+        }
+      }
+    }
+  ]
+}

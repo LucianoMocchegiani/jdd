@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Juego de Dioses",
+      "Group": "Development",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "juego_dioses",
+      "Username": "juegodioses",
+      "Password": "juegodioses123",
+      "SSLMode": "prefer"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "conditions": [
+    {
+      "id": "stunned",
+      "description": "Aturdimiento breve: bloquea locomoción y ataque hasta que expire.",
+      "lifecycle": { "durationMs": 800, "stackable": false },
+      "effects": {
+        "blockIntents": ["attack_light", "move_forward", "run_forward", "jump"],
+        "blockActionIds": ["run", "walk", "swim", "jump", "attack"]
+      }
+    },
+    {
+      "id": "poisoned",
+      "description": "Veneno apilable: ralentiza y daña cada segundo.",
+      "lifecycle": { "durationMs": 10000, "stackable": true, "maxStacks": 3 },
+      "effects": {
+        "movement": { "speedMultiplier": 0.85 },
+        "tick": { "intervalMs": 1000, "damage": 2 }
+      },
+      "appearance": { "tint": 2278750 }
+    }
+  ]
+}

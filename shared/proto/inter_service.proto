@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package jd;
+
+option go_package = "github.com/juego-de-dioses/jd/pkg/jd/contracts;jdcontracts";
+
+// Pedido de carga de chunk (game-server → terrain-service).
+message ChunkRequest {
+  string bloque_id = 1;
+  int32 chunk_cx = 2;
+  int32 chunk_cy = 3;
+  int32 priority = 4;
+  string requester_id = 5;
+  optional string player_id = 6;
+}
+
+// Chunk listo (terrain-service → game-server).
+message ChunkReady {
+  string bloque_id = 1;
+  int32 chunk_cx = 2;
+  int32 chunk_cy = 3;
+  string wire_json = 4;
+  repeated string solid_cells = 5;
+  uint64 version = 6;
+  string requester_id = 7;
+}
+
+// Invalidación de celda (persistence → terrain).
+message CellDestroyed {
+  string bloque_id = 1;
+  int32 x = 2;
+  int32 y = 3;
+  int32 z = 4;
+  string particle_id = 5;
+}
+
+// Combate async (game-server → persistence).
+message SwingCommand {
+  string bloque_id = 1;
+  string action_id = 2;
+  int32 entity_id = 3;
+  int32 seq = 4;
+  float pos_x = 5;
+  float pos_y = 6;
+  float pos_z = 7;
+  bool is_npc = 8;
+}

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "profiles": {
+    "ground": {
+      "moveSpeedMultiplier": 1,
+      "gravityMultiplier": 1,
+      "buoyancy": 0,
+      "verticalDrag": 0
+    },
+    "air": {
+      "moveSpeedMultiplier": 1,
+      "gravityMultiplier": 1,
+      "buoyancy": 0,
+      "verticalDrag": 0
+    },
+    "submerged_partial": {
+      "moveSpeedMultiplier": 0.65,
+      "gravityMultiplier": 0.35,
+      "buoyancy": 3,
+      "verticalDrag": 2.5
+    },
+    "submerged_full": {
+      "moveSpeedMultiplier": 0.4,
+      "gravityMultiplier": 0.12,
+      "buoyancy": 5,
+      "verticalDrag": 4
+    }
+  }
+}

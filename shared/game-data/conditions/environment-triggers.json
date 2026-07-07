@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "triggers": [
+    {
+      "id": "heat_exposure_burning",
+      "description": "Temperatura ambiente ≥ 45 °C aplica quemadura (ficha `burning`).",
+      "when": { "temperatureC": { "min": 45 } },
+      "apply": [{ "conditionId": "burning", "durationMs": 3000 }]
+    }
+  ]
+}

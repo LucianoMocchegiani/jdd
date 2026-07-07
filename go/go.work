@@ -1,0 +1,10 @@
+go 1.22
+
+use (
+	./cmd/game-server
+	./cmd/gateway-ws
+	./cmd/persistence-api
+	./cmd/registry
+	./cmd/seed
+	./pkg/jd
+)

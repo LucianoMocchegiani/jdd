@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "clips": {
+    "walk": { "durationMs": 0 },
+    "run": { "durationMs": 0 },
+    "swim": { "durationMs": 0 },
+    "jump": { "durationMs": 450 },
+    "attack": { "durationMs": 400 }
+  },
+  "defaultDurationMs": 350
+}

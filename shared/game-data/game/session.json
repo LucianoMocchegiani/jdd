@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "contactSampleRadiusCells": 3,
+  "viewportRadiusCells": 28,
+  "chunkSizeCells": 40,
+  "playerMoveSpeedCells": 6,
+  "gravityCells": 18,
+  "cameraDefaultPitch": 0.5235987755982988,
+  "terrainCollisionLoadRadiusCells": 48,
+  "terrainRecenterTriggerCells": 12,
+  "terrainRefreshMinIntervalSec": 0.5,
+  "terrainZMin": -10,
+  "terrainZMax": 32,
+  "terrainWsMaxChunksPerTick": 2,
+  "maxPlayersPerEco": 50,
+  "ecoSpawnThreshold": 50,
+  "maxActiveNpcsPerEco": 20,
+  "maxDestroyPerBlockPerSec": 50
+}

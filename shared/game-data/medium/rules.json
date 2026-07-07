@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "rules": {
+    "submergedFullRatio": 0.55,
+    "submergedPartialRatio": 0.12,
+    "groundSolidCellsMin": 1
+  },
+  "resolutionOrder": ["submerged_full", "submerged_partial", "ground", "air"],
+  "mediums": {
+    "ground": { "description": "Apoyado en sólido bajo los pies" },
+    "air": { "description": "Sin soporte sólido ni inmersión relevante en fluido/granular" },
+    "submerged_partial": { "description": "Parte del cuerpo en fluido o material granular" },
+    "submerged_full": { "description": "Mayoría del volumen de muestreo en fluido o granular" }
+  }
+}
