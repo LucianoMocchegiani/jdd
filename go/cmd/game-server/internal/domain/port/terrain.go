@@ -46,6 +46,7 @@ type TerrainSubscriber interface {
 // SwingCommand representa swing command.
 type SwingCommand struct {
 	BloqueID string
+	PlayerID string
 	ActionID string
 	EntityID int
 	Seq      int

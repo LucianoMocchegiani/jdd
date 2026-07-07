@@ -24,6 +24,7 @@ func NewSwingPublisher(client *goredis.Client) *SwingPublisher {
 
 type swingPayload struct {
 	BloqueID string  `json:"bloque_id"`
+	PlayerID string  `json:"player_id"`
 	ActionID string  `json:"action_id"`
 	EntityID int     `json:"entity_id"`
 	Seq      int     `json:"seq"`
@@ -37,6 +38,7 @@ type swingPayload struct {
 func (p *SwingPublisher) PublishSwing(cmd port.SwingCommand) error {
 	payload, err := json.Marshal(swingPayload{
 		BloqueID: cmd.BloqueID,
+		PlayerID: cmd.PlayerID,
 		ActionID: cmd.ActionID,
 		EntityID: cmd.EntityID,
 		Seq:      cmd.Seq,

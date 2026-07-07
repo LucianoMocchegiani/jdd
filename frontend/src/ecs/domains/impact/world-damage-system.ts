@@ -36,10 +36,12 @@ export class WorldDamageSystem extends System {
   /**
    * @param terrain - Viewport con `bloqueId` del bloque activo.
    * @param worldRealtime - Cliente WS para mandar `swing`.
+   * @param playerId - Identidad estable por pestaña (`join_block.player_id`).
    */
   constructor(
     private readonly terrain: TerrainStore,
     private readonly worldRealtime: WorldRealtimeClient,
+    private readonly playerId: string,
   ) {
     super();
   }
@@ -89,6 +91,7 @@ export class WorldDamageSystem extends System {
       seq,
       action_id: actionId,
       entity_id: entityId,
+      player_id: this.playerId,
       bloque_id: this.terrain.bloqueId,
       position: { x: pos.x, y: pos.y, z: pos.z },
       ...(yaw !== undefined ? { yaw } : {}),

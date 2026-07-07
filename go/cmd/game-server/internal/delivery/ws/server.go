@@ -174,9 +174,14 @@ func (s *Server) handleSwing(c *wshub.Conn, msg map[string]interface{}, _ string
 		py, _ = pos["y"].(float64)
 		pz, _ = pos["z"].(float64)
 	}
+	playerID := c.PlayerID
+	if playerID == "" {
+		playerID, _ = msg["player_id"].(string)
+	}
 	resp, isErr := s.svc.HandleSwing(usecase.SwingPayload{
 		BloqueID: bloqueID,
 		EcoID:    c.EcoID,
+		PlayerID: playerID,
 		ActionID: actionID,
 		EntityID: int(entityF),
 		Seq:      int(seqF),

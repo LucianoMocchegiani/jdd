@@ -144,6 +144,7 @@ function registerGameplaySystems(
   playerEntityId: number,
   playerMesh: Group,
   worldRealtime: WorldRealtimeClient,
+  playerId: string,
 ): PlayerSimulationRunner {
   // HUD de contacto/acción: dos líneas actualizadas por callbacks de sistemas.
   let mediumLine = 'medium: —';
@@ -181,7 +182,7 @@ function registerGameplaySystems(
   movementSystem.setPitchSource(simulationRunner);
 
   // --- Efectos sobre el mundo y presentación ---
-  world.registerSystem(new WorldDamageSystem(terrain, worldRealtime));
+  world.registerSystem(new WorldDamageSystem(terrain, worldRealtime, playerId));
   world.registerSystem(new AppearanceSystem(playerEntityId, playerMesh));
 
   return simulationRunner;
@@ -360,6 +361,7 @@ export async function bootstrapApp(
     playerEntityId,
     playerMesh,
     worldRealtime,
+    playerId,
   );
   localReconciler = new LocalPlayerReconciler(playerId, inputHistory, simulationRunner);
   debugMediumEl.textContent = 'medium: —';

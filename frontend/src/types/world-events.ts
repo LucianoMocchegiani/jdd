@@ -248,7 +248,9 @@ export interface SwingCommand {
   type: 'swing';
   seq: number;
   action_id: string;
+  /** Id ECS local (correlación cliente); dedup servidor usa `player_id`. */
   entity_id: number;
+  player_id: string;
   bloque_id: string;
   position: CellPosition;
   yaw?: number;

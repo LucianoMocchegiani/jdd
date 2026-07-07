@@ -47,6 +47,7 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 type SwingPayload struct {
 	BloqueID string
 	EcoID    int
+	PlayerID string
 	ActionID string
 	EntityID int
 	Seq      int
@@ -57,11 +58,22 @@ type SwingPayload struct {
 
 // HandleSwing implementa handle swing.
 func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bool) {
+	if in.PlayerID == "" {
+		return buildError("swing_error", "missing_player_id"), true
+	}
+	sess, exists := s.Sessions.Get(in.BloqueID, in.EcoID)
+	if !exists {
+		return buildError("swing_error", "not_in_block"), true
+	}
+	if _, ok := sess.GetPlayer(in.PlayerID); !ok {
+		return buildError("swing_error", "player_not_in_session"), true
+	}
 	if s.SwingPub == nil {
 		return buildError("swing_error", "not_configured"), true
 	}
 	err := s.SwingPub.PublishSwing(port.SwingCommand{
 		BloqueID: in.BloqueID,
+		PlayerID: in.PlayerID,
 		ActionID: in.ActionID,
 		EntityID: in.EntityID,
 		Seq:      in.Seq,

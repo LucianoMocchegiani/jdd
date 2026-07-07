@@ -4,6 +4,7 @@ package usecase
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 
 	"github.com/juego-de-dioses/jd/cmd/persistence-api/internal/domain"
@@ -15,6 +16,7 @@ const maxProcessedSwings = 4096
 // SwingCommand representa swing command.
 type SwingCommand struct {
 	BloqueID string  `json:"bloque_id"`
+	PlayerID string  `json:"player_id"`
 	ActionID string  `json:"action_id"`
 	EntityID int     `json:"entity_id"`
 	Seq      int     `json:"seq"`
@@ -42,7 +44,7 @@ type SwingService struct {
 	RateLimit port.DestroyRateLimiter
 
 	mu        sync.Mutex
-	processed map[[2]int]struct{}
+	processed map[string]struct{}
 }
 
 // NewSwingService construye swing service.
@@ -52,12 +54,19 @@ func NewSwingService(repo port.ParticleRepository, cat port.CombatCatalog, ev po
 		Catalog:   cat,
 		Events:    ev,
 		RateLimit: rl,
-		processed: make(map[[2]int]struct{}),
+		processed: make(map[string]struct{}),
 	}
 }
 
-func (s *SwingService) rememberSwing(entityID, seq int) bool {
-	key := [2]int{entityID, seq}
+func swingDedupKey(playerID string, entityID, seq int) string {
+	if playerID != "" {
+		return fmt.Sprintf("p:%s:%d", playerID, seq)
+	}
+	return fmt.Sprintf("e:%d:%d", entityID, seq)
+}
+
+func (s *SwingService) rememberSwing(playerID string, entityID, seq int) bool {
+	key := swingDedupKey(playerID, entityID, seq)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.processed[key]; ok {
@@ -79,7 +88,7 @@ func (s *SwingService) rememberSwing(entityID, seq int) bool {
 
 // ApplySwing implementa apply swing.
 func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingOutcome, error) {
-	if !s.rememberSwing(cmd.EntityID, cmd.Seq) {
+	if !s.rememberSwing(cmd.PlayerID, cmd.EntityID, cmd.Seq) {
 		return SwingOutcome{OK: true, Duplicate: true, ActionID: cmd.ActionID}, nil
 	}
 
