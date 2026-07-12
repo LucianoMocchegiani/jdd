@@ -309,3 +309,4 @@ Excepción: **`seed`** es un CLI sin capas `internal/`; usa `pkg/jd/worldgen` di
 | Redis streams (detalle) | [`instructions/ai/04-redis-streams.md`](../instructions/ai/04-redis-streams.md) |
 | Layout del monorepo | [`instructions/ai/11-monorepo-layout.md`](../instructions/ai/11-monorepo-layout.md) |
 | Puertos y env | [`instructions/ai/infra/env-and-ports.md`](../instructions/ai/infra/env-and-ports.md) |
+| Character Studio (POC) | `jdd/frontend/src/poc/character-studio/` · `?poc=character-studio` |

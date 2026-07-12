@@ -4,6 +4,8 @@
 
 import '@/style.css';
 import { bootstrapApp } from '@/game/app';
+import { bootstrapCharacterStudioPoc } from '@/poc/character-studio';
+import { STUDIO_PANEL_W, TIMELINE_HEIGHT } from '@/poc/character-studio/studio-timeline';
 import { bindInputStatsHud } from '@/game/debug/input-stats-debug';
 import { bindPositionSyncHud } from '@/game/debug/position-sync-debug';
 import { attachKeyboardInput } from '@/game/input/keyboard-state';
@@ -59,34 +61,60 @@ scene.add(sun);
 
 attachKeyboardInput();
 
-statusEl.textContent = 'Conectando al backend…';
+const pocMode = new URLSearchParams(window.location.search).get('poc');
 
-void bootstrapApp(
-  scene,
-  camera,
-  renderer,
-  statusEl,
-  debugMediumEl,
-  debugConditionsEl,
-  debugCameraEl,
-  debugMovementEl,
-  debugInputStatsEl,
-  debugPosSyncEl,
-)
-  .then(() => {
-    canvas.focus();
-  })
-  .catch((err: unknown) => {
-    const message = err instanceof Error ? err.message : 'Error de conexión';
-    statusEl.textContent = `No se pudo iniciar (online requerido): ${message}`;
+if (pocMode === 'character-studio') {
+  document.body.classList.add('character-studio-mode');
+  statusEl.textContent = 'Character Studio — cargando…';
+  try {
+    bootstrapCharacterStudioPoc(scene, camera, renderer, statusEl);
+    renderer.domElement.focus();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    statusEl.textContent = `Character Studio — error: ${msg}`;
     statusEl.dataset.state = 'warn';
-    if (import.meta.env.DEV) {
-      console.error('[bootstrap]', err);
-    }
-  });
+    console.error('[main] character-studio', err);
+  }
+} else {
+  statusEl.textContent = 'Conectando al backend…';
+
+  void bootstrapApp(
+    scene,
+    camera,
+    renderer,
+    statusEl,
+    debugMediumEl,
+    debugConditionsEl,
+    debugCameraEl,
+    debugMovementEl,
+    debugInputStatsEl,
+    debugPosSyncEl,
+  )
+    .then(() => {
+      canvas.focus();
+    })
+    .catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : 'Error de conexión';
+      statusEl.textContent = `No se pudo iniciar (online requerido): ${message}`;
+      statusEl.dataset.state = 'warn';
+      if (import.meta.env.DEV) {
+        console.error('[bootstrap]', err);
+      }
+    });
+}
 
 window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
+  const isStudio = document.body.classList.contains('character-studio-mode');
+  const panelW = isStudio ? STUDIO_PANEL_W : 0;
+  const timelineH = isStudio ? TIMELINE_HEIGHT : 0;
+  const w = Math.max(1, window.innerWidth - panelW);
+  const h = Math.max(1, window.innerHeight - timelineH);
+  camera.aspect = w / h;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(w, h);
+  if (isStudio) {
+    canvas.style.left = `${panelW}px`;
+    canvas.style.height = `${h}px`;
+    canvas.style.width = `${w}px`;
+  }
 });

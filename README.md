@@ -42,7 +42,8 @@ jdd/
 └── instructions/ai/   # Docs de arquitectura (detalle para implementación)
 ```
 
-**Documentación:** [docs/README.md](docs/README.md) — organización, servicios y diagramas de flujo.
+**Documentación:** [docs/README.md](docs/README.md) — organización, servicios y diagramas de flujo.  
+**Character Studio (POC):** `?poc=character-studio` — editor de personajes en `frontend/src/poc/character-studio/`
 
 ## Base de datos
 

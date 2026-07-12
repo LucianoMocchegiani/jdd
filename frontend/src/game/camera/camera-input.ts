@@ -43,11 +43,11 @@ export class CameraInputBinding {
 
   /**
    * @param canvas - `renderer.domElement`; debe ser el mismo elemento que recibe pointer lock.
-   * @param onWheelStep - Callback síncrono por notch de rueda (`+1` / `-1`); típico: ajustar `distanceCells` con límites en `game-config`.
+   * @param onWheelStep - Callback síncrono por notch de rueda (`+1` / `-1`); recibe el `WheelEvent` para zoom al cursor u otras variantes.
    */
   constructor(
     private readonly canvas: HTMLCanvasElement,
-    private readonly onWheelStep: (direction: number) => void,
+    private readonly onWheelStep: (direction: number, ev: WheelEvent) => void,
   ) {
     canvas.addEventListener('click', this.onClick);
     canvas.addEventListener('mousemove', this.onMouseMove);
@@ -107,7 +107,7 @@ export class CameraInputBinding {
     e.preventDefault();
     const direction = e.deltaY > 0 ? 1 : e.deltaY < 0 ? -1 : 0;
     if (direction !== 0) {
-      this.onWheelStep(direction);
+      this.onWheelStep(direction, e);
       this.wheelDelta += direction;
     }
   };

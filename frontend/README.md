@@ -25,6 +25,7 @@ npm run dev
 
 | Flag | Efecto |
 |------|--------|
+| `?poc=character-studio` | Editor + animador de personajes (huesos + elementos v2) |
 | `?debug=pos-sync` | HUD local vs servidor |
 | `?debug=reconcile-off` | Sin reconciliación |
 | `?bloque=` | Filtra bloque por nombre |

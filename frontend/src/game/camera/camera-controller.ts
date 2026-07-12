@@ -87,7 +87,7 @@ export class CameraController {
     canvas: HTMLCanvasElement,
     private readonly playerMesh: Group,
   ) {
-    this.input = new CameraInputBinding(canvas, (direction) => {
+    this.input = new CameraInputBinding(canvas, (direction, _ev) => {
       this.distanceCells += direction * CAMERA_ZOOM_SPEED_CELLS;
       this.distanceCells = Math.max(
         CAMERA_DISTANCE_MIN_CELLS,
