@@ -1,0 +1,409 @@
+{
+  "version": 2,
+  "id": "attack",
+  "label": "attack",
+  "duration": 0.55,
+  "loop": false,
+  "fps": 30,
+  "tracks": [
+    {
+      "boneId": "cintura",
+      "keys": [
+        {
+          "t": 0,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.12,
+          "rot": [
+            0,
+            0.12,
+            0
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.23333333333333334,
+          "rot": [
+            0,
+            -0.12,
+            0
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.36,
+          "rot": [
+            0,
+            -0.06,
+            0
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.55,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        }
+      ]
+    },
+    {
+      "boneId": "hombro-derecho",
+      "keys": [
+        {
+          "t": 0,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.12,
+          "rot": [
+            0,
+            0,
+            -0.65
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.23333333333333334,
+          "rot": [
+            0.05943947821975503,
+            -0.1323840380781336,
+            1.4866335997324291
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.34,
+          "rot": [
+            0,
+            0,
+            0.65
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.55,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        }
+      ]
+    },
+    {
+      "boneId": "codo-derecho",
+      "keys": [
+        {
+          "t": 0,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.12,
+          "rot": [
+            0,
+            0,
+            0.95
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.23333333333333334,
+          "rot": [
+            0,
+            0,
+            0.12
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.34,
+          "rot": [
+            0,
+            0,
+            0.28
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.55,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        }
+      ]
+    },
+    {
+      "boneId": "muneca-derecha",
+      "keys": [
+        {
+          "t": 0,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.23333333333333334,
+          "rot": [
+            0,
+            0,
+            0.12
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.55,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        }
+      ]
+    },
+    {
+      "boneId": "hombro-izquierdo",
+      "keys": [
+        {
+          "t": 0,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.12,
+          "rot": [
+            0,
+            0,
+            0.25
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.23333333333333334,
+          "rot": [
+            0,
+            0,
+            -0.4
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.36,
+          "rot": [
+            0,
+            0,
+            -0.2
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.55,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        }
+      ]
+    },
+    {
+      "boneId": "codo-izquierdo",
+      "keys": [
+        {
+          "t": 0,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.12,
+          "rot": [
+            0,
+            0,
+            0.15
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.23333333333333334,
+          "rot": [
+            0,
+            0,
+            0.35
+          ],
+          "interp": "linear"
+        },
+        {
+          "t": 0.55,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        }
+      ]
+    },
+    {
+      "boneId": "controller",
+      "keys": [
+        {
+          "t": 0.23333333333333334,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        }
+      ]
+    },
+    {
+      "boneId": "cuello",
+      "keys": [
+        {
+          "t": 0.23333333333333334,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        }
+      ]
+    },
+    {
+      "boneId": "cadera-derecha",
+      "keys": [
+        {
+          "t": 0.23333333333333334,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        }
+      ]
+    },
+    {
+      "boneId": "cadera-izquierda",
+      "keys": [
+        {
+          "t": 0.23333333333333334,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        }
+      ]
+    },
+    {
+      "boneId": "rodilla-derecha",
+      "keys": [
+        {
+          "t": 0.23333333333333334,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        }
+      ]
+    },
+    {
+      "boneId": "rodilla-izquierda",
+      "keys": [
+        {
+          "t": 0.23333333333333334,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        }
+      ]
+    },
+    {
+      "boneId": "muneca-izquierda",
+      "keys": [
+        {
+          "t": 0.23333333333333334,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        }
+      ]
+    },
+    {
+      "boneId": "tobillo-derecho",
+      "keys": [
+        {
+          "t": 0.23333333333333334,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        }
+      ]
+    },
+    {
+      "boneId": "tobillo-izquierdo",
+      "keys": [
+        {
+          "t": 0.23333333333333334,
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "interp": "linear"
+        }
+      ]
+    }
+  ]
+}
