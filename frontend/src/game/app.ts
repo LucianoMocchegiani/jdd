@@ -133,7 +133,7 @@ export interface BootstrapResult {
  * | ActionOrchestratorSystem | 15 | Fichas → `ActionsComponent` |
  * | MovementSystem | 20 | Velocidad, gravedad, colisión (usa `terrain`) |
  * | WorldDamageSystem | 22 | `swing` por WS; terreno vía `particle_destroyed` |
- * | AppearanceSystem | 25 | Apariencia del jugador local |
+ * | AppearanceSystem | 25 | Apariencia animada del jugador local |
  *
  * @param worldRealtime - WS de mundo (swing + eventos de terreno).
  */
@@ -266,14 +266,23 @@ export async function bootstrapApp(
     rebuildTerrainMeshes();
     if (!spawnResolved && terrain.isSimulationStable) {
       spawnResolved = true;
-      const z = findSpawnZ(terrain.getParticles(), spawnX, spawnY, terrain.getTypesByNombre());
+      const z = findSpawnZ(
+        terrain.getParticles(),
+        spawnX,
+        spawnY,
+        terrain.getTypesByNombre(),
+      );
       spawnZ = z;
       const posComp = world.getComponent<PositionComponent>(playerEntityId, 'position');
-      if (posComp) posComp.z = z;
+      if (posComp) {
+        posComp.z = z;
+      }
       statusEl.textContent = `${formatBackendOkStatus(health.status, catalog.statusSuffix)} · ${bloqueNombre} · ${terrain.getParticles().length} partículas · clic canvas · WASD · C cámara · F atacar`;
     }
   });
-  terrain.onParticlesRemoved((removed) => particleRenderer.removeParticles(removed));
+  terrain.onParticlesRemoved((removed) => {
+    particleRenderer.removeParticles(removed);
+  });
   terrain.onParticlesAdded((added) => {
     particleRenderer.addParticles(added, terrain.getTypesByNombre(), terrain.cellSize);
   });
@@ -288,6 +297,7 @@ export async function bootstrapApp(
   const presenceHandler = new PresenceHandler(worldRealtime, remotePresence, playerId, bloqueId);
   let inputSendClockSec = 0;
   let localReconciler: LocalPlayerReconciler | null = null;
+
   const handleSessionEvent = (event: SessionEvent): void => {
     if (event.type === 'player_state') {
       ingestLocalPlayerState(event, playerId);
@@ -302,12 +312,24 @@ export async function bootstrapApp(
   // -------------------------------------------------------------------------
   // Fase C — Jugador ECS + mesh en escena
   // -------------------------------------------------------------------------
-  const { entityId, mesh: playerMesh } = spawnPlayer(world, scene, cellSize, spawnX, spawnY, spawnZ);
+  const { entityId, mesh: playerMesh } = spawnPlayer(
+    world,
+    scene,
+    cellSize,
+    spawnX,
+    spawnY,
+    spawnZ,
+  );
   playerEntityId = entityId;
-  if (posSyncDebug) ensureServerGhost(scene, cellSize);
+  if (posSyncDebug) {
+    ensureServerGhost(scene, cellSize);
+  }
+
   worldRealtime.connect(getWebSocketUrl(), {
     onWorldEvent: (event) => {
-      if (event.bloque_id === bloqueId) terrain.applyWorldEvent(event);
+      if (event.bloque_id === bloqueId) {
+        terrain.applyWorldEvent(event);
+      }
     },
     onSessionEvent: handleSessionEvent,
     onOpen: () => presenceHandler.onOpen(spawnX, spawnY, spawnZ, playerEntityId),
@@ -348,17 +370,39 @@ export async function bootstrapApp(
     const inputComp = world.getComponent<InputComponent>(playerEntityId, 'input');
     const facingComp = world.getComponent<FacingComponent>(playerEntityId, 'facing');
     if (inputComp && facingComp) {
-      networkInput.tick(inputSendClockSec, inputComp.intents, facingComp.yaw, cameraController.pitch);
+      networkInput.tick(
+        inputSendClockSec,
+        inputComp.intents,
+        facingComp.yaw,
+        cameraController.pitch,
+      );
     }
 
     // 3) Copiar estado ECS al render (posición + órbita de cámara).
     const pos = world.getComponent<PositionComponent>(playerEntityId, 'position');
     if (pos) {
       syncPlayerMesh(playerMesh, pos.x, pos.y, pos.z, cellSize);
-      cameraController.updateCamera(camera, world, playerEntityId, pos.x, pos.y, pos.z, cellSize);
-      updateCameraHud(debugCameraEl, cameraController.yaw, cameraController.pitch, cameraController.mode);
+      cameraController.updateCamera(
+        camera,
+        world,
+        playerEntityId,
+        pos.x,
+        pos.y,
+        pos.z,
+        cellSize,
+      );
+      updateCameraHud(
+        debugCameraEl,
+        cameraController.yaw,
+        cameraController.pitch,
+        cameraController.mode,
+      );
       const conditions = world.getComponent<ConditionsComponent>(playerEntityId, 'conditions');
-      updateConditionsHud(debugConditionsEl, conditions?.active ?? [], conditions?.debugDamageTotal ?? 0);
+      updateConditionsHud(
+        debugConditionsEl,
+        conditions?.active ?? [],
+        conditions?.debugDamageTotal ?? 0,
+      );
       if (inputStatsDebug && debugInputStatsEl) {
         inputStatsPollClockSec += deltaTime;
         if (inputStatsPollClockSec >= 1 && !inputStatsPollInFlight) {
@@ -384,6 +428,7 @@ export async function bootstrapApp(
         });
       }
     }
+
     worldRealtime.drainInboundQueue();
     remotePresence.update();
     renderer.render(scene, camera);
