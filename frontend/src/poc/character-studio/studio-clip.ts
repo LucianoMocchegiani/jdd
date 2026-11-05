@@ -15,11 +15,11 @@ import type {
   Vec3,
 } from '@/poc/character-studio/types';
 import { DEFAULT_CLIP_DURATION } from '@/poc/character-studio/types';
-import attackClipRaw from '@/poc/attack.md?raw';
-import flyClipRaw from '@/poc/fly.md?raw';
-import jumpClipRaw from '@/poc/jump.md?raw';
-import swimClipRaw from '@/poc/swim.md?raw';
-import walkClipRaw from '@/poc/walk.md?raw';
+import attackClipRaw from '@/poc/attack.json?raw';
+import flyClipRaw from '@/poc/fly.json?raw';
+import jumpClipRaw from '@/poc/jump.json?raw';
+import swimClipRaw from '@/poc/swim.json?raw';
+import walkClipRaw from '@/poc/walk.json?raw';
 
 /** Rotación bind de un hueso (radianes XYZ). */
 function bindRotForBone(bone: StudioBone): Vec3 {
