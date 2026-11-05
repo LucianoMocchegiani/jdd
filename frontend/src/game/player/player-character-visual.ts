@@ -3,11 +3,11 @@
  */
 
 import { buildRig, SkeletonPose } from '@/poc/character-studio/rig-math';
-import { sampleClip, createDefaultClipLibrary } from '@/poc/character-studio/studio-clip';
+import { createDefaultClipLibrary, sampleClip } from '@/poc/character-studio/studio-clip';
 import { defaultBipedDocument } from '@/poc/character-studio/studio-document';
 import { StudioRenderer } from '@/poc/character-studio/studio-renderer';
-import { DEFAULT_PALETTE } from '@/poc/shared';
 import type { StudioAnimationClip } from '@/poc/character-studio/types';
+import { DEFAULT_PALETTE } from '@/poc/shared';
 import { MeshStandardMaterial, type Scene } from 'three';
 
 export class PlayerCharacterVisual {
@@ -15,12 +15,12 @@ export class PlayerCharacterVisual {
   private readonly pose = new SkeletonPose(buildRig(this.doc), this.doc);
   private readonly renderer: StudioRenderer;
   private readonly clips = new Map<string, StudioAnimationClip>(
-    createDefaultClipLibrary(this.doc.bones).clips.map((clip) => [clip.id, clip]),
+    createDefaultClipLibrary(this.doc.bones).clips.map((clip) => [clip.id, clip] as const),
   );
   private clipId = 'idle';
   private time = 0;
 
-  constructor(scene: Scene, private readonly cellSize: number) {
+  constructor(scene: Scene, cellSize: number) {
     this.renderer = new StudioRenderer(scene, cellSize);
   }
 
@@ -36,7 +36,8 @@ export class PlayerCharacterVisual {
     const current = this.clips.get(this.clipId)!;
     const requested = requestedClip === 'run' ? 'walk' : requestedClip;
     const requestedAnimation = requested ? this.clips.get(requested) : undefined;
-    const keepOneShot = !current.loop && this.time < current.duration && (!requestedAnimation || requestedAnimation.loop);
+    const keepOneShot =
+      !current.loop && this.time < current.duration && (!requestedAnimation || requestedAnimation.loop);
     const nextId = keepOneShot ? this.clipId : requestedAnimation ? requested! : 'idle';
 
     if (nextId !== this.clipId) {
