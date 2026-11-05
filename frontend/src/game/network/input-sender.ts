@@ -2,11 +2,13 @@
  * @file Runtime del juego: input sender.
  */
 
-/**
- * @file Envío throttled de intents al servidor (~30 Hz).
+﻿/**
+ * @file Envío throttled de intents de locomoción al servidor (Sprint C).
+ *
+ * Espejo de `handle_input` en `backend/src/game/network/input_handler.py` (~30 Hz).
  *
  * **Contrato intents vs cámara:** si solo cambian `yaw`/`pitch`, no se envía la clave
- * `intents` (el servidor conserva el último estado). Al soltar todas las acciones se manda `{}`.
+ * `intents` (el servidor conserva el último WASD). Al soltar movimiento se manda `{}`.
  */
 
 import type { InputCommand } from '@/types/world-events';
@@ -36,13 +38,17 @@ function packActiveIntents(intents: Record<string, boolean>): Record<string, tru
   return out;
 }
 
-/** Envía `input` al servidor a intervalo fijo mientras el WS está abierto. */
+/**
+ * Envía `input` al servidor a intervalo fijo mientras el WS está abierto.
+ */
 export class NetworkInputSender {
   private lastSentAt = 0;
   private seq = 0;
   private lastPayload = '';
   private jumpWasActive = false;
+  /** Había intents activos en el último envío con clave `intents`. */
   private hadMovementIntent = false;
+  /** Intents efectivos en el servidor tras el último envío con clave `intents`. */
   private lastEffectiveIntents: Record<string, boolean> = {};
 
   constructor(
@@ -52,30 +58,48 @@ export class NetworkInputSender {
     private readonly history?: InputHistory,
   ) {}
 
+  /** Último `seq` enviado por WS (0 si aún no hubo envíos). */
   get currentSeq(): number {
     return this.seq;
   }
 
-  tick(nowSec: number, intents: Record<string, boolean>, yaw: number, pitch?: number): void {
+  tick(
+    nowSec: number,
+    intents: Record<string, boolean>,
+    yaw: number,
+    pitch?: number,
+  ): void {
     const packed = packActiveIntents(intents);
-    const hasMovement = Object.keys(packed).some((key) => key !== 'attack_light');
+    const hasMovement = Object.keys(packed).length > 0;
     const jumpEdge = packed.jump === true && !this.jumpWasActive;
     this.jumpWasActive = packed.jump === true;
+
     const releaseEdge = this.hadMovementIntent && !hasMovement;
     let wireMode: IntentWireMode;
-    if (Object.keys(packed).length > 0) wireMode = 'active';
-    else if (releaseEdge) wireMode = 'clear';
-    else wireMode = 'omit';
+    if (hasMovement) {
+      wireMode = 'active';
+    } else if (releaseEdge) {
+      wireMode = 'clear';
+    } else {
+      wireMode = 'omit';
+    }
 
     const throttleElapsed = nowSec - this.lastSentAt >= INPUT_SEND_INTERVAL_SEC;
-    if (!throttleElapsed && !jumpEdge && !releaseEdge) return;
+    if (!throttleElapsed && !jumpEdge && !releaseEdge) {
+      return;
+    }
+
     const payloadKey = JSON.stringify({ wireMode, packed, yaw, pitch });
-    if (wireMode === 'omit' && payloadKey === this.lastPayload && !jumpEdge) return;
+    if (wireMode === 'omit' && payloadKey === this.lastPayload && !jumpEdge) {
+      return;
+    }
 
     this.lastSentAt = nowSec;
     this.lastPayload = payloadKey;
     this.seq += 1;
-    if (wireMode === 'active' || wireMode === 'clear') this.hadMovementIntent = hasMovement;
+    if (wireMode === 'active' || wireMode === 'clear') {
+      this.hadMovementIntent = hasMovement;
+    }
 
     const cmd: InputCommand = {
       type: 'input',
@@ -84,7 +108,9 @@ export class NetworkInputSender {
       seq: this.seq,
       yaw,
     };
-    if (pitch !== undefined) cmd.pitch = pitch;
+    if (pitch !== undefined) {
+      cmd.pitch = pitch;
+    }
     if (wireMode === 'active') {
       cmd.intents = packed;
       this.lastEffectiveIntents = { ...packed };
@@ -107,13 +133,26 @@ export class NetworkInputSender {
     yaw: number,
     pitch?: number,
   ): void {
-    if (!this.history) return;
+    if (!this.history) {
+      return;
+    }
     let intents: Record<string, boolean>;
-    if (wireMode === 'active') intents = { ...packed };
-    else if (wireMode === 'clear') intents = {};
-    else intents = { ...this.lastEffectiveIntents };
-    const entry: PendingInput = { seq, intents, yaw, sentAtMs: performance.now() };
-    if (pitch !== undefined) entry.pitch = pitch;
+    if (wireMode === 'active') {
+      intents = { ...packed };
+    } else if (wireMode === 'clear') {
+      intents = {};
+    } else {
+      intents = { ...this.lastEffectiveIntents };
+    }
+    const entry: PendingInput = {
+      seq,
+      intents,
+      yaw,
+      sentAtMs: performance.now(),
+    };
+    if (pitch !== undefined) {
+      entry.pitch = pitch;
+    }
     this.history.push(entry);
   }
 }
