@@ -53,10 +53,11 @@ export class PlayerCharacterVisual {
     this.pose.setBoneRots(sampleClip(clip, this.time, this.doc.bones));
     this.renderer.sync(this.doc, this.pose, { x, y, z, yaw, showBones: false });
 
-    const palette = DEFAULT_PALETTE as Record<string, number>;
     for (const mesh of this.renderer.getPickMeshes()) {
-      const layer = String(mesh.userData.bucketKey).split(':')[0]!;
-      (mesh.material as MeshStandardMaterial).color.setHex(tint ?? palette[layer] ?? DEFAULT_PALETTE.flesh);
+      const layer = String(mesh.userData.bucketKey).split(':')[0]! as keyof typeof DEFAULT_PALETTE;
+      (mesh.material as MeshStandardMaterial).color.setHex(
+        tint ?? DEFAULT_PALETTE[layer] ?? DEFAULT_PALETTE.flesh,
+      );
     }
   }
 }
