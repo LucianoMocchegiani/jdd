@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "constantDisplacementOrder": ["run", "swim", "walk"],
+  "constantDisplacementOrder": ["run", "swim", "walk", "fly"],
   "actions": [
     {
       "id": "run",
@@ -36,6 +36,16 @@
       },
       "movement": { "speedMultiplier": 1 },
       "appearance": { "state": "walk", "clip": "walk" }
+    },
+    {
+      "id": "fly",
+      "control": {
+        "inputIntent": "constant_displacements_move",
+        "slot": "constant_displacements",
+        "type": "sustained",
+        "when": { "medium": "air" }
+      },
+      "appearance": { "state": "fly", "clip": "fly" }
     }
   ],
   "impulseActions": [
