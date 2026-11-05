@@ -5,7 +5,7 @@
  */
 
 import type { ElementLayer, StudioDocument, StudioElement } from '@/poc/character-studio/types';
-import bipedDocRaw from '@/poc/biped.md?raw';
+import bipedDocRaw from '@/poc/biped.json?raw';
 
 const ELEMENT_LAYERS: readonly ElementLayer[] = ['core', 'flesh', 'gear', 'accent'];
 
@@ -63,7 +63,7 @@ export function documentFromJson(raw: string): StudioDocument {
   return assertDocumentV2(parsed);
 }
 
-/** Documento por defecto — `src/poc/biped.md` (v2). */
+/** Documento por defecto — `src/poc/biped.json` (v2). */
 export function defaultBipedDocument(): StudioDocument {
   return documentFromJson(bipedDocRaw);
 }

@@ -14,7 +14,7 @@ Guía de retoma: cómo pasar del POC (`?poc=character-studio`) al juego principa
 
 | Asset | Ruta |
 |-------|------|
-| Modelo biped | `frontend/src/poc/biped.md` |
+| Modelo biped | `frontend/src/poc/biped.json` |    
 | Clips | `frontend/src/poc/walk.md`, `attack.md`, `jump.md`, `swim.md`, `fly.md` |
 | POC | `frontend/src/poc/character-studio/` |
 
@@ -303,7 +303,7 @@ Fase 6 — (Opcional) Servidor recalcula pose
 | Puño hace daño | Fase 3–5, `body-actions.json`, nuevo dominio `combat/` |
 | Romper suelo | [10-destruction-pipeline.md](./10-destruction-pipeline.md) (ya existe) |
 | Editar animaciones | `?poc=character-studio`, export `.md` / JSON |
-| Editar rig | `biped.md` — fuente de verdad |
+| Editar rig | `biped.json` — fuente de verdad |
 
 ---
 
