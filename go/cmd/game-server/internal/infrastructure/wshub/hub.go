@@ -29,6 +29,7 @@ type Conn struct {
 	Claims     *jdauth.Claims
 	WireFormat string
 	WS         *websocket.Conn
+	writeMu    sync.Mutex
 	TerrainOut chan string
 }
 
@@ -151,6 +152,8 @@ func SafeWrite(c *Conn, msg string) {
 	if c == nil || c.WS == nil {
 		return
 	}
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
 	_ = c.WS.WriteMessage(websocket.TextMessage, []byte(msg))
 }
 
@@ -165,6 +168,8 @@ func WritePlayerState(c *Conn, jsonPayload string) {
 			SafeWrite(c, jsonPayload)
 			return
 		}
+		c.writeMu.Lock()
+		defer c.writeMu.Unlock()
 		_ = c.WS.WriteMessage(websocket.BinaryMessage, b)
 		return
 	}
