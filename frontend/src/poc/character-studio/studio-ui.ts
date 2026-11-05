@@ -65,7 +65,7 @@ export interface StudioUiCallbacks {
 const ROT_SLIDER_MAX = 314;
 const SHAPES: ElementShape[] = ['box', 'sphere', 'cylinder', 'cone'];
 const LAYERS: ElementLayer[] = ['core', 'flesh', 'gear', 'accent'];
-const ROLES: BoneRole[] = ['root', 'neck', 'hip', 'knee', 'shoulder', 'elbow'];
+const ROLES: BoneRole[] = ['root', 'neck', 'hip', 'knee', 'shoulder', 'elbow', 'wrist', 'ankle'];
 const AXES: BoneAxis[] = ['x', 'y', 'z'];
 
 function fmtNum(n: number): string {

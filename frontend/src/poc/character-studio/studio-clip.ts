@@ -15,6 +15,10 @@ import type {
   Vec3,
 } from '@/poc/character-studio/types';
 import { DEFAULT_CLIP_DURATION } from '@/poc/character-studio/types';
+import attackClipRaw from '@/poc/attack.md?raw';
+import flyClipRaw from '@/poc/fly.md?raw';
+import jumpClipRaw from '@/poc/jump.md?raw';
+import swimClipRaw from '@/poc/swim.md?raw';
 import walkClipRaw from '@/poc/walk.md?raw';
 
 /** Rotación bind de un hueso (radianes XYZ). */
@@ -22,18 +26,19 @@ function bindRotForBone(bone: StudioBone): Vec3 {
   return bone.rot ? [...bone.rot] : [0, 0, 0];
 }
 
-/** Clip walk por defecto — `src/poc/walk.md`. */
-function defaultWalkClip(): StudioAnimationClip {
-  return clipFromJson(walkClipRaw);
+function presetClip(raw: string): StudioAnimationClip {
+  return clipFromJson(raw);
 }
 
-/** Librería con presets idle/walk/attack/swim/death (0.3 s cada uno). */
+/** Librería con presets idle/walk/attack/jump/swim/fly/death. */
 export function createDefaultClipLibrary(bones: StudioBone[], fps: StudioFps = 30): StudioClipLibrary {
   const clips: StudioAnimationClip[] = [
     createBindClip('idle', 'idle', bones, fps),
-    defaultWalkClip(),
-    createBindClip('attack', 'attack', bones, fps),
-    createBindClip('swim', 'swim', bones, fps),
+    presetClip(walkClipRaw),
+    presetClip(attackClipRaw),
+    presetClip(jumpClipRaw),
+    presetClip(swimClipRaw),
+    presetClip(flyClipRaw),
     createBindClip('death', 'death', bones, fps),
   ];
   return { clips, activeId: 'idle' };

@@ -18,7 +18,7 @@ export type ElementLayer = 'core' | 'flesh' | 'gear' | 'accent';
 export type BoneAxis = 'x' | 'y' | 'z';
 
 /** Rol anatómico del hueso (metadata del rig). */
-export type BoneRole = 'root' | 'neck' | 'hip' | 'knee' | 'shoulder' | 'elbow';
+export type BoneRole = 'root' | 'neck' | 'hip' | 'knee' | 'shoulder' | 'elbow' | 'wrist' | 'ankle';
 
 /**
  * Vector 3D en espacio Three.
@@ -106,4 +106,4 @@ export type StudioFps = 24 | 30 | 60;
 
 export const DEFAULT_CLIP_DURATION = 0.3;
 
-export type PresetClipId = 'idle' | 'walk' | 'attack' | 'swim' | 'death';
+export type PresetClipId = 'idle' | 'walk' | 'attack' | 'jump' | 'swim' | 'fly' | 'death';

@@ -44,6 +44,7 @@ version: 1
 | **09** | [09-frontend-v2.md](./09-frontend-v2.md) | ECS cliente, terrain-store, quality tiers, predict | Frontend, render, móvil vs PC | pendiente |
 | **10-D** | [10-destruction-pipeline.md](./10-destruction-pipeline.md) | Jugador+NPC destrucción async, rate limit bloque | Swing, NPC rompe, particle_destroyed | cerrado |
 | **10-WG** | [10-worldgen-seeds.md](./10-worldgen-seeds.md) | Seeds in-game Go, BlockSeeded, cache invalidation | Crear bloque, dioses, expandir mundo | cerrado |
+| **13** | [13-character-studio-integration.md](./13-character-studio-integration.md) | POC rig/clips → juego, online visual, daño por puño | Integrar biped, animaciones sync, combate contacto | borrador |
 
 ---
 
@@ -136,6 +137,7 @@ version: 1
 | Ecos / 50 jugadores | 00, 02, RG-1, RG-2 |
 | JWT / auth | 00, GW-2, 06 |
 | Cliente Three.js | 06, 09, GLOSSARY |
+| Biped / Character Studio / animaciones | **13**, 09, 10-D |
 | DB sharding | 00, 03, 10-WG |
 | Plan sprint | 07, INDEX |
 | Crear archivo / carpeta nueva | **11**, **12**, INDEX |
