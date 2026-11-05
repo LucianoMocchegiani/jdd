@@ -51,7 +51,8 @@ export class PlayerCharacterVisual {
 
     const clip = this.clips.get(this.clipId)!;
     this.pose.setBoneRots(sampleClip(clip, this.time, this.doc.bones));
-    this.renderer.sync(this.doc, this.pose, { x, y, z, yaw, showBones: false });
+    // Character Studio faces the opposite local axis from the game's player yaw convention.
+    this.renderer.sync(this.doc, this.pose, { x, y, z, yaw: Math.PI - yaw, showBones: false });
 
     for (const mesh of this.renderer.getPickMeshes()) {
       const layer = String(mesh.userData.bucketKey).split(':')[0]! as keyof typeof DEFAULT_PALETTE;
