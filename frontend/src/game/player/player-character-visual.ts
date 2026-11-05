@@ -51,7 +51,7 @@ export class PlayerCharacterVisual {
 
     const clip = this.clips.get(this.clipId)!;
     this.pose.setBoneRots(sampleClip(clip, this.time, this.doc.bones));
-    this.renderer.sync(this.doc, this.pose, { x, y, z, yaw, showBones: false });
+    this.renderer.sync(this.doc, this.pose, { x, y, z, yaw: yaw - Math.PI / 2, showBones: false });
 
     for (const mesh of this.renderer.getPickMeshes()) {
       const layer = String(mesh.userData.bucketKey).split(':')[0]! as keyof typeof DEFAULT_PALETTE;
