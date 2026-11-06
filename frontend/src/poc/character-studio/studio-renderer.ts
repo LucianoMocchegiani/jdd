@@ -131,7 +131,7 @@ export class StudioRenderer {
     this.charWorld.compose(
       new Vector3(opts.x * this.cellSize, opts.z * this.cellSize, opts.y * this.cellSize),
       this.yawQuat,
-      new Vector3(1, 1, 1),
+      this.scl.set(base, base, base),
     );
 
     const grouped = new Map<BucketKey, StudioElement[]>();

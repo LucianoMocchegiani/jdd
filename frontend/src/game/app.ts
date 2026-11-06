@@ -133,7 +133,7 @@ export interface BootstrapResult {
  * | ActionOrchestratorSystem | 15 | Fichas → `ActionsComponent` |
  * | MovementSystem | 20 | Velocidad, gravedad, colisión (usa `terrain`) |
  * | WorldDamageSystem | 22 | `swing` por WS; terreno vía `particle_destroyed` |
- * | AppearanceSystem | 25 | Tint del mesh jugador (stub GLB) |
+ * | AppearanceSystem | 25 | Apariencia animada del jugador local |
  *
  * @param worldRealtime - WS de mundo (swing + eventos de terreno).
  */
@@ -149,7 +149,6 @@ function registerGameplaySystems(
   // HUD de contacto/acción: dos líneas actualizadas por callbacks de sistemas.
   let mediumLine = 'medium: —';
   let actionLine = 'acción: —';
-
   const refreshContactHud = (): void => {
     debugMediumEl.textContent = `${mediumLine}\n${actionLine}`;
   };
@@ -166,7 +165,6 @@ function registerGameplaySystems(
     refreshContactHud();
   });
   const movementSystem = new MovementSystem(terrain);
-
   world.registerSystem(inputSystem);
   world.registerSystem(particleContext);
   world.registerSystem(conditionSystem);
@@ -184,7 +182,6 @@ function registerGameplaySystems(
   // --- Efectos sobre el mundo y presentación ---
   world.registerSystem(new WorldDamageSystem(terrain, worldRealtime, playerId));
   world.registerSystem(new AppearanceSystem(playerEntityId, playerMesh));
-
   return simulationRunner;
 }
 
@@ -223,7 +220,6 @@ export async function bootstrapApp(
   setMovementDebugHud(debugMovementEl);
   bindInputStatsHud(debugInputStatsEl);
   bindPositionSyncHud(debugPosSyncEl);
-
   const inputStatsDebug = isInputStatsDebugEnabled();
   const posSyncDebug = isPositionSyncDebugEnabled();
   let backendInputStats: BackendInputStats | null = null;
@@ -242,9 +238,7 @@ export async function bootstrapApp(
       terrain.cellSize,
     );
   };
-
   let spawnResolved = false;
-
   let playerEntityId = 0;
   let spawnX = 8;
   let spawnY = 8;
@@ -253,11 +247,9 @@ export async function bootstrapApp(
   // Fase B — Backend + viewport + WebSocket (requerido)
   // -------------------------------------------------------------------------
   const { health, client } = await verifyBackendConnectivity();
-
   const catalog = await syncParticleCatalog(client);
   const bloquesApi = new BloquesApi(client);
   const bloque = await resolveActiveBloque(bloquesApi);
-
   if (!bloque) {
     throw new Error('No se encontró bloque activo. Comprueba la base de datos o ?bloque= en la URL.');
   }
@@ -266,13 +258,10 @@ export async function bootstrapApp(
   const spawnCell = resolveSpawnCell(bloque);
   spawnX = spawnCell.x;
   spawnY = spawnCell.y;
-
   const bloqueId = bloque.id;
   const bloqueNombre = bloque.nombre;
-
   terrain = new TerrainStore(bloqueId, cellSize);
   spawnZ = 8;
-
   terrain.onViewportLoaded(() => {
     rebuildTerrainMeshes();
     if (!spawnResolved && terrain.isSimulationStable) {
@@ -291,20 +280,16 @@ export async function bootstrapApp(
       statusEl.textContent = `${formatBackendOkStatus(health.status, catalog.statusSuffix)} · ${bloqueNombre} · ${terrain.getParticles().length} partículas · clic canvas · WASD · C cámara · F atacar`;
     }
   });
-
   terrain.onParticlesRemoved((removed) => {
     particleRenderer.removeParticles(removed);
   });
-
   terrain.onParticlesAdded((added) => {
     particleRenderer.addParticles(added, terrain.getTypesByNombre(), terrain.cellSize);
   });
 
   const playerId = getOrCreatePlayerId();
-
   statusEl.textContent = `${formatBackendOkStatus(health.status, catalog.statusSuffix)} · ${bloqueNombre} · cargando terreno… · clic canvas · WASD · C cámara · F atacar`;
   statusEl.dataset.state = catalog.statusState;
-
   const worldRealtime = new WorldRealtimeClient();
   const remotePresence = new RemotePresence(scene, cellSize, playerId);
   const inputHistory = new InputHistory();
@@ -336,7 +321,6 @@ export async function bootstrapApp(
     spawnZ,
   );
   playerEntityId = entityId;
-
   if (posSyncDebug) {
     ensureServerGhost(scene, cellSize);
   }
@@ -365,10 +349,8 @@ export async function bootstrapApp(
   );
   localReconciler = new LocalPlayerReconciler(playerId, inputHistory, simulationRunner);
   debugMediumEl.textContent = 'medium: —';
-
   const cameraController = new CameraController(camera, renderer.domElement, playerMesh);
   setCameraController(cameraController);
-
   if (isMovementDebugEnabled()) {
     console.info(
       '[movement:debug] Flujo: [input:key] → [input:intents] → [movement:vel] → [movement:apply]. HUD arriba-izq. Off: ?debug=movement-off',
@@ -380,13 +362,10 @@ export async function bootstrapApp(
   // -------------------------------------------------------------------------
   const loop = new GameLoop((deltaTime) => {
     worldRealtime.drainInboundQueue();
-
     // 1) Ratón / toggle inspect / facing — debe ir ANTES de InputSystem en world.update.
     cameraController.tickInput(world, playerEntityId);
-
     // 2) Simulación: intents → medium → acciones → movimiento → daño → apariencia.
     world.update(deltaTime);
-
     inputSendClockSec += deltaTime;
     const inputComp = world.getComponent<InputComponent>(playerEntityId, 'input');
     const facingComp = world.getComponent<FacingComponent>(playerEntityId, 'facing');
@@ -418,14 +397,12 @@ export async function bootstrapApp(
         cameraController.pitch,
         cameraController.mode,
       );
-
       const conditions = world.getComponent<ConditionsComponent>(playerEntityId, 'conditions');
       updateConditionsHud(
         debugConditionsEl,
         conditions?.active ?? [],
         conditions?.debugDamageTotal ?? 0,
       );
-
       if (inputStatsDebug && debugInputStatsEl) {
         inputStatsPollClockSec += deltaTime;
         if (inputStatsPollClockSec >= 1 && !inputStatsPollInFlight) {
@@ -438,7 +415,6 @@ export async function bootstrapApp(
         }
         debugInputStatsEl.textContent = formatInputStatsHud(playerId, backendInputStats);
       }
-
       if (posSyncDebug && debugPosSyncEl) {
         const ws = worldRealtime.getWsDebugStats();
         const contactComp = world.getComponent<ContactComponent>(playerEntityId, 'contact');
@@ -454,14 +430,10 @@ export async function bootstrapApp(
     }
 
     worldRealtime.drainInboundQueue();
-
     remotePresence.update();
-
     renderer.render(scene, camera);
   });
-
   loop.start();
-
   return {
     app: {
       world,

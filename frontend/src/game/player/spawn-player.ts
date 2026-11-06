@@ -1,5 +1,5 @@
 /**
- * @file Crea la entidad jugador con componentes base.
+ * @file Crea la entidad jugador y su ancla visual para la cámara.
  */
 
 import {
@@ -12,13 +12,13 @@ import {
   PositionComponent,
 } from '@/ecs/components';
 import type { World } from '@/ecs/core';
-import { createPlayerBodyMesh } from '@/game/player/player-body-visual';
-import { Group, MeshStandardMaterial, type Scene } from 'three';
+import { PlayerCharacterVisual } from '@/game/player/player-character-visual';
+import { Group, type Scene } from 'three';
 
 /**
- * Spawnea jugador en ECS y un marcador visual en la escena.
+ * Spawnea el jugador ECS y crea el ancla con el personaje local animado.
  *
- * @returns Id de entidad y grupo Three.js del marcador
+ * @returns Id de entidad y grupo ancla usado por la cámara y la sincronización visual
  */
 export function spawnPlayer(
   world: World,
@@ -38,17 +38,12 @@ export function spawnPlayer(
   world.addComponent(entityId, new ActionsComponent());
 
   const group = new Group();
-  const body = createPlayerBodyMesh(
-    cellSize,
-    new MeshStandardMaterial({ color: 0xfbbf24 }),
-  );
-  group.add(body);
+  group.userData.characterVisual = new PlayerCharacterVisual(scene, cellSize);
   scene.add(group);
-
   return { entityId, mesh: group };
 }
 
-/** Sincroniza el mesh del jugador con {@link PositionComponent}. */
+/** Sincroniza el ancla de cámara con la posición ECS del jugador. */
 export function syncPlayerMesh(
   mesh: Group,
   x: number,

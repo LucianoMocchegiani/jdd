@@ -18,24 +18,22 @@ import { recordInputSent } from '@/game/debug/input-stats-debug';
 import type { InputHistory } from '@/game/client-prediction/input-history';
 import type { PendingInput } from '@/types/reconciliation';
 
-const MOVEMENT_INTENTS = [
+const NETWORKED_INTENTS = [
   'move_forward',
   'move_backward',
   'move_left',
   'move_right',
   'run_forward',
   'jump',
+  'attack_light',
 ] as const;
 
-/** Cómo incluir `intents` en el wire. */
 type IntentWireMode = 'omit' | 'clear' | 'active';
 
 function packActiveIntents(intents: Record<string, boolean>): Record<string, true> {
   const out: Record<string, true> = {};
-  for (const key of MOVEMENT_INTENTS) {
-    if (intents[key] === true) {
-      out[key] = true;
-    }
+  for (const key of NETWORKED_INTENTS) {
+    if (intents[key] === true) out[key] = true;
   }
   return out;
 }
@@ -48,7 +46,7 @@ export class NetworkInputSender {
   private seq = 0;
   private lastPayload = '';
   private jumpWasActive = false;
-  /** Había intents de locomoción en el último envío con clave `intents`. */
+  /** Había intents activos en el último envío con clave `intents`. */
   private hadMovementIntent = false;
   /** Intents efectivos en el servidor tras el último envío con clave `intents`. */
   private lastEffectiveIntents: Record<string, boolean> = {};
@@ -99,7 +97,6 @@ export class NetworkInputSender {
     this.lastSentAt = nowSec;
     this.lastPayload = payloadKey;
     this.seq += 1;
-
     if (wireMode === 'active' || wireMode === 'clear') {
       this.hadMovementIntent = hasMovement;
     }
@@ -125,9 +122,7 @@ export class NetworkInputSender {
     } else {
       recordInputSent('omit');
     }
-
     this.recordHistory(this.seq, wireMode, packed, yaw, pitch);
-
     this.client.send(cmd);
   }
 
@@ -141,7 +136,6 @@ export class NetworkInputSender {
     if (!this.history) {
       return;
     }
-
     let intents: Record<string, boolean>;
     if (wireMode === 'active') {
       intents = { ...packed };
@@ -150,7 +144,6 @@ export class NetworkInputSender {
     } else {
       intents = { ...this.lastEffectiveIntents };
     }
-
     const entry: PendingInput = {
       seq,
       intents,
