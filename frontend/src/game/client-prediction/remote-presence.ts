@@ -24,6 +24,7 @@ export class RemotePresence {
   private readonly remotes = new Map<string, RemoteEntry>();
   /** Jugadores que salieron; ignora `player_state` en vuelo hasta un nuevo join. */
   private readonly leftPlayerIds = new Set<string>();
+  private lastUpdateMs = performance.now();
 
   constructor(
     private readonly scene: Scene,
@@ -77,7 +78,9 @@ export class RemotePresence {
   }
 
   /** Actualiza posición/yaw interpolados y anima todos los remotos (llamar cada frame). */
-  update(deltaTime: number = 1 / 60, nowMs: number = performance.now()): void {
+  update(nowMs: number = performance.now()): void {
+    const deltaTime = Math.max(0, (nowMs - this.lastUpdateMs) / 1000);
+    this.lastUpdateMs = nowMs;
     for (const entry of this.remotes.values()) {
       const state = entry.buffer.sample(nowMs);
       if (state) {
