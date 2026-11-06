@@ -128,14 +128,13 @@ func (s *BlockSession) CancelSwing(playerID string, reservation SwingReservation
 }
 
 // ApplyMeleeDamage applies one hit to each other player whose body hitbox is in the strike.
-func (s *BlockSession) ApplyMeleeDamage(attackerID string, origin jdcombat.Point, yaw, reach, damage float64) []PlayerHealthChange {
+func (s *BlockSession) ApplyMeleeDamage(attackerID string, origin jdcombat.Point, yaw, reach, damage float64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	attacker := s.Players[attackerID]
 	if attacker == nil || attacker.Health <= 0 {
-		return nil
+		return
 	}
-	var hits []PlayerHealthChange
 	for id, target := range s.Players {
 		if id == attackerID || target.Health <= 0 || !jdcombat.HitsPlayer(origin, yaw, jdcombat.Point{X: target.X, Y: target.Y, Z: target.Z}, reach) {
 			continue
@@ -144,16 +143,7 @@ func (s *BlockSession) ApplyMeleeDamage(attackerID string, origin jdcombat.Point
 		if target.Health < 0 {
 			target.Health = 0
 		}
-		hits = append(hits, PlayerHealthChange{PlayerID: id, Health: target.Health, MaxHealth: target.MaxHealth})
 	}
-	return hits
-}
-
-// PlayerHealthChange is the replicated result for one hit player.
-type PlayerHealthChange struct {
-	PlayerID  string
-	Health    float64
-	MaxHealth float64
 }
 
 // PlayerIDs implementa player ids.
