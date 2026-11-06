@@ -1,0 +1,26 @@
+package entity
+
+import (
+	"testing"
+	"time"
+
+	jdcombat "github.com/juego-de-dioses/jd/pkg/jd/combat"
+)
+
+func TestSwingReservationAndSingleHit(t *testing.T) {
+	s := NewBlockSession("b", 1)
+	s.AddPlayer("attacker", 0, 0, 0, 0, 0)
+	s.AddPlayer("target", 0, -1, 0, 0, 0)
+	now := time.Now()
+	reservation, ok := s.BeginSwing("attacker", 1, now, 500*time.Millisecond)
+	if !ok {
+		t.Fatal("first swing should be accepted")
+	}
+	if _, ok := s.BeginSwing("attacker", 1, now, 500*time.Millisecond); ok {
+		t.Fatal("duplicate swing should be rejected")
+	}
+	hits := s.ApplyMeleeDamage("attacker", jdcombat.Point{X: reservation.X, Y: reservation.Y, Z: reservation.Z}, reservation.Yaw, 2, 15)
+	if len(hits) != 1 || hits[0].Health != 85 {
+		t.Fatalf("unexpected melee hits: %+v", hits)
+	}
+}
