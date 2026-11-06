@@ -49,8 +49,15 @@ type WorldDamageProfile struct {
 	Damage float64
 }
 
+// EntityDamageProfile representa entity damage profile.
+type EntityDamageProfile struct {
+	Reach  float64
+	Damage float64
+}
+
 // CombatProfile representa combat profile.
 type CombatProfile struct {
-	ActionID    string
-	WorldDamage *WorldDamageProfile
+	ActionID     string
+	WorldDamage  *WorldDamageProfile
+	EntityDamage *EntityDamageProfile
 }

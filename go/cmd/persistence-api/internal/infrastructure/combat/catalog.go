@@ -17,6 +17,10 @@ type catalogFile struct {
 				Reach  int     `json:"reach"`
 				Damage float64 `json:"damage"`
 			} `json:"worldDamage"`
+			EntityDamage struct {
+				Reach  float64 `json:"reach"`
+				Damage float64 `json:"damage"`
+			} `json:"entityDamage"`
 		} `json:"impact"`
 	} `json:"actions"`
 }
@@ -39,26 +43,16 @@ func LoadCatalog(path string) (*Catalog, error) {
 	}
 	c := &Catalog{profiles: make(map[string]*domain.CombatProfile)}
 	for id, action := range raw.Actions {
+		profile := &domain.CombatProfile{ActionID: id}
 		wd := action.Impact.WorldDamage
-		if wd.Reach <= 0 && wd.Damage <= 0 {
-			c.profiles[id] = &domain.CombatProfile{ActionID: id}
-			continue
+		if wd.Reach > 0 && wd.Damage > 0 {
+			profile.WorldDamage = &domain.WorldDamageProfile{Reach: wd.Reach, Damage: wd.Damage}
 		}
-		reach := wd.Reach
-		if reach < 1 {
-			reach = 1
+		ed := action.Impact.EntityDamage
+		if ed.Reach > 0 && ed.Damage > 0 {
+			profile.EntityDamage = &domain.EntityDamageProfile{Reach: ed.Reach, Damage: ed.Damage}
 		}
-		damage := wd.Damage
-		if damage <= 0 {
-			damage = 15
-		}
-		c.profiles[id] = &domain.CombatProfile{
-			ActionID: id,
-			WorldDamage: &domain.WorldDamageProfile{
-				Reach:  reach,
-				Damage: damage,
-			},
-		}
+		c.profiles[id] = profile
 	}
 	return c, nil
 }

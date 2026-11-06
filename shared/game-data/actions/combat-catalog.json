@@ -6,6 +6,10 @@
         "worldDamage": {
           "reach": 2,
           "damage": 15
+        },
+        "entityDamage": {
+          "reach": 2,
+          "damage": 15
         }
       }
     }
