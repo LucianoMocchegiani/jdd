@@ -12,7 +12,7 @@ const (
 	playerHitboxHeight = 1.8
 )
 
-// shortcut: uses fixed sector/capsule hit volumes, replace when animated per-part collisions are implemented.
+// shortcut: fixed unobstructed sector/capsule; replace with swept per-part collision and occlusion when available.
 func HitsPlayer(origin Point, yaw float64, target Point, reach float64) bool {
 	forward, lateral := planarHit(origin, yaw, target.X, target.Y)
 	if forward <= 0 || forward > reach+playerHitboxRadius || lateral > 0.65+playerHitboxRadius {
