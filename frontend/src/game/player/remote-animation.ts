@@ -13,11 +13,21 @@ export interface RemoteAnimationState {
 const MOVE_INTENTS = ['move_forward', 'move_backward', 'move_left', 'move_right'] as const;
 
 export function selectRemoteClip(state: RemoteAnimationState): string | null {
-  const moving = MOVE_INTENTS.some((intent) => state.intents?.[intent]) || Math.hypot(state.vx, state.vy) > 0.05;
+  const moving =
+    MOVE_INTENTS.some((intent) => state.intents?.[intent]) || Math.hypot(state.vx, state.vy) > 0.05;
 
-  if (state.intents?.attack_light && state.medium !== 'air' && state.medium !== 'submerged_full') return 'attack';
-  if (state.medium === 'submerged_partial' || state.medium === 'submerged_full') return moving ? 'swim' : null;
-  if (state.medium === 'air') return moving ? 'fly' : state.vz > 0.1 ? 'jump' : null;
-  if (state.medium === 'ground' && moving) return state.intents?.run_forward ? 'run' : 'walk';
+  // shortcut: infer attacks from the held input intent; send timed action events if taps are missed or exact timing matters.
+  if (state.intents?.attack_light && state.medium !== 'air' && state.medium !== 'submerged_full') {
+    return 'attack';
+  }
+  if (state.medium === 'submerged_partial' || state.medium === 'submerged_full') {
+    return moving ? 'swim' : null;
+  }
+  if (state.medium === 'air') {
+    return moving ? 'fly' : state.vz > 0.1 ? 'jump' : null;
+  }
+  if (state.medium === 'ground' && moving) {
+    return state.intents?.run_forward ? 'run' : 'walk';
+  }
   return null;
 }
