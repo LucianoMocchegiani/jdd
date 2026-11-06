@@ -12,7 +12,7 @@ const (
 	playerHitboxHeight = 1.8
 )
 
-// HitsPlayer approximates a forward hand-strike against a capsule-shaped body.
+// shortcut: uses fixed sector/capsule hit volumes, replace when animated per-part collisions are implemented.
 func HitsPlayer(origin Point, yaw float64, target Point, reach float64) bool {
 	forward, lateral := planarHit(origin, yaw, target.X, target.Y)
 	if forward <= 0 || forward > reach+playerHitboxRadius || lateral > 0.65+playerHitboxRadius {
