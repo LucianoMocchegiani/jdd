@@ -13,6 +13,7 @@ type Services struct {
 	TerrainPub   port.TerrainPublisher
 	TerrainTypes port.TerrainTypesFetcher
 	SwingPub     port.SwingPublisher
+	Combat       port.CombatCatalog
 	Registry     port.RegistryClient
 	Hub          *wshub.Hub
 	SessionCfg   *session.Config

@@ -15,8 +15,9 @@ import (
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/config"
 	wsdelivery "github.com/juego-de-dioses/jd/cmd/game-server/internal/delivery/ws"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
-	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/memory"
+	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/combat"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/httpclient"
+	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/memory"
 	redisinfra "github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/redis"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/wshub"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/usecase"
@@ -29,10 +30,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	session.SetLoadPath(resolveSessionPath(cfg.SessionJSONPath))
+	session.SetLoadPath(resolveDataPath(cfg.SessionJSONPath))
 	sessionCfg, err := session.Load()
 	if err != nil {
 		log.Fatalf("session.json: %v", err)
+	}
+	combatCatalog, err := combat.LoadCatalog(resolveDataPath(cfg.CombatCatalogPath))
+	if err != nil {
+		log.Fatalf("combat catalog: %v", err)
 	}
 
 	opt, err := goredis.ParseURL(cfg.RedisURL)
@@ -59,16 +64,17 @@ func main() {
 	}
 
 	svc := &usecase.Services{
-		Sessions:     store,
-		TerrainPub:   terrainPub,
-		TerrainTypes: terrainTypes,
-		SwingPub:     swingPub,
-		Registry:     registry,
-		Hub:          hub,
-		SessionCfg:   sessionCfg,
-		InstanceID:   cfg.GameInstanceID,
-		ServerWire:   cfg.WireFormat,
-		TerrainPush:  usecase.NewTerrainPushManager(),
+		Sessions:       store,
+		TerrainPub:     terrainPub,
+		TerrainTypes:   terrainTypes,
+		SwingPub:       swingPub,
+		Combat:         combatCatalog,
+		Registry:       registry,
+		Hub:            hub,
+		SessionCfg:     sessionCfg,
+		InstanceID:     cfg.GameInstanceID,
+		ServerWire:     cfg.WireFormat,
+		TerrainPush:    usecase.NewTerrainPushManager(),
 	}
 
 	if cfg.UseRegistry() {
@@ -132,7 +138,7 @@ func runTickLoop(svc *usecase.Services) {
 	}
 }
 
-func resolveSessionPath(path string) string {
+func resolveDataPath(path string) string {
 	if _, err := os.Stat(path); err == nil {
 		return path
 	}

@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	tickHz       = 30
-	maxDeltaSec  = 0.1
+	tickHz      = 30
+	maxDeltaSec = 0.1
 )
 
 // RunTick implementa run tick.
@@ -34,15 +34,15 @@ func (s *Services) RunTick(deltaSec float64) {
 		tick := sess.IncrementTick()
 		states := BuildAllPlayerStates(sess, tick)
 		s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
-		for _, msg := range states {
-			wshub.WritePlayerState(c, msg)
-		}
+			for _, msg := range states {
+				wshub.WritePlayerState(c, msg)
+			}
 		})
 	}
 	s.DrainTerrainFanout()
 }
 
-// BuildAllPlayerStates ejecuta build all player states.
+// BuildAllPlayerStates serializes the authoritative player state for broadcast.
 func BuildAllPlayerStates(sess *entity.BlockSession, tick int) []string {
 	var out []string
 	sess.ForEachPlayer(func(p *entity.Player) {
@@ -61,6 +61,8 @@ func BuildAllPlayerStates(sess *entity.BlockSession, tick int) []string {
 			"medium":      p.Medium,
 			"input_seq":   p.InputSeq,
 			"intents":     intentsTrueOnly(p.Intents),
+			"health":      p.Health,
+			"max_health":  p.MaxHealth,
 		}
 		if p.Pitch != 0 {
 			payload["pitch"] = p.Pitch

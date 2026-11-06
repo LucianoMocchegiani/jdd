@@ -18,6 +18,7 @@ type Config struct {
 	Env               string
 	JWTSecret         string
 	SessionJSONPath   string
+	CombatCatalogPath string
 	WireFormat        string
 }
 
@@ -34,6 +35,7 @@ func Load() (Config, error) {
 		Env:               getenv("ENV", "dev"),
 		JWTSecret:         getenv("JWT_SECRET", "dev-secret"),
 		SessionJSONPath:   getenv("SESSION_JSON_PATH", "shared/game-data/game/session.json"),
+		CombatCatalogPath: getenv("COMBAT_CATALOG_PATH", "shared/game-data/actions/combat-catalog.json"),
 		WireFormat:        getenv("WIRE_FORMAT", "json"),
 	}, nil
 }
