@@ -60,6 +60,17 @@ export class PlayerCharacterVisual {
     }
   }
 
+  /** Ajusta transparencia para usar el rig como fantasma de depuración. */
+  setOpacity(opacity: number): void {
+    for (const mesh of this.renderer.getPickMeshes()) {
+      const material = mesh.material as MeshStandardMaterial;
+      material.transparent = opacity < 1;
+      material.opacity = opacity;
+      material.depthWrite = opacity >= 1;
+      material.needsUpdate = true;
+    }
+  }
+
   /** Libera el renderer al desaparecer una réplica remota. */
   dispose(): void {
     this.renderer.dispose();
