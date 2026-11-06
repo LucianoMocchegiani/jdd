@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	jdcombat "github.com/juego-de-dioses/jd/pkg/jd/combat"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/collision"
+	jdcombat "github.com/juego-de-dioses/jd/pkg/jd/combat"
 )
 
 // BlockSession — sala multijugador por bloque_id + eco_id.
@@ -107,7 +107,7 @@ func (s *BlockSession) BeginSwing(playerID string, seq int, now time.Time, coold
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	p, ok := s.Players[playerID]
-	if !ok || p.Health <= 0 || seq <= p.lastSwingSeq || (!p.lastSwingAt.IsZero() && now.Sub(p.lastSwingAt) < cooldown) {
+	if !ok || p.Health <= 0 || p.Medium == "air" || p.Medium == "submerged_full" || seq <= p.lastSwingSeq || (!p.lastSwingAt.IsZero() && now.Sub(p.lastSwingAt) < cooldown) {
 		return SwingReservation{}, false
 	}
 	reservation := SwingReservation{
@@ -151,8 +151,8 @@ func (s *BlockSession) ApplyMeleeDamage(attackerID string, origin jdcombat.Point
 
 // PlayerHealthChange is the replicated result for one hit player.
 type PlayerHealthChange struct {
-	PlayerID string
-	Health   float64
+	PlayerID  string
+	Health    float64
 	MaxHealth float64
 }
 

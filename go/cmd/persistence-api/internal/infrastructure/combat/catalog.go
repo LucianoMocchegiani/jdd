@@ -45,8 +45,16 @@ func LoadCatalog(path string) (*Catalog, error) {
 	for id, action := range raw.Actions {
 		profile := &domain.CombatProfile{ActionID: id}
 		wd := action.Impact.WorldDamage
-		if wd.Reach > 0 && wd.Damage > 0 {
-			profile.WorldDamage = &domain.WorldDamageProfile{Reach: wd.Reach, Damage: wd.Damage}
+		if wd.Reach > 0 || wd.Damage > 0 {
+			reach := wd.Reach
+			if reach < 1 {
+				reach = 1
+			}
+			damage := wd.Damage
+			if damage <= 0 {
+				damage = 15
+			}
+			profile.WorldDamage = &domain.WorldDamageProfile{Reach: reach, Damage: damage}
 		}
 		ed := action.Impact.EntityDamage
 		if ed.Reach > 0 && ed.Damage > 0 {
