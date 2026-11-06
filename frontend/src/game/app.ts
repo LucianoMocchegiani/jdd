@@ -55,6 +55,8 @@ import {
 } from '@/game/network';
 import { InputHistory, LocalPlayerReconciler, RemotePresence } from '@/game/client-prediction';
 import { PresenceHandler } from '@/game/network/presence-handler';
+import { HealthHud } from '@/game/health-hud';
+import type { PlayerCharacterVisual } from '@/game/player/player-character-visual';
 import type { SessionEvent } from '@/types/world-events';
 import { findSpawnZ } from '@/game/player/find-spawn';
 import { resolveSpawnCell } from '@/game/player/resolve-spawn-cell';
@@ -111,32 +113,14 @@ export interface AppContext {
   worldRealtime: WorldRealtimeClient;
 }
 
-/**
- * Valor de retorno de {@link bootstrapApp} para la capa de entrada (`main.ts`).
- */
+/** Valor de retorno de {@link bootstrapApp} para la capa de entrada (`main.ts`). */
 export interface BootstrapResult {
   app: AppContext;
   /** Respuesta de `GET /health` tras conexión exitosa. */
   health: HealthResponse;
 }
 
-/**
- * Registra todos los sistemas de gameplay en el {@link World}.
- *
- * El orden de ejecución lo define `System.priority` (no el orden de `registerSystem`).
- * Callbacks opcionales alimentan `#debug-medium` (medium + acción activa).
- *
- * | Sistema | Priority | Notas |
- * |---------|----------|--------|
- * | InputSystem | 0 | Teclado → intents; bloquea movimiento en modo inspect |
- * | ParticleContextSystem | 10 | Partículas en radio → `ContactComponent` |
- * | ActionOrchestratorSystem | 15 | Fichas → `ActionsComponent` |
- * | MovementSystem | 20 | Velocidad, gravedad, colisión (usa `terrain`) |
- * | WorldDamageSystem | 22 | `swing` por WS; terreno vía `particle_destroyed` |
- * | AppearanceSystem | 25 | Apariencia animada del jugador local |
- *
- * @param worldRealtime - WS de mundo (swing + eventos de terreno).
- */
+/** Registra todos los sistemas de gameplay en el {@link World}. */
 function registerGameplaySystems(
   world: World,
   terrain: TerrainStore,
@@ -146,14 +130,11 @@ function registerGameplaySystems(
   worldRealtime: WorldRealtimeClient,
   playerId: string,
 ): PlayerSimulationRunner {
-  // HUD de contacto/acción: dos líneas actualizadas por callbacks de sistemas.
   let mediumLine = 'medium: —';
   let actionLine = 'acción: —';
   const refreshContactHud = (): void => {
     debugMediumEl.textContent = `${mediumLine}\n${actionLine}`;
   };
-
-  // --- Entrada y contexto de mundo (antes de resolver acciones) ---
   const inputSystem = new InputSystem();
   const particleContext = new ParticleContextSystem(terrain, (label) => {
     mediumLine = label;
@@ -170,7 +151,6 @@ function registerGameplaySystems(
   world.registerSystem(conditionSystem);
   world.registerSystem(actionOrchestrator);
   world.registerSystem(movementSystem);
-
   const simulationRunner = new PlayerSimulationRunner(
     particleContext,
     conditionSystem,
@@ -178,30 +158,12 @@ function registerGameplaySystems(
     movementSystem,
   );
   movementSystem.setPitchSource(simulationRunner);
-
-  // --- Efectos sobre el mundo y presentación ---
   world.registerSystem(new WorldDamageSystem(terrain, worldRealtime, playerId));
   world.registerSystem(new AppearanceSystem(playerEntityId, playerMesh));
   return simulationRunner;
 }
 
-/**
- * Bootstrap completo: conecta servicios, monta el mundo jugable y arranca el loop.
- *
- * **Solo online:** si falla backend, bloque o arranque, lanza error (ver `main.ts`).
- *
- * @param scene - Escena Three.js creada en `main.ts` (luces; luego terreno + jugador).
- * @param camera - `PerspectiveCamera` de la escena; posición la mueve {@link CameraController}.
- * @param renderer - WebGL renderer; `renderer.domElement` es el canvas de pointer lock.
- * @param statusEl - `#status` en HTML: conexión API, bloque cargado y atajos de control.
- * @param debugMediumEl - `#debug-medium`: `medium` + acción activa (callbacks de sistemas).
- * @param debugConditionsEl - `#debug-conditions`: condiciones activas del jugador.
- * @param debugCameraEl - `#debug-camera`: yaw/pitch y modo de cámara (cada frame).
- * @param debugMovementEl - `#debug-movement`: HUD opcional de velocidad/colisiones (`?debug=movement`).
- * @param debugInputStatsEl - `#debug-input-stats`: contadores input front/back (`?debug=input-stats`).
- * @param debugPosSyncEl - `#debug-pos-sync`: local vs servidor (`?debug=pos-sync`).
- * @throws Si no hay conexión al API, bloque en el índice configurado, o carga inicial del viewport.
- */
+/** Bootstrap online del mundo jugable y del loop de presentación. */
 export async function bootstrapApp(
   scene: Scene,
   camera: PerspectiveCamera,
@@ -214,9 +176,6 @@ export async function bootstrapApp(
   debugInputStatsEl: HTMLElement | null,
   debugPosSyncEl: HTMLElement | null,
 ): Promise<BootstrapResult> {
-  // -------------------------------------------------------------------------
-  // Fase A — Núcleo local (no depende del backend)
-  // -------------------------------------------------------------------------
   setMovementDebugHud(debugMovementEl);
   bindInputStatsHud(debugInputStatsEl);
   bindPositionSyncHud(debugPosSyncEl);
@@ -229,8 +188,6 @@ export async function bootstrapApp(
   const particleRenderer = new SimpleParticleRenderer(scene);
   let cellSize = 1;
   let terrain: TerrainStore;
-
-  /** Sincroniza Three.js cuando `TerrainStore` termina de cargar un viewport. */
   const rebuildTerrainMeshes = (): void => {
     particleRenderer.rebuildIncremental(
       terrain.getParticles(),
@@ -243,9 +200,6 @@ export async function bootstrapApp(
   let spawnX = 8;
   let spawnY = 8;
   let spawnZ = 4;
-  // -------------------------------------------------------------------------
-  // Fase B — Backend + viewport + WebSocket (requerido)
-  // -------------------------------------------------------------------------
   const { health, client } = await verifyBackendConnectivity();
   const catalog = await syncParticleCatalog(client);
   const bloquesApi = new BloquesApi(client);
@@ -266,42 +220,41 @@ export async function bootstrapApp(
     rebuildTerrainMeshes();
     if (!spawnResolved && terrain.isSimulationStable) {
       spawnResolved = true;
-      const z = findSpawnZ(
-        terrain.getParticles(),
-        spawnX,
-        spawnY,
-        terrain.getTypesByNombre(),
-      );
+      const z = findSpawnZ(terrain.getParticles(), spawnX, spawnY, terrain.getTypesByNombre());
       spawnZ = z;
       const posComp = world.getComponent<PositionComponent>(playerEntityId, 'position');
-      if (posComp) {
-        posComp.z = z;
-      }
+      if (posComp) posComp.z = z;
       statusEl.textContent = `${formatBackendOkStatus(health.status, catalog.statusSuffix)} · ${bloqueNombre} · ${terrain.getParticles().length} partículas · clic canvas · WASD · C cámara · F atacar`;
     }
   });
-  terrain.onParticlesRemoved((removed) => {
-    particleRenderer.removeParticles(removed);
-  });
-  terrain.onParticlesAdded((added) => {
-    particleRenderer.addParticles(added, terrain.getTypesByNombre(), terrain.cellSize);
-  });
+  terrain.onParticlesRemoved((removed) => particleRenderer.removeParticles(removed));
+  terrain.onParticlesAdded((added) => particleRenderer.addParticles(added, terrain.getTypesByNombre(), cellSize));
 
   const playerId = getOrCreatePlayerId();
   statusEl.textContent = `${formatBackendOkStatus(health.status, catalog.statusSuffix)} · ${bloqueNombre} · cargando terreno… · clic canvas · WASD · C cámara · F atacar`;
   statusEl.dataset.state = catalog.statusState;
   const worldRealtime = new WorldRealtimeClient();
   const remotePresence = new RemotePresence(scene, cellSize, playerId);
+  const healthHud = new HealthHud();
   const inputHistory = new InputHistory();
   const networkInput = new NetworkInputSender(worldRealtime, bloqueId, playerId, inputHistory);
   const presenceHandler = new PresenceHandler(worldRealtime, remotePresence, playerId, bloqueId);
   let inputSendClockSec = 0;
   let localReconciler: LocalPlayerReconciler | null = null;
+  let localHealth: number | null = null;
+  let localMaxHealth = 100;
+  let localCharacter: PlayerCharacterVisual | null = null;
 
   const handleSessionEvent = (event: SessionEvent): void => {
     if (event.type === 'player_state') {
       ingestLocalPlayerState(event, playerId);
       recordObservedPlayerState(event);
+      if (event.player_id === playerId && Number.isFinite(event.health)) {
+        const nextHealth = event.health!;
+        if (localHealth !== null && nextHealth < localHealth) localCharacter?.flashDamage();
+        localHealth = nextHealth;
+        if (Number.isFinite(event.max_health) && event.max_health! > 0) localMaxHealth = event.max_health!;
+      }
       if (localReconciler && playerEntityId > 0) {
         localReconciler.onPlayerState(world, playerEntityId, event);
       }
@@ -309,35 +262,19 @@ export async function bootstrapApp(
     presenceHandler.onSessionEvent(event);
   };
 
-  // -------------------------------------------------------------------------
-  // Fase C — Jugador ECS + mesh en escena
-  // -------------------------------------------------------------------------
-  const { entityId, mesh: playerMesh } = spawnPlayer(
-    world,
-    scene,
-    cellSize,
-    spawnX,
-    spawnY,
-    spawnZ,
-  );
+  const { entityId, mesh: playerMesh } = spawnPlayer(world, scene, cellSize, spawnX, spawnY, spawnZ);
   playerEntityId = entityId;
-  if (posSyncDebug) {
-    ensureServerGhost(scene, cellSize);
-  }
+  localCharacter = playerMesh.userData.characterVisual as PlayerCharacterVisual;
+  if (posSyncDebug) ensureServerGhost(scene, cellSize);
 
   worldRealtime.connect(getWebSocketUrl(), {
     onWorldEvent: (event) => {
-      if (event.bloque_id === bloqueId) {
-        terrain.applyWorldEvent(event);
-      }
+      if (event.bloque_id === bloqueId) terrain.applyWorldEvent(event);
     },
     onSessionEvent: handleSessionEvent,
     onOpen: () => presenceHandler.onOpen(spawnX, spawnY, spawnZ, playerEntityId),
   });
 
-  // -------------------------------------------------------------------------
-  // Fase D — Sistemas ECS + cámara (fuera del World pero acoplada al mismo entityId)
-  // -------------------------------------------------------------------------
   const simulationRunner = registerGameplaySystems(
     world,
     terrain,
@@ -357,52 +294,24 @@ export async function bootstrapApp(
     );
   }
 
-  // -------------------------------------------------------------------------
-  // Fase E — Game loop (presentación Three.js tras simular el frame ECS)
-  // -------------------------------------------------------------------------
   const loop = new GameLoop((deltaTime) => {
     worldRealtime.drainInboundQueue();
-    // 1) Ratón / toggle inspect / facing — debe ir ANTES de InputSystem en world.update.
     cameraController.tickInput(world, playerEntityId);
-    // 2) Simulación: intents → medium → acciones → movimiento → daño → apariencia.
     world.update(deltaTime);
     inputSendClockSec += deltaTime;
     const inputComp = world.getComponent<InputComponent>(playerEntityId, 'input');
     const facingComp = world.getComponent<FacingComponent>(playerEntityId, 'facing');
     if (inputComp && facingComp) {
-      networkInput.tick(
-        inputSendClockSec,
-        inputComp.intents,
-        facingComp.yaw,
-        cameraController.pitch,
-      );
+      networkInput.tick(inputSendClockSec, inputComp.intents, facingComp.yaw, cameraController.pitch);
     }
 
-    // 3) Copiar estado ECS al render (posición + órbita de cámara).
     const pos = world.getComponent<PositionComponent>(playerEntityId, 'position');
     if (pos) {
       syncPlayerMesh(playerMesh, pos.x, pos.y, pos.z, cellSize);
-      cameraController.updateCamera(
-        camera,
-        world,
-        playerEntityId,
-        pos.x,
-        pos.y,
-        pos.z,
-        cellSize,
-      );
-      updateCameraHud(
-        debugCameraEl,
-        cameraController.yaw,
-        cameraController.pitch,
-        cameraController.mode,
-      );
+      cameraController.updateCamera(camera, world, playerEntityId, pos.x, pos.y, pos.z, cellSize);
+      updateCameraHud(debugCameraEl, cameraController.yaw, cameraController.pitch, cameraController.mode);
       const conditions = world.getComponent<ConditionsComponent>(playerEntityId, 'conditions');
-      updateConditionsHud(
-        debugConditionsEl,
-        conditions?.active ?? [],
-        conditions?.debugDamageTotal ?? 0,
-      );
+      updateConditionsHud(debugConditionsEl, conditions?.active ?? [], conditions?.debugDamageTotal ?? 0);
       if (inputStatsDebug && debugInputStatsEl) {
         inputStatsPollClockSec += deltaTime;
         if (inputStatsPollClockSec >= 1 && !inputStatsPollInFlight) {
@@ -431,6 +340,7 @@ export async function bootstrapApp(
 
     worldRealtime.drainInboundQueue();
     remotePresence.update();
+    healthHud.update(localHealth, localMaxHealth, remotePresence.getHealthIndicators(), camera, cellSize);
     renderer.render(scene, camera);
   });
   loop.start();
