@@ -11,6 +11,10 @@ import (
 type catalogFile struct {
 	Actions map[string]struct {
 		Impact struct {
+			WorldDamage struct {
+				Reach  float64 `json:"reach"`
+				Damage float64 `json:"damage"`
+			} `json:"worldDamage"`
 			EntityDamage struct {
 				Reach  float64 `json:"reach"`
 				Damage float64 `json:"damage"`
@@ -34,10 +38,12 @@ func LoadCatalog(path string) (*Catalog, error) {
 	}
 	catalog := &Catalog{profiles: make(map[string]*port.CombatProfile)}
 	for id, action := range raw.Actions {
-		impact := action.Impact.EntityDamage
-		if impact.Reach > 0 && impact.Damage > 0 {
-			catalog.profiles[id] = &port.CombatProfile{Reach: impact.Reach, Damage: impact.Damage}
+		world, entities := action.Impact.WorldDamage, action.Impact.EntityDamage
+		profile := &port.CombatProfile{WorldDamage: world.Reach > 0 || world.Damage > 0}
+		if entities.Reach > 0 && entities.Damage > 0 {
+			profile.EntityDamage = &port.EntityDamageProfile{Reach: entities.Reach, Damage: entities.Damage}
 		}
+		catalog.profiles[id] = profile
 	}
 	return catalog, nil
 }

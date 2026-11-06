@@ -33,7 +33,10 @@ func TestHandleSwingUsesAuthoritativePoseAndRejectsDuplicate(t *testing.T) {
 	svc := &usecase.Services{
 		Sessions: store,
 		SwingPub: publisher,
-		Combat:   combatCatalog{"attack": {Reach: 2, Damage: 15}},
+		Combat: combatCatalog{"attack": {
+			WorldDamage: true,
+			EntityDamage: &port.EntityDamageProfile{Reach: 2, Damage: 15},
+		}},
 	}
 
 	response, failed := svc.HandleSwing(usecase.SwingPayload{
