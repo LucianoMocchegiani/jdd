@@ -1,15 +1,15 @@
 /**
  * @file Comparación posición local (ECS) vs autoritativa (`player_state` propio).
  *
- * Activar: `?debug=pos-sync` o `?debug=pos-sync,input-stats` — HUD + cubo fantasma.
+ * Activar: `?debug=pos-sync` o `?debug=pos-sync,input-stats` — HUD + personaje fantasma.
  */
 
 import { isDebugFlagEnabled } from '@/game/debug/debug-query';
 import { formatReconciliationToggleHudLine } from '@/game-data/reconciliation';
 import { formatReconciliationDebugLines } from '@/game/debug/reconciliation-debug';
-import { createPlayerBodyMesh } from '@/game/player/player-body-visual';
+import { PlayerCharacterVisual } from '@/game/player/player-character-visual';
 import type { PlayerStateEvent } from '@/types/world-events';
-import { Group, MeshStandardMaterial, type Scene } from 'three';
+import type { Scene } from 'three';
 
 /** Export `AuthoritativeSnapshot` — authoritative snapshot. */
 export interface AuthoritativeSnapshot {
@@ -28,7 +28,7 @@ export interface AuthoritativeSnapshot {
 }
 
 let authoritative: AuthoritativeSnapshot | null = null;
-let serverGhost: Group | null = null;
+let serverGhost: PlayerCharacterVisual | null = null;
 let lastServerTick = -1;
 let lastTickAdvanceAtMs = 0;
 let staleSnapshotCount = 0;
@@ -77,62 +77,40 @@ export function ingestLocalPlayerState(
     staleSnapshotCount = 0;
   }
   if (serverGhost) {
-    syncServerGhost(
-      serverGhost,
-      event.x,
-      event.y,
-      event.z,
-      event.yaw,
-      serverGhost.userData.cellSize as number,
-    );
+    syncServerGhost(serverGhost, event.x, event.y, event.z, event.yaw);
   }
 }
 
-/** Cubo semitransparente en la posición que reporta el servidor. */
-export function ensureServerGhost(scene: Scene, cellSize: number): Group | null {
+/** Personaje semitransparente en la posición y orientación que reporta el servidor. */
+export function ensureServerGhost(scene: Scene, cellSize: number): PlayerCharacterVisual | null {
   if (!isPositionSyncDebugEnabled()) {
     return null;
   }
   if (serverGhost) {
     return serverGhost;
   }
-  const group = new Group();
-  group.userData.cellSize = cellSize;
-  const body = createPlayerBodyMesh(
-    cellSize,
-    new MeshStandardMaterial({
-      color: 0xe879f9,
-      transparent: true,
-      opacity: 0.45,
-      depthWrite: false,
-    }),
-  );
-  group.add(body);
-  scene.add(group);
-  serverGhost = group;
+  serverGhost = new PlayerCharacterVisual(scene, cellSize);
+  serverGhost.setOpacity(0.45);
   if (authoritative) {
     syncServerGhost(
-      group,
+      serverGhost,
       authoritative.x,
       authoritative.y,
       authoritative.z,
       authoritative.yaw,
-      cellSize,
     );
   }
-  return group;
+  return serverGhost;
 }
 
 function syncServerGhost(
-  group: Group,
+  character: PlayerCharacterVisual,
   x: number,
   y: number,
   z: number,
   yaw: number,
-  cellSize: number,
 ): void {
-  group.position.set(x * cellSize, z * cellSize, y * cellSize);
-  group.rotation.y = yaw;
+  character.update(0, null, x, y, z, yaw, 0xe879f9);
 }
 
 /** Export `formatPositionSyncHud` — format position sync hud. */
@@ -217,7 +195,7 @@ export function formatPositionSyncHud(
     ...diag.filter(Boolean),
     formatReconciliationToggleHudLine(),
     ...formatReconciliationDebugLines(),
-    '  fantasma magenta = posición + yaw servidor',
+    '  fantasma magenta = rig en posición + yaw del servidor',
   ].join('\n');
 }
 
