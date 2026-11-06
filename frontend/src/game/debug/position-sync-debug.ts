@@ -8,6 +8,7 @@ import { isDebugFlagEnabled } from '@/game/debug/debug-query';
 import { formatReconciliationToggleHudLine } from '@/game-data/reconciliation';
 import { formatReconciliationDebugLines } from '@/game/debug/reconciliation-debug';
 import { PlayerCharacterVisual } from '@/game/player/player-character-visual';
+import { selectRemoteClip } from '@/game/player/remote-animation';
 import type { PlayerStateEvent } from '@/types/world-events';
 import type { Scene } from 'three';
 
@@ -23,7 +24,7 @@ export interface AuthoritativeSnapshot {
   yaw: number;
   serverTick: number;
   inputSeq: number | null;
-  intents: string[];
+  intents: Record<string, boolean>;
   receivedAtMs: number;
 }
 
@@ -64,7 +65,7 @@ export function ingestLocalPlayerState(
     yaw: event.yaw,
     serverTick: event.server_tick,
     inputSeq: event.input_seq ?? null,
-    intents: event.intents ? Object.keys(event.intents) : [],
+    intents: event.intents ?? {},
     receivedAtMs: nowMs,
   };
   if (
@@ -77,11 +78,11 @@ export function ingestLocalPlayerState(
     staleSnapshotCount = 0;
   }
   if (serverGhost) {
-    syncServerGhost(serverGhost, event.x, event.y, event.z, event.yaw);
+    syncServerGhost(serverGhost, authoritative, prev ? Math.max(0, (nowMs - prev.receivedAtMs) / 1000) : 0);
   }
 }
 
-/** Personaje semitransparente en la posición y orientación que reporta el servidor. */
+/** Personaje semitransparente en la posición, orientación y animación que reporta el servidor. */
 export function ensureServerGhost(scene: Scene, cellSize: number): PlayerCharacterVisual | null {
   if (!isPositionSyncDebugEnabled()) {
     return null;
@@ -92,25 +93,25 @@ export function ensureServerGhost(scene: Scene, cellSize: number): PlayerCharact
   serverGhost = new PlayerCharacterVisual(scene, cellSize);
   serverGhost.setOpacity(0.45);
   if (authoritative) {
-    syncServerGhost(
-      serverGhost,
-      authoritative.x,
-      authoritative.y,
-      authoritative.z,
-      authoritative.yaw,
-    );
+    syncServerGhost(serverGhost, authoritative, 0);
   }
   return serverGhost;
 }
 
 function syncServerGhost(
   character: PlayerCharacterVisual,
-  x: number,
-  y: number,
-  z: number,
-  yaw: number,
+  state: AuthoritativeSnapshot,
+  deltaTime: number,
 ): void {
-  character.update(0, null, x, y, z, yaw, 0xe879f9);
+  character.update(
+    deltaTime,
+    selectRemoteClip(state),
+    state.x,
+    state.y,
+    state.z,
+    state.yaw,
+    0xe879f9,
+  );
 }
 
 /** Export `formatPositionSyncHud` — format position sync hud. */
@@ -144,7 +145,7 @@ export function formatPositionSyncHud(
   const tickAgeSec =
     lastTickAdvanceAtMs > 0 ? (nowMs - lastTickAdvanceAtMs) / 1000 : ageSec;
   const intents =
-    authoritative.intents.length > 0 ? authoritative.intents.join(', ') : '(ninguno)';
+    Object.keys(authoritative.intents).length > 0 ? Object.keys(authoritative.intents).join(', ') : '(ninguno)';
 
   const diag: string[] = [];
   const rxAge = client?.lastRxAgeSec;
@@ -195,7 +196,7 @@ export function formatPositionSyncHud(
     ...diag.filter(Boolean),
     formatReconciliationToggleHudLine(),
     ...formatReconciliationDebugLines(),
-    '  fantasma magenta = rig en posición + yaw del servidor',
+    '  fantasma magenta = rig, animación y orientación del servidor',
   ].join('\n');
 }
 
