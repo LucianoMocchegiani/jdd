@@ -11,7 +11,7 @@ interface BarElements {
 function createBar(label: string, local: boolean): BarElements {
   const element = document.createElement('div');
   Object.assign(element.style, {
-    position: local ? 'absolute' : 'absolute',
+    position: 'absolute',
     width: local ? '190px' : '78px',
     padding: local ? '8px 10px' : '3px 4px',
     borderRadius: '6px',
