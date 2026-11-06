@@ -13,10 +13,22 @@ import { Scene } from 'three';
 
 const REMOTE_COLOR = 0x4488ff;
 
+export interface RemoteHealthIndicator {
+  playerId: string;
+  x: number;
+  y: number;
+  z: number;
+  health: number;
+  maxHealth: number;
+}
+
 interface RemoteEntry {
   character: PlayerCharacterVisual;
   buffer: RemoteInterpolationBuffer;
   clip: string | null;
+  health: number | null;
+  maxHealth: number;
+  renderPosition: { x: number; y: number; z: number } | null;
 }
 
 /** Gestiona visuales remotos por `player_id` (excluye al jugador local). */
@@ -44,16 +56,23 @@ export class RemotePresence {
       vz: event.vz,
       intents: event.intents,
     });
+    if (Number.isFinite(event.health)) {
+      const health = event.health!;
+      if (entry.health !== null && health < entry.health) entry.character.flashDamage();
+      entry.health = health;
+      if (Number.isFinite(event.max_health) && event.max_health! > 0) entry.maxHealth = event.max_health!;
+    }
     entry.buffer.push(this.toSnapshot(event));
   }
 
-  /** Crea réplica inicial si hace falta (join de otro cliente). */
+  /** Crea réplica inicial si hace falta (join de otro jugador). */
   onPlayerJoined(event: PlayerJoinedEvent): void {
     if (event.player_id === this.localPlayerId) return;
 
     this.leftPlayerIds.delete(event.player_id);
     const entry = this.ensureRemote(event.player_id);
     const nowMs = performance.now();
+    entry.renderPosition = event.position;
     entry.buffer.push({
       serverTick: 0,
       x: event.position.x,
@@ -84,9 +103,19 @@ export class RemotePresence {
     for (const entry of this.remotes.values()) {
       const state = entry.buffer.sample(nowMs);
       if (state) {
+        entry.renderPosition = { x: state.x, y: state.y, z: state.z };
         entry.character.update(deltaTime, entry.clip, state.x, state.y, state.z, state.yaw, REMOTE_COLOR);
       }
     }
+  }
+
+  /** Salud actual y posición interpolada para los indicadores del HUD. */
+  getHealthIndicators(): RemoteHealthIndicator[] {
+    return [...this.remotes.entries()].flatMap(([playerId, entry]) =>
+      entry.health === null || !entry.renderPosition
+        ? []
+        : [{ playerId, ...entry.renderPosition, health: entry.health, maxHealth: entry.maxHealth }],
+    );
   }
 
   /** Cantidad de jugadores remotos visibles (debug HUD). */
@@ -101,6 +130,9 @@ export class RemotePresence {
       character: new PlayerCharacterVisual(this.scene, this.cellSize),
       buffer: new RemoteInterpolationBuffer(),
       clip: null,
+      health: null,
+      maxHealth: 100,
+      renderPosition: null,
     };
     this.remotes.set(playerId, entry);
     return entry;
