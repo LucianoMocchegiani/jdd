@@ -19,6 +19,9 @@ func TestSwingReservationAndSingleHit(t *testing.T) {
 	if _, ok := s.BeginSwing("attacker", 1, now, 500*time.Millisecond); ok {
 		t.Fatal("duplicate swing should be rejected")
 	}
+	if _, ok := s.BeginSwing("attacker", 2, now.Add(100*time.Millisecond), 500*time.Millisecond); ok {
+		t.Fatal("swing during cooldown should be rejected")
+	}
 	hits := s.ApplyMeleeDamage("attacker", jdcombat.Point{X: reservation.X, Y: reservation.Y, Z: reservation.Z}, reservation.Yaw, 2, 15)
 	if len(hits) != 1 || hits[0].Health != 85 {
 		t.Fatalf("unexpected melee hits: %+v", hits)
