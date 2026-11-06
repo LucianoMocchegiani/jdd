@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
 	jdcombat "github.com/juego-de-dioses/jd/pkg/jd/combat"
 )
@@ -65,6 +66,9 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 	sess, exists := s.Sessions.Get(in.BloqueID, in.EcoID)
 	if !exists {
 		return buildError("swing_error", "not_in_block"), true
+	}
+	if s.Combat == nil {
+		return buildError("swing_error", "not_configured"), true
 	}
 	profile := s.Combat.Get(in.ActionID)
 	if profile == nil {

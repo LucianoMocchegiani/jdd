@@ -1,4 +1,4 @@
-// Package port — Puertos de repositorios y workers.
+// Package game-server: Redis ports.
 package port
 
 import (
@@ -16,19 +16,19 @@ type ParticleRepository interface {
 	DeleteParticle(ctx context.Context, particleID string) error
 }
 
-// DestroyRateLimiter representa destroy rate limiter.
+// DestroyRateLimiter represents destroy rate limiter.
 type DestroyRateLimiter interface {
 	AllowDestroy(ctx context.Context, bloqueID string) (bool, error)
 }
 
-// EventPublisher representa event publisher.
+// EventPublisher represents event publisher.
 type EventPublisher interface {
 	PublishCellDestroyed(ctx context.Context, bloqueID, particleID string, x, y, z int) error
 	PublishParticleDestroyed(ctx context.Context, bloqueID, particleID string, x, y, z int) error
 	PublishSwingResult(ctx context.Context, payloadJSON string) error
 }
 
-// CombatCatalog representa combat catalog.
+// CombatCatalog represents combat catalog.
 type CombatCatalog interface {
 	Get(actionID string) *domain.CombatProfile
 }
