@@ -23,6 +23,16 @@ func TestResolveUsesSharedParticleAndMediumRules(t *testing.T) {
 	if got := resolver.Resolve(liquid, false, 0, 0, 0, 2); got != "submerged_full" {
 		t.Fatalf("expected full submersion, got %s", got)
 	}
+	partial := []Particle{
+		{X: 0, Y: 0, Z: 0, Name: "agua", Physics: "liquido"},
+		{X: 1, Y: 0, Z: 0, Name: "piedra", Physics: "solido"},
+		{X: 0, Y: 1, Z: 0, Name: "piedra", Physics: "solido"},
+		{X: -1, Y: 0, Z: 0, Name: "piedra", Physics: "solido"},
+		{X: 0, Y: -1, Z: 0, Name: "piedra", Physics: "solido"},
+	}
+	if got := resolver.Resolve(partial, false, 0, 0, 0, 2); got != "submerged_partial" {
+		t.Fatalf("expected partial submersion, got %s", got)
+	}
 	if got := resolver.Resolve(nil, true, 0, 0, 1, 2); got != "ground" {
 		t.Fatalf("expected ground, got %s", got)
 	}

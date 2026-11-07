@@ -77,6 +77,9 @@ export interface ActionDamage {
   damage: number;
 }
 
+/** @deprecated Alias compatible para los perfiles de daño al mundo. */
+export type ActionWorldDamage = ActionDamage;
+
 /** Bloque `impact`. */
 export interface ActionImpact {
   worldDamage?: ActionDamage;
@@ -85,14 +88,10 @@ export interface ActionImpact {
   applyConditions?: readonly ConditionApplyRef[];
 }
 
-/**
- * Definición completa de una acción registrada.
- */
+/** Definición completa de una acción registrada. */
 export interface ActionDefinition {
   id: string;
-  /**
-   * Texto para humanos (diseño, IDE, docs). El motor no lo interpreta en runtime.
-   */
+  /** Texto para humanos (diseño, IDE, docs). El motor no lo interpreta en runtime. */
   description?: string;
   cooldownMs?: number;
   control: ActionControl;
