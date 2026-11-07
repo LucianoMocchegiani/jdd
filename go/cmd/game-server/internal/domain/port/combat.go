@@ -1,19 +1,23 @@
 // Package port — Puertos hexagonales del game-server.
 package port
 
-// EntityDamageProfile is server-resolved damage against player hitboxes.
-type EntityDamageProfile struct {
+import "time"
+
+// DamageProfile is the server-resolved reach and damage for an action impact.
+type DamageProfile struct {
 	Reach  float64
 	Damage float64
 }
 
-// CombatProfile contains the impact types configured for a shared action.
+// CombatProfile contains the combat rules configured on a shared action.
 type CombatProfile struct {
-	WorldDamage  bool
-	EntityDamage *EntityDamageProfile
+	Cooldown          time.Duration
+	BlockedMediums    []string
+	WorldDamage       *DamageProfile
+	EntityDamage      *DamageProfile
 }
 
-// CombatCatalog resolves a known action without trusting client-provided damage values.
+// CombatCatalog resolves a known action without trusting client-provided combat values.
 type CombatCatalog interface {
 	Get(actionID string) *CombatProfile
 }

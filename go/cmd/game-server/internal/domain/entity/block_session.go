@@ -21,33 +21,22 @@ type BlockSession struct {
 	nextEntity  uint32
 }
 
-// TypeInfo representa type info.
 type TypeInfo struct {
 	TipoFisico string
 	Viscosidad *float64
 }
 
-// NewBlockSession construye block session.
 func NewBlockSession(bloqueID string, ecoID int) *BlockSession {
-	return &BlockSession{
-		BloqueID:    bloqueID,
-		EcoID:       ecoID,
-		Players:     make(map[string]*Player),
-		SolidGrid:   collision.NewSolidGrid(),
-		TypesByName: make(map[string]TypeInfo),
-		nextEntity:  1,
-	}
+	return &BlockSession{BloqueID: bloqueID, EcoID: ecoID, Players: make(map[string]*Player), SolidGrid: collision.NewSolidGrid(), TypesByName: make(map[string]TypeInfo), nextEntity: 1}
 }
 
-// PlayerCount implementa player count.
 func (s *BlockSession) PlayerCount() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return len(s.Players)
 }
 
-// AddPlayer implementa add player.
-func (s *BlockSession) AddPlayer(playerID string, x, y, z, yaw, pitch float64) (isNew bool, p *Player) {
+func (s *BlockSession) AddPlayer(playerID string, x, y, z, yaw, pitch float64) (bool, *Player) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if existing, ok := s.Players[playerID]; ok {
@@ -55,14 +44,13 @@ func (s *BlockSession) AddPlayer(playerID string, x, y, z, yaw, pitch float64) (
 		existing.Yaw, existing.Pitch = yaw, pitch
 		return false, existing
 	}
-	eid := s.nextEntity
+	id := s.nextEntity
 	s.nextEntity++
-	p = NewPlayer(playerID, eid, x, y, z, yaw, pitch)
+	p := NewPlayer(playerID, id, x, y, z, yaw, pitch)
 	s.Players[playerID] = p
 	return true, p
 }
 
-// RemovePlayer implementa remove player.
 func (s *BlockSession) RemovePlayer(playerID string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -73,7 +61,6 @@ func (s *BlockSession) RemovePlayer(playerID string) bool {
 	return true
 }
 
-// GetPlayer implementa get player.
 func (s *BlockSession) GetPlayer(playerID string) (*Player, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -81,7 +68,6 @@ func (s *BlockSession) GetPlayer(playerID string) (*Player, bool) {
 	return p, ok
 }
 
-// UpdatePlayer mutates a player's authoritative state while holding the session lock.
 func (s *BlockSession) UpdatePlayer(playerID string, fn func(*Player)) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -93,7 +79,6 @@ func (s *BlockSession) UpdatePlayer(playerID string, fn func(*Player)) bool {
 	return true
 }
 
-// SwingReservation stores the authoritative origin and cooldown state for one attack.
 type SwingReservation struct {
 	X, Y, Z, Yaw float64
 	EntityID     uint32
@@ -102,23 +87,23 @@ type SwingReservation struct {
 	previousAt   time.Time
 }
 
-// BeginSwing validates the per-player sequence/cooldown and snapshots server state.
-func (s *BlockSession) BeginSwing(playerID string, seq int, now time.Time, cooldown time.Duration) (SwingReservation, bool) {
+func (s *BlockSession) BeginSwing(playerID string, seq int, now time.Time, cooldown time.Duration, blockedMediums []string) (SwingReservation, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	p, ok := s.Players[playerID]
-	if !ok || p.Health <= 0 || p.Medium == "air" || p.Medium == "submerged_full" || seq <= p.lastSwingSeq || (!p.lastSwingAt.IsZero() && now.Sub(p.lastSwingAt) < cooldown) {
+	if !ok || p.Health <= 0 || seq <= p.lastSwingSeq || (!p.lastSwingAt.IsZero() && now.Sub(p.lastSwingAt) < cooldown) {
 		return SwingReservation{}, false
 	}
-	reservation := SwingReservation{
-		X: p.X, Y: p.Y, Z: p.Z, Yaw: p.Yaw, EntityID: p.EntityID,
-		Seq: seq, previousSeq: p.lastSwingSeq, previousAt: p.lastSwingAt,
+	for _, medium := range blockedMediums {
+		if p.Medium == medium {
+			return SwingReservation{}, false
+		}
 	}
+	reservation := SwingReservation{X: p.X, Y: p.Y, Z: p.Z, Yaw: p.Yaw, EntityID: p.EntityID, Seq: seq, previousSeq: p.lastSwingSeq, previousAt: p.lastSwingAt}
 	p.lastSwingSeq, p.lastSwingAt = seq, now
 	return reservation, true
 }
 
-// CancelSwing restores a reservation when the world-damage command could not be queued.
 func (s *BlockSession) CancelSwing(playerID string, reservation SwingReservation) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -127,7 +112,6 @@ func (s *BlockSession) CancelSwing(playerID string, reservation SwingReservation
 	}
 }
 
-// ApplyMeleeDamage applies one hit to each other player whose body hitbox is in the strike.
 func (s *BlockSession) ApplyMeleeDamage(attackerID string, origin jdcombat.Point, yaw, reach, damage float64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -146,7 +130,6 @@ func (s *BlockSession) ApplyMeleeDamage(attackerID string, origin jdcombat.Point
 	}
 }
 
-// PlayerIDs implementa player ids.
 func (s *BlockSession) PlayerIDs() []string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -157,7 +140,6 @@ func (s *BlockSession) PlayerIDs() []string {
 	return out
 }
 
-// ForEachPlayer implementa for each player.
 func (s *BlockSession) ForEachPlayer(fn func(*Player)) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -166,7 +148,6 @@ func (s *BlockSession) ForEachPlayer(fn func(*Player)) {
 	}
 }
 
-// PositionsXY implementa positions xy.
 func (s *BlockSession) PositionsXY() [][2]float64 {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -177,14 +158,12 @@ func (s *BlockSession) PositionsXY() [][2]float64 {
 	return out
 }
 
-// ApplyType implementa apply type.
 func (s *BlockSession) ApplyType(nombre string, info TypeInfo) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.TypesByName[nombre] = info
 }
 
-// IncrementTick implementa increment tick.
 func (s *BlockSession) IncrementTick() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
