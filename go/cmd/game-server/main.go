@@ -15,34 +15,31 @@ import (
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/config"
 	wsdelivery "github.com/juego-de-dioses/jd/cmd/game-server/internal/delivery/ws"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
-	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/memory"
+	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/combat"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/httpclient"
+	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/memory"
 	redisinfra "github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/redis"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/wshub"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/usecase"
+	"github.com/juego-de-dioses/jd/pkg/jd/medium"
 	"github.com/juego-de-dioses/jd/pkg/jd/session"
 )
 
 func main() {
 	cfg, err := config.Load()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	session.SetLoadPath(resolveSessionPath(cfg.SessionJSONPath))
+	if err != nil { log.Fatal(err) }
+	session.SetLoadPath(resolveDataPath(cfg.SessionJSONPath))
 	sessionCfg, err := session.Load()
-	if err != nil {
-		log.Fatalf("session.json: %v", err)
-	}
+	if err != nil { log.Fatalf("session.json: %v", err) }
+	combatCatalog, err := combat.LoadCatalog(resolveDataPath(cfg.CombatCatalogPath))
+	if err != nil { log.Fatalf("action catalog: %v", err) }
+	mediumResolver, err := medium.Load(resolveDataPath(cfg.MediumRulesPath), resolveDataPath(cfg.ParticleRegistryPath))
+	if err != nil { log.Fatalf("medium rules: %v", err) }
 
 	opt, err := goredis.ParseURL(cfg.RedisURL)
-	if err != nil {
-		log.Fatalf("redis url: %v", err)
-	}
+	if err != nil { log.Fatalf("redis url: %v", err) }
 	rdb := goredis.NewClient(opt)
-	if err := rdb.Ping(context.Background()).Err(); err != nil {
-		log.Fatalf("redis ping: %v", err)
-	}
+	if err := rdb.Ping(context.Background()).Err(); err != nil { log.Fatalf("redis ping: %v", err) }
 
 	hub := wshub.NewHub()
 	store := memory.NewSessionStore()
@@ -50,68 +47,29 @@ func main() {
 	swingPub := redisinfra.NewSwingPublisher(rdb)
 	terrainSub := redisinfra.NewTerrainSubscriber(rdb, cfg.GameInstanceID)
 	terrainTypes := httpclient.NewTerrainTypesClient(cfg.TerrainServiceURL)
-
 	var registry port.RegistryClient
-	if cfg.UseRegistry() {
-		registry = httpclient.NewRegistryClient(cfg.RegistryURL)
-	} else {
-		registry = httpclient.NewNoopRegistry()
-	}
-
+	if cfg.UseRegistry() { registry = httpclient.NewRegistryClient(cfg.RegistryURL) } else { registry = httpclient.NewNoopRegistry() }
 	svc := &usecase.Services{
-		Sessions:     store,
-		TerrainPub:   terrainPub,
-		TerrainTypes: terrainTypes,
-		SwingPub:     swingPub,
-		Registry:     registry,
-		Hub:          hub,
-		SessionCfg:   sessionCfg,
-		InstanceID:   cfg.GameInstanceID,
-		ServerWire:   cfg.WireFormat,
-		TerrainPush:  usecase.NewTerrainPushManager(),
+		Sessions: store, TerrainPub: terrainPub, TerrainTypes: terrainTypes, SwingPub: swingPub,
+		Combat: combatCatalog, Medium: mediumResolver, Registry: registry, Hub: hub, SessionCfg: sessionCfg,
+		InstanceID: cfg.GameInstanceID, ServerWire: cfg.WireFormat, TerrainPush: usecase.NewTerrainPushManager(),
 	}
-
 	if cfg.UseRegistry() {
-		if err := registry.Register(cfg.GameInstanceID, cfg.WSPublicURL); err != nil {
-			log.Printf("registry register: %v", err)
-		}
+		if err := registry.Register(cfg.GameInstanceID, cfg.WSPublicURL); err != nil { log.Printf("registry register: %v", err) }
 		go runRegistryHeartbeat(registry, cfg.GameInstanceID, cfg.WSPublicURL)
 	}
-
 	readyCh := make(chan port.ChunkReady, 256)
-	go func() {
-		if err := terrainSub.Run(readyCh); err != nil {
-			log.Printf("terrain subscriber: %v", err)
-		}
-	}()
-	go func() {
-		for ready := range readyCh {
-			svc.HandleChunkReady(ready)
-		}
-	}()
-
+	go func() { if err := terrainSub.Run(readyCh); err != nil { log.Printf("terrain subscriber: %v", err) } }()
+	go func() { for ready := range readyCh { svc.HandleChunkReady(ready) } }()
 	eventsSub := redisinfra.NewGameEventsSubscriber(rdb, cfg.GameInstanceID, svc)
-	go func() {
-		if err := eventsSub.Run(context.Background()); err != nil {
-			log.Printf("game events subscriber: %v", err)
-		}
-	}()
-
+	go func() { if err := eventsSub.Run(context.Background()); err != nil { log.Printf("game events subscriber: %v", err) } }()
 	go runTickLoop(svc)
-
 	wsServer := wsdelivery.NewServer(cfg, svc, hub)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", wsdelivery.HealthHandler)
 	mux.HandleFunc("/ws", wsServer.HandleWS)
-
 	srv := &http.Server{Addr: cfg.ListenAddr(), Handler: mux}
-	go func() {
-		log.Printf("game-server listening on %s (instance=%s)", cfg.ListenAddr(), cfg.GameInstanceID)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal(err)
-		}
-	}()
-
+	go func() { log.Printf("game-server listening on %s (instance=%s)", cfg.ListenAddr(), cfg.GameInstanceID); if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed { log.Fatal(err) } }()
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
@@ -121,25 +79,16 @@ func main() {
 }
 
 func runTickLoop(svc *usecase.Services) {
-	const interval = time.Second / 30
-	ticker := time.NewTicker(interval)
+	ticker := time.NewTicker(time.Second / 30)
 	defer ticker.Stop()
 	last := time.Now()
-	for now := range ticker.C {
-		dt := now.Sub(last).Seconds()
-		last = now
-		svc.RunTick(dt)
-	}
+	for now := range ticker.C { dt := now.Sub(last).Seconds(); last = now; svc.RunTick(dt) }
 }
 
-func resolveSessionPath(path string) string {
-	if _, err := os.Stat(path); err == nil {
-		return path
-	}
+func resolveDataPath(path string) string {
+	if _, err := os.Stat(path); err == nil { return path }
 	alt := "../" + path
-	if _, err := os.Stat(alt); err == nil {
-		return alt
-	}
+	if _, err := os.Stat(alt); err == nil { return alt }
 	return path
 }
 
@@ -149,9 +98,7 @@ func runRegistryHeartbeat(registry port.RegistryClient, instanceID, wsURL string
 	for range ticker.C {
 		if err := registry.Heartbeat(instanceID); err != nil {
 			log.Printf("registry heartbeat: %v", err)
-			if regErr := registry.Register(instanceID, wsURL); regErr != nil {
-				log.Printf("registry re-register: %v", regErr)
-			}
+			if regErr := registry.Register(instanceID, wsURL); regErr != nil { log.Printf("registry re-register: %v", regErr) }
 		}
 	}
 }

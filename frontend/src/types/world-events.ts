@@ -202,6 +202,9 @@ export interface PlayerStateEvent {
   intents?: Record<string, true>;
   /** Último ``seq`` de ``input`` WS aplicado. */
   input_seq?: number;
+  /** Salud autoritativa; actualmente se conserva en memoria del servidor. */
+  health?: number;
+  max_health?: number;
   /** Marca de llegada WS (solo cliente, debug). */
   receivedAtMs?: number;
 }

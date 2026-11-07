@@ -19,6 +19,7 @@ export class PlayerCharacterVisual {
   );
   private clipId = 'idle';
   private time = 0;
+  private damageFlashUntilMs = 0;
 
   constructor(scene: Scene, cellSize: number) {
     this.renderer = new StudioRenderer(scene, cellSize);
@@ -52,12 +53,18 @@ export class PlayerCharacterVisual {
     const clip = this.clips.get(this.clipId)!;
     this.pose.setBoneRots(sampleClip(clip, this.time, this.doc.bones));
     this.renderer.sync(this.doc, this.pose, { x, y, z, yaw: yaw + Math.PI / 2, showBones: false });
+    const color = this.damageFlashUntilMs > performance.now() ? 0xff5555 : tint;
     for (const mesh of this.renderer.getPickMeshes()) {
       const layer = String(mesh.userData.bucketKey).split(':')[0]! as keyof typeof DEFAULT_PALETTE;
       (mesh.material as MeshStandardMaterial).color.setHex(
-        tint ?? DEFAULT_PALETTE[layer] ?? DEFAULT_PALETTE.flesh,
+        color ?? DEFAULT_PALETTE[layer] ?? DEFAULT_PALETTE.flesh,
       );
     }
+  }
+
+  /** Mantiene un destello breve cuando el servidor confirma daño recibido. */
+  flashDamage(): void {
+    this.damageFlashUntilMs = performance.now() + 180;
   }
 
   /** Ajusta transparencia para usar el rig como fantasma de depuración. */

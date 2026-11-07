@@ -4,6 +4,7 @@
     {
       "id": "attack",
       "description": "Ataque ligero a corto alcance en suelo o agua parcial; bloquea locomoción mientras dura.",
+      "cooldownMs": 500,
       "control": {
         "inputIntent": "attack_light",
         "slot": "body_actions",
@@ -23,6 +24,10 @@
       },
       "impact": {
         "worldDamage": {
+          "reach": 2,
+          "damage": 15
+        },
+        "entityDamage": {
           "reach": 2,
           "damage": 15
         }

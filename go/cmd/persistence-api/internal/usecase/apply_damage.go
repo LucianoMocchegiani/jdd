@@ -11,6 +11,7 @@ import (
 	"github.com/juego-de-dioses/jd/cmd/persistence-api/internal/domain/port"
 )
 
+// shortcut: caps particle damage at 64 hits per swing; raise only after measuring server/query load.
 const MaxWorldHitsPerSwing = 64
 
 func evalIntegridad(integridad float64, condicion string, valor float64) bool {
@@ -85,8 +86,8 @@ func ApplyParticleDamage(ctx context.Context, repo port.ParticleRepository, in A
 				destroyed = false
 				result.Destroyed = false
 				if err := repo.ApplyDamage(ctx, in.ParticleID, nueva); err != nil {
-				return nil, err
-			}
+					return nil, err
+				}
 				return result, nil
 			}
 		}
