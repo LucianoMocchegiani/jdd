@@ -10,19 +10,14 @@ import (
 	jdmedium "github.com/juego-de-dioses/jd/pkg/jd/medium"
 )
 
-// RunPlayerTick — sim autoritativa (espejo game_loop.run_player_tick + MovementSystem).
 func RunPlayerTick(p *entity.Player, grid *collision.SolidGridCache, cfg *session.Config, mediumRules *jdmedium.Resolver, dt float64) {
 	medium := resolveMedium(p, grid, cfg, mediumRules)
 	p.Medium = medium
-
 	speed := cfg.PlayerMoveSpeedCells
 	if medium == "ground" && p.Intents["run_forward"] && p.Intents["move_forward"] {
 		speed *= runSpeedMultiplier
 	}
-
-	forward := p.Intents["move_forward"]
-	backward := p.Intents["move_backward"]
-
+	forward, backward := p.Intents["move_forward"], p.Intents["move_backward"]
 	if medium == "ground" {
 		p.VX, p.VY = computePlanarVelocityFromIntents(p.Intents, speed, p.Yaw)
 		if p.Intents["jump"] {
@@ -32,18 +27,15 @@ func RunPlayerTick(p *entity.Player, grid *collision.SolidGridCache, cfg *sessio
 		}
 	} else {
 		vx, vy, vz := computeVelocity3DFromIntents(p.Intents, speed, p.Yaw, p.Pitch, cfg.CameraDefaultPitch)
-		p.VX = vx
-		p.VY = vy
+		p.VX, p.VY = vx, vy
 		if forward || backward {
 			p.VZ = vz
 		}
 		p.VZ -= cfg.GravityCells * dt
 	}
-
 	tryMoveAxis(p, grid, "x", p.VX*dt)
 	tryMoveAxis(p, grid, "y", p.VY*dt)
 	tryMoveAxis(p, grid, "z", p.VZ*dt)
-
 	if cellBelowSolid(p, grid) && p.VZ <= 0 {
 		p.VZ = 0
 		floorZ := math.Floor(p.Z)
@@ -61,14 +53,12 @@ func resolveMedium(p *entity.Player, grid *collision.SolidGridCache, cfg *sessio
 		}
 		return "air"
 	}
-	return rules.Resolve(grid.ContactParticles(), cellBelowSolid(p, grid), p.X, p.Y, p.Z, float64(cfg.ContactSampleRadiusCells))
+	radius := float64(cfg.ContactSampleRadiusCells)
+	return rules.Resolve(grid.ContactParticlesNear(p.X, p.Y, p.Z, radius), cellBelowSolid(p, grid), p.X, p.Y, p.Z, radius)
 }
 
 func cellBelowSolid(p *entity.Player, grid *collision.SolidGridCache) bool {
-	bx := int(math.Floor(p.X))
-	by := int(math.Floor(p.Y))
-	bz := int(math.Floor(p.Z)) - 1
-	return grid.IsCellSolid(bx, by, bz)
+	return grid.IsCellSolid(int(math.Floor(p.X)), int(math.Floor(p.Y)), int(math.Floor(p.Z))-1)
 }
 
 func tryMoveAxis(p *entity.Player, grid *collision.SolidGridCache, axis string, delta float64) {
@@ -84,9 +74,7 @@ func tryMoveAxis(p *entity.Player, grid *collision.SolidGridCache, axis string, 
 	case "z":
 		nz += delta
 	}
-	fx := int(math.Floor(nx))
-	fy := int(math.Floor(ny))
-	fz := int(math.Floor(nz))
+	fx, fy, fz := int(math.Floor(nx)), int(math.Floor(ny)), int(math.Floor(nz))
 	if grid.IsBodyBlocked(fx, fy, fz) {
 		switch axis {
 		case "x":

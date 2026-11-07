@@ -17,12 +17,10 @@ type SolidGridCache struct {
 	loaded    bool
 }
 
-// NewSolidGrid construye solid grid.
 func NewSolidGrid() *SolidGridCache {
 	return &SolidGridCache{solid: make(map[string]struct{}), particles: make(map[string]jdmedium.Particle)}
 }
 
-// MergeSolidCells implementa merge solid cells.
 func (g *SolidGridCache) MergeSolidCells(cells []string) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -40,17 +38,22 @@ func (g *SolidGridCache) MergeContactParticles(particles []jdmedium.Particle) {
 	}
 }
 
-func (g *SolidGridCache) ContactParticles() []jdmedium.Particle {
+func (g *SolidGridCache) ContactParticlesNear(x, y, z, radius float64) []jdmedium.Particle {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
-	particles := make([]jdmedium.Particle, 0, len(g.particles))
-	for _, p := range g.particles {
-		particles = append(particles, p)
+	var particles []jdmedium.Particle
+	for ix := int(math.Floor(x - radius)); ix <= int(math.Floor(x+radius)); ix++ {
+		for iy := int(math.Floor(y - radius)); iy <= int(math.Floor(y+radius)); iy++ {
+			for iz := int(math.Floor(z - radius)); iz <= int(math.Floor(z+radius)); iz++ {
+				if p, ok := g.particles[cellkey.Format(ix, iy, iz)]; ok {
+					particles = append(particles, p)
+				}
+			}
+		}
 	}
 	return particles
 }
 
-// RemoveCell implementa remove cell.
 func (g *SolidGridCache) RemoveCell(x, y, z int) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -59,14 +62,12 @@ func (g *SolidGridCache) RemoveCell(x, y, z int) {
 	delete(g.particles, key)
 }
 
-// IsLoaded implementa is loaded.
 func (g *SolidGridCache) IsLoaded() bool {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 	return g.loaded
 }
 
-// IsCellSolid implementa is cell solid.
 func (g *SolidGridCache) IsCellSolid(x, y, z int) bool {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
@@ -74,12 +75,10 @@ func (g *SolidGridCache) IsCellSolid(x, y, z int) bool {
 	return ok
 }
 
-// IsBodyBlocked implementa is body blocked.
 func (g *SolidGridCache) IsBodyBlocked(fx, fy, fz int) bool {
 	return g.IsCellSolid(fx, fy, fz) || g.IsCellSolid(fx, fy, fz+1)
 }
 
-// Count implementa count.
 func (g *SolidGridCache) Count() int {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
