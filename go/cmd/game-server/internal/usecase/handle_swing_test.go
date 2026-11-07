@@ -4,6 +4,7 @@ package usecase_test
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/memory"
@@ -34,8 +35,9 @@ func TestHandleSwingUsesAuthoritativePoseAndRejectsDuplicate(t *testing.T) {
 		Sessions: store,
 		SwingPub: publisher,
 		Combat: combatCatalog{"attack": {
-			WorldDamage: true,
-			EntityDamage: &port.EntityDamageProfile{Reach: 2, Damage: 15},
+			Cooldown: 500 * time.Millisecond,
+			WorldDamage: &port.DamageProfile{Reach: 2, Damage: 15},
+			EntityDamage: &port.DamageProfile{Reach: 2, Damage: 15},
 		}},
 	}
 

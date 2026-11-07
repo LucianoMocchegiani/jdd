@@ -46,16 +46,19 @@ func LoadCatalog(path string) (*Catalog, error) {
 		if action.ID == "" {
 			return nil, fmt.Errorf("action without id")
 		}
-		if action.WorldDamage != nil || action.EntityDamage != nil {
+		if action.Impact.WorldDamage != nil || action.Impact.EntityDamage != nil {
 			if action.CooldownMs <= 0 {
 				return nil, fmt.Errorf("action %q has combat impact without positive cooldownMs", action.ID)
 			}
 		}
+		if _, exists := catalog.profiles[action.ID]; exists {
+			return nil, fmt.Errorf("duplicate action id %q", action.ID)
+		}
 		catalog.profiles[action.ID] = &port.CombatProfile{
-			Cooldown: time.Duration(action.CooldownMs) * time.Millisecond,
+			Cooldown:       time.Duration(action.CooldownMs) * time.Millisecond,
 			BlockedMediums: action.Control.When.Not.Medium,
-			WorldDamage: validDamage(action.Impact.WorldDamage),
-			EntityDamage: validDamage(action.Impact.EntityDamage),
+			WorldDamage:    validDamage(action.Impact.WorldDamage),
+			EntityDamage:   validDamage(action.Impact.EntityDamage),
 		}
 	}
 	return catalog, nil
