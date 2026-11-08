@@ -6,16 +6,28 @@ import { buildRig, SkeletonPose } from '@/poc/character-studio/rig-math';
 import { createDefaultClipLibrary, sampleClip } from '@/poc/character-studio/studio-clip';
 import { defaultBipedDocument } from '@/poc/character-studio/studio-document';
 import { StudioRenderer } from '@/poc/character-studio/studio-renderer';
-import type { StudioAnimationClip } from '@/poc/character-studio/types';
+import type { StudioAnimationClip, StudioDocument } from '@/poc/character-studio/types';
 import { DEFAULT_PALETTE } from '@/poc/shared';
-import { MeshStandardMaterial, type Scene } from 'three';
+import { Box3, MeshStandardMaterial, Vector3, type Scene } from 'three';
 
-// Compensa el origen del rig y la separación entre la celda física y la cara visible del voxel.
+// Compensa la diferencia entre la coordenada del jugador y la superficie visible del voxel.
 const PLAYER_GROUND_VISUAL_OFFSET_CELLS = 1.04;
+const UNIT_ELEMENT_BOUNDS = new Box3(new Vector3(-0.5, -0.5, -0.5), new Vector3(0.5, 0.5, 0.5));
+
+function rigBottomOffset(doc: StudioDocument, pose: SkeletonPose): number {
+  let bottom = Infinity;
+  for (const element of doc.elements) {
+    const matrix = pose.elementWorldMatrix(element).clone().scale(new Vector3(...element.scale));
+    bottom = Math.min(bottom, UNIT_ELEMENT_BOUNDS.clone().applyMatrix4(matrix).min.y);
+  }
+  if (!Number.isFinite(bottom)) throw new Error('El rig no tiene elementos renderizables');
+  return bottom * doc.gridStep;
+}
 
 export class PlayerCharacterVisual {
   private readonly doc = defaultBipedDocument();
   private readonly pose = new SkeletonPose(buildRig(this.doc), this.doc);
+  private readonly rigBottomOffset = rigBottomOffset(this.doc, this.pose);
   private readonly renderer: StudioRenderer;
   private readonly clips = new Map<string, StudioAnimationClip>(
     createDefaultClipLibrary(this.doc.bones).clips.map((clip) => [clip.id, clip] as const),
@@ -58,7 +70,7 @@ export class PlayerCharacterVisual {
     this.renderer.sync(this.doc, this.pose, {
       x,
       y,
-      z: z - PLAYER_GROUND_VISUAL_OFFSET_CELLS,
+      z: z - PLAYER_GROUND_VISUAL_OFFSET_CELLS - this.rigBottomOffset,
       yaw: yaw + Math.PI / 2,
       showBones: false,
     });
