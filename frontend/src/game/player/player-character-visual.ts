@@ -10,6 +10,9 @@ import type { StudioAnimationClip } from '@/poc/character-studio/types';
 import { DEFAULT_PALETTE } from '@/poc/shared';
 import { MeshStandardMaterial, type Scene } from 'three';
 
+// Compensa el origen del rig y la separación entre la celda física y la cara visible del voxel.
+const PLAYER_GROUND_VISUAL_OFFSET_CELLS = 0.94;
+
 export class PlayerCharacterVisual {
   private readonly doc = defaultBipedDocument();
   private readonly pose = new SkeletonPose(buildRig(this.doc), this.doc);
@@ -52,7 +55,13 @@ export class PlayerCharacterVisual {
 
     const clip = this.clips.get(this.clipId)!;
     this.pose.setBoneRots(sampleClip(clip, this.time, this.doc.bones));
-    this.renderer.sync(this.doc, this.pose, { x, y, z, yaw: yaw + Math.PI / 2, showBones: false });
+    this.renderer.sync(this.doc, this.pose, {
+      x,
+      y,
+      z: z - PLAYER_GROUND_VISUAL_OFFSET_CELLS,
+      yaw: yaw + Math.PI / 2,
+      showBones: false,
+    });
     const color = this.damageFlashUntilMs > performance.now() ? 0xff5555 : tint;
     for (const mesh of this.renderer.getPickMeshes()) {
       const layer = String(mesh.userData.bucketKey).split(':')[0]! as keyof typeof DEFAULT_PALETTE;
