@@ -125,6 +125,8 @@ export function parseInboundMessage(raw: unknown): RealtimeInboundMessage | null
       entity_id: typeof msg.entity_id === 'number' ? msg.entity_id : undefined,
       intents: parsePlayerStateIntents(msg.intents),
       input_seq: typeof msg.input_seq === 'number' ? msg.input_seq : undefined,
+      health: typeof msg.health === 'number' ? msg.health : undefined,
+      max_health: typeof msg.max_health === 'number' ? msg.max_health : undefined,
     };
   }
 

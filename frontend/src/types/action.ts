@@ -71,29 +71,29 @@ export interface ActionAppearance {
   clip?: string;
 }
 
-/** Daño al mundo desde la ficha activa. */
-export interface ActionWorldDamage {
+/** Perfil de impacto con alcance y daño. */
+export interface ActionDamage {
   reach: number;
-  /** Daño bruto 0–100 para el API; default 15. */
-  damage?: number;
+  damage: number;
 }
+
+/** @deprecated Alias compatible para los perfiles de daño al mundo. */
+export type ActionWorldDamage = ActionDamage;
 
 /** Bloque `impact`. */
 export interface ActionImpact {
-  worldDamage?: ActionWorldDamage;
+  worldDamage?: ActionDamage;
+  entityDamage?: ActionDamage;
   /** Aplica instancias de condición al impactar (ids en condition registry). */
   applyConditions?: readonly ConditionApplyRef[];
 }
 
-/**
- * Definición completa de una acción registrada.
- */
+/** Definición completa de una acción registrada. */
 export interface ActionDefinition {
   id: string;
-  /**
-   * Texto para humanos (diseño, IDE, docs). El motor no lo interpreta en runtime.
-   */
+  /** Texto para humanos (diseño, IDE, docs). El motor no lo interpreta en runtime. */
   description?: string;
+  cooldownMs?: number;
   control: ActionControl;
   movement?: ActionMovement;
   appearance?: ActionAppearance;

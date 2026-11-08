@@ -55,6 +55,8 @@ import {
 } from '@/game/network';
 import { InputHistory, LocalPlayerReconciler, RemotePresence } from '@/game/client-prediction';
 import { PresenceHandler } from '@/game/network/presence-handler';
+import { HealthHud } from '@/game/health-hud';
+import type { PlayerCharacterVisual } from '@/game/player/player-character-visual';
 import type { SessionEvent } from '@/types/world-events';
 import { findSpawnZ } from '@/game/player/find-spawn';
 import { resolveSpawnCell } from '@/game/player/resolve-spawn-cell';
@@ -292,16 +294,30 @@ export async function bootstrapApp(
   statusEl.dataset.state = catalog.statusState;
   const worldRealtime = new WorldRealtimeClient();
   const remotePresence = new RemotePresence(scene, cellSize, playerId);
+  const healthHud = new HealthHud();
   const inputHistory = new InputHistory();
   const networkInput = new NetworkInputSender(worldRealtime, bloqueId, playerId, inputHistory);
   const presenceHandler = new PresenceHandler(worldRealtime, remotePresence, playerId, bloqueId);
   let inputSendClockSec = 0;
   let localReconciler: LocalPlayerReconciler | null = null;
+  let localHealth: number | null = null;
+  let localMaxHealth = 100;
+  let localCharacter: PlayerCharacterVisual | null = null;
 
   const handleSessionEvent = (event: SessionEvent): void => {
     if (event.type === 'player_state') {
       ingestLocalPlayerState(event, playerId);
       recordObservedPlayerState(event);
+      if (event.player_id === playerId && Number.isFinite(event.health)) {
+        const nextHealth = event.health!;
+        if (localHealth !== null && nextHealth < localHealth) {
+          localCharacter?.flashDamage();
+        }
+        localHealth = nextHealth;
+        if (Number.isFinite(event.max_health) && event.max_health! > 0) {
+          localMaxHealth = event.max_health!;
+        }
+      }
       if (localReconciler && playerEntityId > 0) {
         localReconciler.onPlayerState(world, playerEntityId, event);
       }
@@ -321,6 +337,7 @@ export async function bootstrapApp(
     spawnZ,
   );
   playerEntityId = entityId;
+  localCharacter = playerMesh.userData.characterVisual as PlayerCharacterVisual;
   if (posSyncDebug) {
     ensureServerGhost(scene, cellSize);
   }
@@ -431,6 +448,7 @@ export async function bootstrapApp(
 
     worldRealtime.drainInboundQueue();
     remotePresence.update();
+    healthHud.update(localHealth, localMaxHealth, remotePresence.getHealthIndicators(), camera, cellSize);
     renderer.render(scene, camera);
   });
   loop.start();

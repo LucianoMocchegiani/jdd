@@ -10,11 +10,10 @@ import (
 )
 
 const (
-	tickHz       = 30
-	maxDeltaSec  = 0.1
+	tickHz = 30
+	maxDeltaSec = 0.1
 )
 
-// RunTick implementa run tick.
 func (s *Services) RunTick(deltaSec float64) {
 	if deltaSec <= 0 {
 		deltaSec = 1.0 / tickHz
@@ -22,45 +21,33 @@ func (s *Services) RunTick(deltaSec float64) {
 	if deltaSec > maxDeltaSec {
 		deltaSec = maxDeltaSec
 	}
-
 	for _, sess := range s.Sessions.AllSessions() {
 		if sess.PlayerCount() == 0 {
 			continue
 		}
 		s.MaybeRefreshTerrain(sess)
 		sess.ForEachPlayer(func(p *entity.Player) {
-			systems.RunPlayerTick(p, sess.SolidGrid, s.SessionCfg, deltaSec)
+			systems.RunPlayerTick(p, sess.SolidGrid, s.SessionCfg, s.Medium, deltaSec)
 		})
 		tick := sess.IncrementTick()
 		states := BuildAllPlayerStates(sess, tick)
 		s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
-		for _, msg := range states {
-			wshub.WritePlayerState(c, msg)
-		}
+			for _, msg := range states {
+				wshub.WritePlayerState(c, msg)
+			}
 		})
 	}
 	s.DrainTerrainFanout()
 }
 
-// BuildAllPlayerStates ejecuta build all player states.
 func BuildAllPlayerStates(sess *entity.BlockSession, tick int) []string {
 	var out []string
 	sess.ForEachPlayer(func(p *entity.Player) {
 		payload := map[string]interface{}{
-			"type":        "player_state",
-			"server_tick": tick,
-			"player_id":   p.ID,
-			"bloque_id":   sess.BloqueID,
-			"x":           p.X,
-			"y":           p.Y,
-			"z":           p.Z,
-			"vx":          p.VX,
-			"vy":          p.VY,
-			"vz":          p.VZ,
-			"yaw":         p.Yaw,
-			"medium":      p.Medium,
-			"input_seq":   p.InputSeq,
-			"intents":     intentsTrueOnly(p.Intents),
+			"type": "player_state", "server_tick": tick, "player_id": p.ID, "bloque_id": sess.BloqueID,
+			"x": p.X, "y": p.Y, "z": p.Z, "vx": p.VX, "vy": p.VY, "vz": p.VZ,
+			"yaw": p.Yaw, "medium": p.Medium, "input_seq": p.InputSeq,
+			"intents": intentsTrueOnly(p.Intents), "health": p.Health, "max_health": p.MaxHealth,
 		}
 		if p.Pitch != 0 {
 			payload["pitch"] = p.Pitch
@@ -84,16 +71,8 @@ func intentsTrueOnly(m map[string]bool) map[string]bool {
 	return out
 }
 
-// BuildJoinOK ejecuta build join ok.
 func BuildJoinOK(bloqueID string, ecoID int, ecoLabel, playerID, wireFormat string, players []string) string {
-	payload := map[string]interface{}{
-		"type":        "join_ok",
-		"bloque_id":   bloqueID,
-		"eco_id":      ecoID,
-		"player_id":   playerID,
-		"players":     players,
-		"wire_format": wireFormat,
-	}
+	payload := map[string]interface{}{"type": "join_ok", "bloque_id": bloqueID, "eco_id": ecoID, "player_id": playerID, "players": players, "wire_format": wireFormat}
 	if ecoLabel != "" {
 		payload["eco_label"] = ecoLabel
 	}
@@ -101,39 +80,22 @@ func BuildJoinOK(bloqueID string, ecoID int, ecoLabel, playerID, wireFormat stri
 	return string(b)
 }
 
-// BuildPlayerJoined ejecuta build player joined.
 func BuildPlayerJoined(bloqueID, playerID string, x, y, z float64) string {
-	b, _ := json.Marshal(map[string]interface{}{
-		"type":      "player_joined",
-		"bloque_id": bloqueID,
-		"player_id": playerID,
-		"position":  map[string]float64{"x": x, "y": y, "z": z},
-	})
+	b, _ := json.Marshal(map[string]interface{}{"type": "player_joined", "bloque_id": bloqueID, "player_id": playerID, "position": map[string]float64{"x": x, "y": y, "z": z}})
 	return string(b)
 }
 
-// BuildPlayerLeft ejecuta build player left.
 func BuildPlayerLeft(bloqueID, playerID string) string {
-	b, _ := json.Marshal(map[string]interface{}{
-		"type":      "player_left",
-		"bloque_id": bloqueID,
-		"player_id": playerID,
-	})
+	b, _ := json.Marshal(map[string]interface{}{"type": "player_left", "bloque_id": bloqueID, "player_id": playerID})
 	return string(b)
 }
 
-// BuildJoinError ejecuta build join error.
 func BuildJoinError(code string) string {
 	b, _ := json.Marshal(map[string]string{"type": "join_error", "error": code})
 	return string(b)
 }
 
-// BuildJoinErrorRedirect ejecuta build join error redirect.
 func BuildJoinErrorRedirect(wsURL string) string {
-	b, _ := json.Marshal(map[string]string{
-		"type":   "join_error",
-		"error":  "wrong_game_server",
-		"ws_url": wsURL,
-	})
+	b, _ := json.Marshal(map[string]string{"type": "join_error", "error": "wrong_game_server", "ws_url": wsURL})
 	return string(b)
 }

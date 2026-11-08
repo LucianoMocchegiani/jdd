@@ -83,7 +83,7 @@ func (s *Server) dispatch(c *wshub.Conn, raw string) {
 	case "input":
 		s.handleInput(c, msg)
 	case "swing":
-		s.handleSwing(c, msg, raw)
+		s.handleSwing(c, msg)
 	}
 }
 
@@ -110,15 +110,8 @@ func (s *Server) handleJoin(c *wshub.Conn, msg map[string]interface{}) {
 	}
 	wirePref, _ := msg["wire_format"].(string)
 	res := s.svc.JoinBlock(usecase.JoinBlockInput{
-		BloqueID:   bloqueID,
-		PlayerID:   playerID,
-		WireFormat: wirePref,
-		X:        pos[0],
-		Y:        pos[1],
-		Z:        pos[2],
-		Yaw:      yaw,
-		Pitch:    pitch,
-		ConnID:   c.ID,
+		BloqueID: bloqueID, PlayerID: playerID, WireFormat: wirePref,
+		X: pos[0], Y: pos[1], Z: pos[2], Yaw: yaw, Pitch: pitch, ConnID: c.ID,
 	})
 	if res.JoinErrJSON != "" {
 		wshub.SafeWrite(c, res.JoinErrJSON)
@@ -136,12 +129,7 @@ func (s *Server) handleJoin(c *wshub.Conn, msg map[string]interface{}) {
 }
 
 func (s *Server) handleInput(c *wshub.Conn, msg map[string]interface{}) {
-	bloqueID := c.BloqueID
-	if v, _ := msg["bloque_id"].(string); v != "" {
-		bloqueID = v
-	}
-	playerID, _ := msg["player_id"].(string)
-	in := usecase.InputPayload{BloqueID: bloqueID, EcoID: c.EcoID, PlayerID: playerID}
+	in := usecase.InputPayload{BloqueID: c.BloqueID, EcoID: c.EcoID, PlayerID: c.PlayerID}
 	if v, ok := msg["seq"].(float64); ok {
 		in.Seq = int(v)
 	}
@@ -159,35 +147,12 @@ func (s *Server) handleInput(c *wshub.Conn, msg map[string]interface{}) {
 	}
 }
 
-func (s *Server) handleSwing(c *wshub.Conn, msg map[string]interface{}, _ string) {
-	bloqueID := c.BloqueID
-	if v, _ := msg["bloque_id"].(string); v != "" {
-		bloqueID = v
-	}
+func (s *Server) handleSwing(c *wshub.Conn, msg map[string]interface{}) {
 	actionID, _ := msg["action_id"].(string)
-	entityF, _ := msg["entity_id"].(float64)
-	seqF, _ := msg["seq"].(float64)
-	pos, _ := msg["position"].(map[string]interface{})
-	px, py, pz := 0.0, 0.0, 0.0
-	if pos != nil {
-		px, _ = pos["x"].(float64)
-		py, _ = pos["y"].(float64)
-		pz, _ = pos["z"].(float64)
-	}
-	playerID := c.PlayerID
-	if playerID == "" {
-		playerID, _ = msg["player_id"].(string)
-	}
+	seq, _ := msg["seq"].(float64)
 	resp, isErr := s.svc.HandleSwing(usecase.SwingPayload{
-		BloqueID: bloqueID,
-		EcoID:    c.EcoID,
-		PlayerID: playerID,
-		ActionID: actionID,
-		EntityID: int(entityF),
-		Seq:      int(seqF),
-		PosX:     px,
-		PosY:     py,
-		PosZ:     pz,
+		BloqueID: c.BloqueID, EcoID: c.EcoID, PlayerID: c.PlayerID,
+		ActionID: actionID, Seq: int(seq),
 	})
 	wshub.SafeWrite(c, resp)
 	if isErr {

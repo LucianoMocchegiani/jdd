@@ -1,6 +1,8 @@
 // Package entity — Entidades de dominio (sesión, jugador, terreno).
 package entity
 
+import "time"
+
 // Player — entidad jugador en una BlockSession (componentes embebidos M2).
 type Player struct {
 	ID         string
@@ -12,19 +14,25 @@ type Player struct {
 	InputSeq   int
 	Intents    map[string]bool
 	ActionID   string
+	Health     float64
+	MaxHealth  float64
+	lastSwingSeq int
+	lastSwingAt  time.Time
 }
 
 // NewPlayer construye player.
 func NewPlayer(playerID string, entityID uint32, x, y, z, yaw, pitch float64) *Player {
 	return &Player{
-		ID:       playerID,
-		EntityID: entityID,
-		X:        x,
-		Y:        y,
-		Z:        z,
-		Yaw:      yaw,
-		Pitch:    pitch,
-		Medium:   "ground",
-		Intents:  make(map[string]bool),
+		ID:        playerID,
+		EntityID:  entityID,
+		X:         x,
+		Y:         y,
+		Z:         z,
+		Yaw:       yaw,
+		Pitch:     pitch,
+		Medium:    "ground",
+		Intents:   make(map[string]bool),
+		Health:    100,
+		MaxHealth: 100,
 	}
 }

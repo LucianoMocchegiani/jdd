@@ -9,6 +9,7 @@ import (
 
 	"github.com/juego-de-dioses/jd/cmd/persistence-api/internal/domain"
 	"github.com/juego-de-dioses/jd/cmd/persistence-api/internal/domain/port"
+	jdcombat "github.com/juego-de-dioses/jd/pkg/jd/combat"
 )
 
 const maxProcessedSwings = 4096
@@ -23,6 +24,7 @@ type SwingCommand struct {
 	PosX     float64 `json:"pos_x"`
 	PosY     float64 `json:"pos_y"`
 	PosZ     float64 `json:"pos_z"`
+	Yaw      float64 `json:"yaw"`
 	IsNPC    bool    `json:"is_npc"`
 }
 
@@ -88,30 +90,34 @@ func (s *SwingService) rememberSwing(playerID string, entityID, seq int) bool {
 
 // ApplySwing implementa apply swing.
 func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingOutcome, error) {
-	if !s.rememberSwing(cmd.PlayerID, cmd.EntityID, cmd.Seq) {
-		return SwingOutcome{OK: true, Duplicate: true, ActionID: cmd.ActionID}, nil
+	if cmd.PlayerID == "" || cmd.Seq <= 0 {
+		return SwingOutcome{OK: false, Error: "invalid_swing", ActionID: cmd.ActionID}, nil
 	}
-
 	profile := s.Catalog.Get(cmd.ActionID)
 	if profile == nil {
 		return SwingOutcome{OK: false, Error: "unknown_action", ActionID: cmd.ActionID}, nil
+	}
+	if !s.rememberSwing(cmd.PlayerID, cmd.EntityID, cmd.Seq) {
+		return SwingOutcome{OK: true, Duplicate: true, ActionID: cmd.ActionID}, nil
 	}
 	if profile.WorldDamage == nil {
 		return SwingOutcome{OK: true, ActionID: cmd.ActionID}, nil
 	}
 
 	world := profile.WorldDamage
-	candidates, err := s.Repo.GetParticlesNear(ctx, cmd.BloqueID, cmd.PosX, cmd.PosY, cmd.PosZ, world.Reach)
+	queryReach := world.Reach + 1
+	candidates, err := s.Repo.GetParticlesNear(ctx, cmd.BloqueID, cmd.PosX, cmd.PosY, cmd.PosZ, queryReach)
 	if err != nil {
 		return SwingOutcome{}, err
 	}
 
+	origin := jdcombat.Point{X: cmd.PosX, Y: cmd.PosY, Z: cmd.PosZ}
 	var hits []domain.DamageResult
 	for _, row := range candidates {
 		if len(hits) >= MaxWorldHitsPerSwing {
 			break
 		}
-		if !isSolidParticle(row) {
+		if !isSolidParticle(row) || !jdcombat.HitsWorldCell(origin, cmd.Yaw, row.CeldaX, row.CeldaY, row.CeldaZ, float64(world.Reach)) {
 			continue
 		}
 		res, err := ApplyParticleDamage(ctx, s.Repo, ApplyDamageInput{
@@ -137,18 +143,10 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 			destroyed++
 		}
 	}
-
-	out := SwingOutcome{
-		OK:             true,
-		ActionID:       cmd.ActionID,
-		Hits:           hits,
-		DestroyedCount: destroyed,
-	}
-
+	out := SwingOutcome{OK: true, ActionID: cmd.ActionID, Hits: hits, DestroyedCount: destroyed}
 	if payload, err := buildSwingResultJSON(cmd, hits); err == nil {
 		_ = s.Events.PublishSwingResult(ctx, payload)
 	}
-
 	return out, nil
 }
 
@@ -156,9 +154,9 @@ func buildSwingResultJSON(cmd SwingCommand, hits []domain.DamageResult) (string,
 	hitPayload := make([]map[string]interface{}, 0, len(hits))
 	for _, h := range hits {
 		hitPayload = append(hitPayload, map[string]interface{}{
-			"particle_id":  h.ParticleID,
-			"destroyed":    h.Destroyed,
-			"integridad":   h.NuevaIntegridad,
+			"particle_id": h.ParticleID,
+			"destroyed":   h.Destroyed,
+			"integridad":  h.NuevaIntegridad,
 		})
 	}
 	payload := map[string]interface{}{

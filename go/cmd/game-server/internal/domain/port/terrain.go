@@ -24,13 +24,13 @@ type ChunkRequest struct {
 
 // ChunkReady representa chunk ready.
 type ChunkReady struct {
-	BloqueID     string
-	ChunkCX      int
-	ChunkCY      int
-	WireJSON     string
-	SolidCells   []string
-	Version      uint64
-	RequesterID  string
+	BloqueID    string
+	ChunkCX     int
+	ChunkCY     int
+	WireJSON    string
+	SolidCells  []string
+	Version     uint64
+	RequesterID string
 }
 
 // TerrainPublisher representa terrain publisher.
@@ -43,7 +43,7 @@ type TerrainSubscriber interface {
 	Run(readyCh chan<- ChunkReady) error
 }
 
-// SwingCommand representa swing command.
+// SwingCommand represents a server-validated strike for world damage.
 type SwingCommand struct {
 	BloqueID string
 	PlayerID string
@@ -53,10 +53,11 @@ type SwingCommand struct {
 	PosX     float64
 	PosY     float64
 	PosZ     float64
+	Yaw      float64
 	IsNPC    bool
 }
 
-// SwingPublisher representa swing publisher.
+// SwingPublisher represents swing publisher.
 type SwingPublisher interface {
 	PublishSwing(cmd SwingCommand) error
 }

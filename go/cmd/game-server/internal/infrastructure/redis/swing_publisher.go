@@ -31,6 +31,7 @@ type swingPayload struct {
 	PosX     float64 `json:"pos_x"`
 	PosY     float64 `json:"pos_y"`
 	PosZ     float64 `json:"pos_z"`
+	Yaw      float64 `json:"yaw"`
 	IsNPC    bool    `json:"is_npc"`
 }
 
@@ -45,6 +46,7 @@ func (p *SwingPublisher) PublishSwing(cmd port.SwingCommand) error {
 		PosX:     cmd.PosX,
 		PosY:     cmd.PosY,
 		PosZ:     cmd.PosZ,
+		Yaw:      cmd.Yaw,
 		IsNPC:    cmd.IsNPC,
 	})
 	if err != nil {
