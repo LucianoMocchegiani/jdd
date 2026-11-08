@@ -11,7 +11,7 @@ import { DEFAULT_PALETTE } from '@/poc/shared';
 import { MeshStandardMaterial, type Scene } from 'three';
 
 // Compensa el origen del rig y la separación entre la celda física y la cara visible del voxel.
-const PLAYER_GROUND_VISUAL_OFFSET_CELLS = 0.94;
+const PLAYER_GROUND_VISUAL_OFFSET_CELLS = 1.04;
 
 export class PlayerCharacterVisual {
   private readonly doc = defaultBipedDocument();
