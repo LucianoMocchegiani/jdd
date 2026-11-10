@@ -4,6 +4,8 @@
 
 import type { Particle, ParticleType } from '@/types/particle';
 
+export const PLAYER_GROUND_CLEARANCE_CELLS = 1.05;
+
 /**
  * Altura Z (celdas) para pararse sobre el sólido más alto en (x, y).
  */
@@ -26,5 +28,5 @@ export function findSpawnZ(
       topSolid = Math.max(topSolid, p.celda_z);
     }
   }
-  return topSolid >= 0 ? topSolid + 1.05 : 2;
+  return topSolid >= 0 ? topSolid + PLAYER_GROUND_CLEARANCE_CELLS : 2;
 }
