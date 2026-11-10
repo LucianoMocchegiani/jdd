@@ -9,9 +9,9 @@ import { StudioRenderer } from '@/poc/character-studio/studio-renderer';
 import type { StudioAnimationClip, StudioDocument } from '@/poc/character-studio/types';
 import { DEFAULT_PALETTE } from '@/poc/shared';
 import { PLAYER_GROUND_CLEARANCE_CELLS } from '@/game/player/find-spawn';
+import { PARTICLE_SIZE_RATIO } from '@/game/terrain/particle-geometry';
 import { Box3, MeshStandardMaterial, Vector3, type Scene } from 'three';
 
-const PARTICLE_SIZE_RATIO = 0.92;
 const PLAYER_GROUND_VISUAL_OFFSET_CELLS = PLAYER_GROUND_CLEARANCE_CELLS - PARTICLE_SIZE_RATIO / 2;
 const UNIT_ELEMENT_BOUNDS = new Box3(new Vector3(-0.5, -0.5, -0.5), new Vector3(0.5, 0.5, 0.5));
 
