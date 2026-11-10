@@ -12,6 +12,7 @@ import {
   Scene,
 } from 'three';
 import type { RemovedParticleView } from '@/game/terrain/terrain-store';
+import { PARTICLE_SIZE_RATIO } from '@/game/terrain/particle-geometry';
 import type { Particle, ParticleType } from '@/types/particle';
 
 const MAX_INSTANCES_PER_MESH = 8000;
@@ -212,7 +213,11 @@ export class SimpleParticleRenderer {
   private ensureGeometry(cellSize: number): BoxGeometry {
     if (!this.sharedGeometry || this.lastCellSize !== cellSize) {
       this.sharedGeometry?.dispose();
-      this.sharedGeometry = new BoxGeometry(cellSize * 0.92, cellSize * 0.92, cellSize * 0.92);
+      this.sharedGeometry = new BoxGeometry(
+        cellSize * PARTICLE_SIZE_RATIO,
+        cellSize * PARTICLE_SIZE_RATIO,
+        cellSize * PARTICLE_SIZE_RATIO,
+      );
       this.lastCellSize = cellSize;
     }
     return this.sharedGeometry;
