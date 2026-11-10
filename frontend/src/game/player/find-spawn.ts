@@ -26,5 +26,5 @@ export function findSpawnZ(
       topSolid = Math.max(topSolid, p.celda_z);
     }
   }
-  return topSolid >= 0 ? topSolid + 2 : 2;
+  return topSolid >= 0 ? topSolid + 1 : 2;
 }
