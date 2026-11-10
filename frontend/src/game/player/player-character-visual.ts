@@ -8,11 +8,9 @@ import { defaultBipedDocument } from '@/poc/character-studio/studio-document';
 import { StudioRenderer } from '@/poc/character-studio/studio-renderer';
 import type { StudioAnimationClip, StudioDocument } from '@/poc/character-studio/types';
 import { DEFAULT_PALETTE } from '@/poc/shared';
-import { PLAYER_GROUND_CLEARANCE_CELLS } from '@/game/player/find-spawn';
 import { PARTICLE_SIZE_RATIO } from '@/game/terrain/particle-geometry';
 import { Box3, MeshStandardMaterial, Vector3, type Scene } from 'three';
 
-const PLAYER_GROUND_VISUAL_OFFSET_CELLS = PLAYER_GROUND_CLEARANCE_CELLS - PARTICLE_SIZE_RATIO / 2;
 const UNIT_ELEMENT_BOUNDS = new Box3(new Vector3(-0.5, -0.5, -0.5), new Vector3(0.5, 0.5, 0.5));
 
 function rigOriginOffset(doc: StudioDocument, pose: SkeletonPose): Vector3 {
@@ -77,7 +75,7 @@ export class PlayerCharacterVisual {
     this.renderer.sync(this.doc, this.pose, {
       x: x - cosYaw * this.rigOriginOffset.x - sinYaw * this.rigOriginOffset.z,
       y: y + sinYaw * this.rigOriginOffset.x - cosYaw * this.rigOriginOffset.z,
-      z: z - PLAYER_GROUND_VISUAL_OFFSET_CELLS - this.rigOriginOffset.y,
+      z: z + PARTICLE_SIZE_RATIO / 2 - this.rigOriginOffset.y,
       yaw: visualYaw,
       showBones: false,
     });

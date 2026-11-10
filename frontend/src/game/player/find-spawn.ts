@@ -4,9 +4,6 @@
 
 import type { Particle, ParticleType } from '@/types/particle';
 
-// Cada celda sólida ocupa [z, z + 1); el jugador empieza en su límite superior.
-export const PLAYER_GROUND_CLEARANCE_CELLS = 1;
-
 /**
  * Altura Z (celdas) para pararse sobre el sólido más alto en (x, y).
  */
@@ -29,5 +26,5 @@ export function findSpawnZ(
       topSolid = Math.max(topSolid, p.celda_z);
     }
   }
-  return topSolid >= 0 ? topSolid + PLAYER_GROUND_CLEARANCE_CELLS : 2;
+  return topSolid >= 0 ? topSolid : 2;
 }
