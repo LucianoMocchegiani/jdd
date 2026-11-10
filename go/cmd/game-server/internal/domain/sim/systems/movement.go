@@ -2,6 +2,7 @@
 package systems
 
 import (
+	"log"
 	"math"
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/collision"
@@ -58,7 +59,13 @@ func resolveMedium(p *entity.Player, grid *collision.SolidGridCache, cfg *sessio
 }
 
 func cellBelowSolid(p *entity.Player, grid *collision.SolidGridCache) bool {
-	return grid.IsCellSolid(int(math.Floor(p.X)), int(math.Floor(p.Y)), int(math.Floor(p.Z))-1)
+	x, y, z := int(math.Floor(p.X)), int(math.Floor(p.Y)), int(math.Floor(p.Z))-1
+	solid := grid.IsCellSolid(x, y, z)
+	if solid && !p.GroundCellDebugLogged {
+		log.Printf("ground cell: player=%s position=(%.3f,%.3f,%.3f) cell=(%d,%d,%d) solid=%t", p.ID, p.X, p.Y, p.Z, x, y, z, solid)
+		p.GroundCellDebugLogged = true
+	}
+	return solid
 }
 
 func tryMoveAxis(p *entity.Player, grid *collision.SolidGridCache, axis string, delta float64) {

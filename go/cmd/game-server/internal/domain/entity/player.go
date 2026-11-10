@@ -16,6 +16,7 @@ type Player struct {
 	ActionID   string
 	Health     float64
 	MaxHealth  float64
+	GroundCellDebugLogged bool
 	lastSwingSeq int
 	lastSwingAt  time.Time
 }
@@ -28,8 +29,6 @@ func NewPlayer(playerID string, entityID uint32, x, y, z, yaw, pitch float64) *P
 		X:         x,
 		Y:         y,
 		Z:         z,
-		Yaw:       yaw,
-		Pitch:     pitch,
 		Medium:    "ground",
 		Intents:   make(map[string]bool),
 		Health:    100,
