@@ -33,3 +33,17 @@ func TestRunPlayerTickUsesAuthoritativeFluidSamples(t *testing.T) {
 		t.Fatalf("expected authoritative submerged medium, got %s", p.Medium)
 	}
 }
+
+func TestRunPlayerTickSnapsGroundedPlayerToCellBoundary(t *testing.T) {
+	p := entity.NewPlayer("p", 1, 0, 0, 0, 0, 0)
+	p.Z = 1.93
+	grid := collision.NewSolidGrid()
+	grid.MergeSolidCells([]string{"0,0,0"})
+	cfg := &session.Config{PlayerMoveSpeedCells: 1}
+
+	RunPlayerTick(p, grid, cfg, nil, 1.0/30)
+
+	if p.Z != 1 || p.VZ != 0 {
+		t.Fatalf("expected grounded player at Z=1 with zero vertical velocity, got z=%v vz=%v", p.Z, p.VZ)
+	}
+}

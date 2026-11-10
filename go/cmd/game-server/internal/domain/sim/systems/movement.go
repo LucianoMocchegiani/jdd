@@ -39,10 +39,7 @@ func RunPlayerTick(p *entity.Player, grid *collision.SolidGridCache, cfg *sessio
 	tryMoveAxis(p, grid, "z", p.VZ*dt)
 	if cellBelowSolid(p, grid) && p.VZ <= 0 {
 		p.VZ = 0
-		floorZ := math.Floor(p.Z)
-		if p.Z < floorZ+0.01 {
-			p.Z = floorZ
-		}
+		p.Z = math.Floor(p.Z)
 	}
 	p.Medium = resolveMedium(p, grid, cfg, mediumRules)
 }
