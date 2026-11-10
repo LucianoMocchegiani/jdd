@@ -75,7 +75,7 @@ export class PlayerCharacterVisual {
     this.renderer.sync(this.doc, this.pose, {
       x: x - cosYaw * this.rigOriginOffset.x - sinYaw * this.rigOriginOffset.z,
       y: y + sinYaw * this.rigOriginOffset.x - cosYaw * this.rigOriginOffset.z,
-      z: z + PARTICLE_SIZE_RATIO / 2 - this.rigOriginOffset.y,
+      z: z - (1 - PARTICLE_SIZE_RATIO / 2) - this.rigOriginOffset.y,
       yaw: visualYaw,
       showBones: false,
     });
