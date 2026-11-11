@@ -1,4 +1,4 @@
-package usecase_test
+package usecase
 
 import (
 	"strings"
@@ -7,21 +7,18 @@ import (
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/memory"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/wshub"
-	"github.com/juego-de-dioses/jd/cmd/game-server/internal/usecase"
 )
 
 func TestPlayerActivatesOnlyAfterInitialTerrainIsReady(t *testing.T) {
 	hub := wshub.NewHub()
 	conn := hub.Register(nil)
 	hub.BindPending(conn.ID, wshub.JoinInfo{BloqueID: "block", EcoID: 1, PlayerID: "player"})
-	terrain := usecase.NewTerrainPushManager()
+	terrain := NewTerrainPushManager()
 	state := entity.NewTerrainPushState("block", conn.ID, 0, 0, 1)
 	state.SetPending([]string{"0,0"})
-	terrainState := state
-	// Keep this test at the use-case boundary while modeling the pending chunk.
-	registerTerrainState(terrain, terrainState)
+	terrain.register(state)
 	store := memory.NewSessionStore()
-	svc := &usecase.Services{Sessions: store, Hub: hub, TerrainPush: terrain}
+	svc := &Services{Sessions: store, Hub: hub, TerrainPush: terrain}
 
 	res := svc.ActivatePlayer(conn.ID, [3]float64{2, 3, 4})
 	if !strings.Contains(res.JoinErrJSON, "terrain_not_ready") {
