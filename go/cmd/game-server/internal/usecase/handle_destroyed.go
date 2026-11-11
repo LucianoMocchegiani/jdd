@@ -10,21 +10,22 @@ import (
 )
 
 type DestroyedEvent struct {
-	BloqueID   string
+	BloqueID string
 	ParticleID string
-	X, Y, Z    int
+	X, Y, Z int
 }
 
 type SwingResultEvent struct {
-	BloqueID       string
-	PlayerID       string
-	EntityID       int
-	Seq            int
-	ActionID       string
+	BloqueID string
+	EcoID int
+	PlayerID string
+	EntityID int
+	Seq int
+	ActionID string
 	TargetPlayerID string
 	TargetEntityID int
-	EntityDamage   float64
-	RawJSON        string
+	EntityDamage float64
+	RawJSON string
 }
 
 func (s *Services) HandleParticleDestroyed(ev DestroyedEvent) {
@@ -38,26 +39,20 @@ func (s *Services) HandleParticleDestroyed(ev DestroyedEvent) {
 }
 
 func (s *Services) HandleSwingResult(ev SwingResultEvent) {
-	for _, sess := range s.Sessions.GetByBloque(ev.BloqueID) {
-		attacker, exists := sess.GetPlayer(ev.PlayerID)
-		if !exists || attacker.EntityID != uint32(ev.EntityID) {
-			continue
-		}
-		if ev.TargetPlayerID != "" && ev.TargetPlayerID != ev.PlayerID &&
-			ev.TargetEntityID > 0 && ev.EntityDamage > 0 && !math.IsInf(ev.EntityDamage, 0) && !math.IsNaN(ev.EntityDamage) {
-			sess.UpdatePlayer(ev.TargetPlayerID, func(p *entity.Player) {
-				if p.EntityID != uint32(ev.TargetEntityID) || p.Health <= 0 {
-					return
-				}
-				p.Health = math.Max(0, p.Health-ev.EntityDamage)
-			})
-		}
-		s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
-			if c.PlayerID == ev.PlayerID {
-				wshub.SafeWrite(c, ev.RawJSON)
-			}
+	sess, exists := s.Sessions.Get(ev.BloqueID, ev.EcoID)
+	if !exists { return }
+	if ev.TargetPlayerID != "" && ev.TargetPlayerID != ev.PlayerID && ev.TargetEntityID > 0 &&
+		ev.EntityDamage > 0 && !math.IsInf(ev.EntityDamage, 0) && !math.IsNaN(ev.EntityDamage) {
+		sess.UpdatePlayer(ev.TargetPlayerID, func(p *entity.Player) {
+			if p.EntityID != uint32(ev.TargetEntityID) || p.Health <= 0 { return }
+			p.Health = math.Max(0, p.Health-ev.EntityDamage)
 		})
 	}
+	attacker, exists := sess.GetPlayer(ev.PlayerID)
+	if !exists || attacker.EntityID != uint32(ev.EntityID) { return }
+	s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
+		if c.PlayerID == ev.PlayerID { wshub.SafeWrite(c, ev.RawJSON) }
+	})
 }
 
 func buildParticleDestroyedWS(ev DestroyedEvent) string {

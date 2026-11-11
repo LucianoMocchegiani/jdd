@@ -55,6 +55,7 @@ type SwingTarget struct {
 // SwingCommand represents a server-validated strike for world damage.
 type SwingCommand struct {
 	BloqueID string
+	EcoID    int
 	PlayerID string
 	ActionID string
 	EntityID int

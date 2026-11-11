@@ -12,14 +12,13 @@ import (
 	"github.com/juego-de-dioses/jd/pkg/jd/rediskeys"
 )
 
-// SwingPublisher representa swing publisher.
 type SwingPublisher struct { client *goredis.Client }
 
-// NewSwingPublisher construye swing publisher.
 func NewSwingPublisher(client *goredis.Client) *SwingPublisher { return &SwingPublisher{client: client} }
 
 type swingPayload struct {
 	BloqueID string `json:"bloque_id"`
+	EcoID int `json:"eco_id"`
 	PlayerID string `json:"player_id"`
 	ActionID string `json:"action_id"`
 	EntityID int `json:"entity_id"`
@@ -32,10 +31,9 @@ type swingPayload struct {
 	Targets []port.SwingTarget `json:"targets"`
 }
 
-// PublishSwing implementa publish swing.
 func (p *SwingPublisher) PublishSwing(cmd port.SwingCommand) error {
 	payload, err := json.Marshal(swingPayload{
-		BloqueID: cmd.BloqueID, PlayerID: cmd.PlayerID, ActionID: cmd.ActionID,
+		BloqueID: cmd.BloqueID, EcoID: cmd.EcoID, PlayerID: cmd.PlayerID, ActionID: cmd.ActionID,
 		EntityID: cmd.EntityID, Seq: cmd.Seq, PosX: cmd.PosX, PosY: cmd.PosY,
 		PosZ: cmd.PosZ, Yaw: cmd.Yaw, IsNPC: cmd.IsNPC, Targets: cmd.Targets,
 	})

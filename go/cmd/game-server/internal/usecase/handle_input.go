@@ -10,7 +10,6 @@ import (
 	jdcombat "github.com/juego-de-dioses/jd/pkg/jd/combat"
 )
 
-// InputPayload representa input payload.
 type InputPayload struct {
 	BloqueID string
 	EcoID    int
@@ -21,7 +20,6 @@ type InputPayload struct {
 	Pitch    *float64
 }
 
-// HandleInput implementa handle input.
 func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 	sess, exists := s.Sessions.Get(in.BloqueID, in.EcoID)
 	if !exists {
@@ -87,7 +85,7 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 		}
 	})
 	if err := s.SwingPub.PublishSwing(port.SwingCommand{
-		BloqueID: in.BloqueID, PlayerID: in.PlayerID, ActionID: in.ActionID,
+		BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: in.ActionID,
 		EntityID: int(reservation.EntityID), Seq: in.Seq,
 		PosX: reservation.X, PosY: reservation.Y, PosZ: reservation.Z, Yaw: reservation.Yaw,
 		Targets: targets,
