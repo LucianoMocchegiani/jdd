@@ -69,29 +69,25 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 		return buildError("swing_error", "not_configured"), true
 	}
 	profile := s.Combat.Get(in.ActionID)
-	if profile == nil || (profile.WorldDamage == nil && profile.EntityDamage == nil) {
+	if profile == nil || profile.Impact == nil {
 		return buildError("swing_error", "unknown_action"), true
 	}
-	if profile.WorldDamage != nil && s.SwingPub == nil {
+	if s.SwingPub == nil {
 		return buildError("swing_error", "not_configured"), true
 	}
 	reservation, ok := sess.BeginSwing(in.PlayerID, in.Seq, time.Now(), profile.Cooldown, profile.BlockedMediums)
 	if !ok {
 		return buildError("swing_error", "swing_rejected"), true
 	}
-	if profile.WorldDamage != nil {
-		if err := s.SwingPub.PublishSwing(port.SwingCommand{
-			BloqueID: in.BloqueID, PlayerID: in.PlayerID, ActionID: in.ActionID,
-			EntityID: int(reservation.EntityID), Seq: in.Seq,
-			PosX: reservation.X, PosY: reservation.Y, PosZ: reservation.Z, Yaw: reservation.Yaw,
-		}); err != nil {
-			sess.CancelSwing(in.PlayerID, reservation)
-			return buildError("swing_error", "enqueue_failed"), true
-		}
+	if err := s.SwingPub.PublishSwing(port.SwingCommand{
+		BloqueID: in.BloqueID, PlayerID: in.PlayerID, ActionID: in.ActionID,
+		EntityID: int(reservation.EntityID), Seq: in.Seq,
+		PosX: reservation.X, PosY: reservation.Y, PosZ: reservation.Z, Yaw: reservation.Yaw,
+	}); err != nil {
+		sess.CancelSwing(in.PlayerID, reservation)
+		return buildError("swing_error", "enqueue_failed"), true
 	}
-	if profile.EntityDamage != nil {
-		sess.ApplyMeleeDamage(in.PlayerID, jdcombat.Point{X: reservation.X, Y: reservation.Y, Z: reservation.Z}, reservation.Yaw, profile.EntityDamage.Reach, profile.EntityDamage.Damage)
-	}
+	sess.ApplyMeleeDamage(in.PlayerID, jdcombat.Point{X: reservation.X, Y: reservation.Y, Z: reservation.Z}, reservation.Yaw, profile.Impact.Reach, profile.Impact.Damage)
 	ack, _ := json.Marshal(map[string]interface{}{
 		"type": "swing_queued", "seq": in.Seq, "entity_id": reservation.EntityID, "action_id": in.ActionID,
 	})

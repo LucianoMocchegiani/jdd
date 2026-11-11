@@ -100,12 +100,12 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 	if !s.rememberSwing(cmd.PlayerID, cmd.EntityID, cmd.Seq) {
 		return SwingOutcome{OK: true, Duplicate: true, ActionID: cmd.ActionID}, nil
 	}
-	if profile.WorldDamage == nil {
+	if profile.Impact == nil {
 		return SwingOutcome{OK: true, ActionID: cmd.ActionID}, nil
 	}
 
-	world := profile.WorldDamage
-	queryReach := world.Reach + 1
+	impact := profile.Impact
+	queryReach := int(impact.Reach) + 1
 	candidates, err := s.Repo.GetParticlesNear(ctx, cmd.BloqueID, cmd.PosX, cmd.PosY, cmd.PosZ, queryReach)
 	if err != nil {
 		return SwingOutcome{}, err
@@ -117,13 +117,13 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 		if len(hits) >= MaxWorldHitsPerSwing {
 			break
 		}
-		if !isSolidParticle(row) || !jdcombat.HitsWorldCell(origin, cmd.Yaw, row.CeldaX, row.CeldaY, row.CeldaZ, float64(world.Reach)) {
+		if !isSolidParticle(row) || !jdcombat.HitsWorldCell(origin, cmd.Yaw, row.CeldaX, row.CeldaY, row.CeldaZ, impact.Reach) {
 			continue
 		}
 		res, err := ApplyParticleDamage(ctx, s.Repo, ApplyDamageInput{
 			BloqueID:    cmd.BloqueID,
 			ParticleID:  row.ID,
-			Damage:      world.Damage,
+			Damage:      impact.Damage,
 			WeaponType:  cmd.ActionID,
 			RateLimiter: s.RateLimit,
 		})

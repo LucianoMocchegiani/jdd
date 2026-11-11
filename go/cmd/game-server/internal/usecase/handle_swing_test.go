@@ -36,8 +36,7 @@ func TestHandleSwingUsesAuthoritativePoseAndRejectsDuplicate(t *testing.T) {
 		SwingPub: publisher,
 		Combat: combatCatalog{"attack": {
 			Cooldown: 500 * time.Millisecond,
-			WorldDamage: &port.DamageProfile{Reach: 2, Damage: 15},
-			EntityDamage: &port.DamageProfile{Reach: 2, Damage: 15},
+			Impact:   &port.DamageProfile{Reach: 2, Damage: 15},
 		}},
 	}
 

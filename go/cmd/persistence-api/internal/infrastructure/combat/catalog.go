@@ -3,6 +3,7 @@ package combat
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
 
@@ -12,37 +13,45 @@ import (
 
 type catalogFile struct {
 	Actions []struct {
-		ID string `json:"id"`
-		Impact struct {
-			WorldDamage *struct { Reach int `json:"reach"`; Damage float64 `json:"damage"` } `json:"worldDamage"`
-			EntityDamage *struct { Reach float64 `json:"reach"`; Damage float64 `json:"damage"` } `json:"entityDamage"`
-		} `json:"impact"`
+		ID     string                `json:"id"`
+		Impact *domain.ImpactProfile `json:"impact"`
 	} `json:"actions"`
 }
 
 type Catalog struct {
-	mu sync.RWMutex
+	mu       sync.RWMutex
 	profiles map[string]*domain.CombatProfile
 }
 
 func LoadCatalog(path string) (*Catalog, error) {
 	data, err := os.ReadFile(path)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	var raw catalogFile
-	if err := json.Unmarshal(data, &raw); err != nil { return nil, err }
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, err
+	}
 	c := &Catalog{profiles: make(map[string]*domain.CombatProfile)}
 	for _, action := range raw.Actions {
-		profile := &domain.CombatProfile{ActionID: action.ID}
-		if world := action.Impact.WorldDamage; world != nil && world.Reach > 0 && world.Damage > 0 {
-			profile.WorldDamage = &domain.WorldDamageProfile{Reach: world.Reach, Damage: world.Damage}
+		if action.ID == "" {
+			return nil, fmt.Errorf("action without id")
 		}
-		if entity := action.Impact.EntityDamage; entity != nil && entity.Reach > 0 && entity.Damage > 0 {
-			profile.EntityDamage = &domain.EntityDamageProfile{Reach: entity.Reach, Damage: entity.Damage}
+		if action.Impact != nil && (action.Impact.Reach <= 0 || action.Impact.Damage <= 0) {
+			return nil, fmt.Errorf("action %q has invalid impact", action.ID)
 		}
-		c.profiles[action.ID] = profile
+		if _, exists := c.profiles[action.ID]; exists {
+			return nil, fmt.Errorf("duplicate action id %q", action.ID)
+		}
+		c.profiles[action.ID] = &domain.CombatProfile{ActionID: action.ID, Impact: action.Impact}
 	}
 	return c, nil
 }
 
-func (c *Catalog) Get(actionID string) *domain.CombatProfile { c.mu.RLock(); defer c.mu.RUnlock(); return c.profiles[actionID] }
+func (c *Catalog) Get(actionID string) *domain.CombatProfile {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.profiles[actionID]
+}
+
 var _ port.CombatCatalog = (*Catalog)(nil)

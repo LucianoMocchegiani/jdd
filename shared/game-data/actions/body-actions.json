@@ -23,14 +23,8 @@
         "clip": "attack"
       },
       "impact": {
-        "worldDamage": {
-          "reach": 2,
-          "damage": 15
-        },
-        "entityDamage": {
-          "reach": 2,
-          "damage": 15
-        }
+        "reach": 2,
+        "damage": 15
       }
     }
   ]

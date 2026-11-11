@@ -43,21 +43,14 @@ type CellPos struct {
 	X, Y, Z int
 }
 
-// WorldDamageProfile representa world damage profile.
-type WorldDamageProfile struct {
-	Reach  int
-	Damage float64
-}
-
-// EntityDamageProfile representa entity damage profile.
-type EntityDamageProfile struct {
-	Reach  float64
-	Damage float64
+// ImpactProfile representa el daño total y el alcance de un impacto.
+type ImpactProfile struct {
+	Reach  float64 `json:"reach"`
+	Damage float64 `json:"damage"`
 }
 
 // CombatProfile representa combat profile.
 type CombatProfile struct {
-	ActionID     string
-	WorldDamage  *WorldDamageProfile
-	EntityDamage *EntityDamageProfile
+	ActionID string
+	Impact   *ImpactProfile
 }
