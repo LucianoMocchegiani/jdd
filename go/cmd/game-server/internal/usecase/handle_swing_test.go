@@ -30,7 +30,7 @@ func TestHandleSwingUsesAuthoritativePoseAndQueuesPlayerCandidates(t *testing.T)
 	store := memory.NewSessionStore()
 	sess := store.GetOrCreate("block", 1)
 	sess.AddPlayer("player", 3, 4, 5, 1.25, 0)
-	sess.AddPlayer("target", 3, 2, 5, 0, 0)
+	sess.AddPlayer("target", 1.1, 3.4, 5, 0, 0)
 	publisher := &swingPublisher{}
 	svc := &usecase.Services{
 		Sessions: store,
