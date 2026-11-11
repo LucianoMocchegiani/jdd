@@ -30,6 +30,7 @@ import {
 } from '@/game/debug/movement-debug';
 import { getHeldKeyCodes } from '@/game/input/keyboard-state';
 import type { TerrainStore } from '@/game/terrain/terrain-store';
+import { particleColumnIndex } from '@/game/terrain/particle-cell';
 import { cellKey } from '@/game/utils/cell-key';
 
 /** Pitch de cámara durante replay de reconciliación (ver {@link PlayerSimulationRunner}). */
@@ -167,7 +168,11 @@ export class MovementSystem extends System {
       this.tryMoveAxis(pos, kin, 'y', kin.vy * deltaTime);
       this.tryMoveAxis(pos, kin, 'z', kin.vz * deltaTime);
 
-      const below = cellKey(Math.floor(pos.x), Math.floor(pos.y), Math.floor(pos.z) - 1);
+      const below = cellKey(
+        particleColumnIndex(pos.x),
+        particleColumnIndex(pos.y),
+        Math.floor(pos.z) - 1,
+      );
       const solidBelowFeet = this.terrain.getOccupiedSolidCells().has(below);
       if (solidBelowFeet) {
         kin.vz = Math.min(kin.vz, 0);
@@ -176,8 +181,8 @@ export class MovementSystem extends System {
         }
       }
 
-      const cx = Math.floor(pos.x);
-      const cy = Math.floor(pos.y);
+      const cx = particleColumnIndex(pos.x);
+      const cy = particleColumnIndex(pos.y);
       const cz = Math.floor(pos.z);
       logMovementSnapshot({
         entityId,
@@ -224,8 +229,8 @@ export class MovementSystem extends System {
     const nx = axis === 'x' ? pos.x + delta : pos.x;
     const ny = axis === 'y' ? pos.y + delta : pos.y;
     const nz = axis === 'z' ? pos.z + delta : pos.z;
-    const fx = Math.floor(nx);
-    const fy = Math.floor(ny);
+    const fx = particleColumnIndex(nx);
+    const fy = particleColumnIndex(ny);
     const fz = Math.floor(nz);
     const solidFeet = this.terrain.isCellSolid(fx, fy, fz);
     const solidHead = this.terrain.isCellSolid(fx, fy, fz + 1);

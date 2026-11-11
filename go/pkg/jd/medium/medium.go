@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"math"
 	"os"
+
+	"github.com/juego-de-dioses/jd/pkg/jd/particlecell"
 )
 
 type Particle struct {
@@ -68,7 +70,7 @@ func Load(mediumRulesPath, particleRegistryPath string) (*Resolver, error) {
 
 func (r *Resolver) Resolve(particles []Particle, solidUnderFeet bool, x, y, z, radius float64) string {
 	radiusSq := radius * radius
-	feetZ, fx, fy := math.Floor(z)-1, math.Floor(x), math.Floor(y)
+	feetZ, fx, fy := math.Floor(z)-1, particlecell.ColumnIndex(x), particlecell.ColumnIndex(y)
 	total, submerged, ground := 0, 0, 0
 	for _, p := range particles {
 		dx, dy, dz := p.X-x, p.Y-y, p.Z-z
@@ -83,7 +85,7 @@ func (r *Resolver) Resolve(particles []Particle, solidUnderFeet bool, x, y, z, r
 		if contains(r.registry.SubmergedCountFamilies, rule.Family) {
 			submerged++
 		}
-		if p.Physics == "solido" && p.X == fx && p.Y == fy && p.Z == feetZ {
+		if p.Physics == "solido" && p.X == float64(fx) && p.Y == float64(fy) && p.Z == feetZ {
 			ground++
 		}
 	}

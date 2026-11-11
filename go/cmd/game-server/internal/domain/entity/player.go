@@ -5,19 +5,20 @@ import "time"
 
 // Player — entidad jugador en una BlockSession (componentes embebidos M2).
 type Player struct {
-	ID         string
-	EntityID   uint32
-	X, Y, Z    float64
-	VX, VY, VZ float64
-	Yaw, Pitch float64
-	Medium     string
-	InputSeq   int
-	Intents    map[string]bool
-	ActionID   string
-	Health     float64
-	MaxHealth  float64
-	lastSwingSeq int
-	lastSwingAt  time.Time
+	ID                    string
+	EntityID              uint32
+	X, Y, Z               float64
+	VX, VY, VZ            float64
+	Yaw, Pitch            float64
+	Medium                string
+	InputSeq              int
+	Intents               map[string]bool
+	ActionID              string
+	Health                float64
+	MaxHealth             float64
+	GroundCellDebugLogged bool
+	lastSwingSeq          int
+	lastSwingAt           time.Time
 }
 
 // NewPlayer construye player.

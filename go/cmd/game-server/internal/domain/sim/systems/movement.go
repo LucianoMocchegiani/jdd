@@ -2,10 +2,12 @@
 package systems
 
 import (
+	"log"
 	"math"
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/collision"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
+	"github.com/juego-de-dioses/jd/pkg/jd/particlecell"
 	"github.com/juego-de-dioses/jd/pkg/jd/session"
 	jdmedium "github.com/juego-de-dioses/jd/pkg/jd/medium"
 )
@@ -38,10 +40,7 @@ func RunPlayerTick(p *entity.Player, grid *collision.SolidGridCache, cfg *sessio
 	tryMoveAxis(p, grid, "z", p.VZ*dt)
 	if cellBelowSolid(p, grid) && p.VZ <= 0 {
 		p.VZ = 0
-		floorZ := math.Floor(p.Z)
-		if p.Z < floorZ+0.01 {
-			p.Z = floorZ
-		}
+		p.Z = math.Floor(p.Z)
 	}
 	p.Medium = resolveMedium(p, grid, cfg, mediumRules)
 }
@@ -58,7 +57,13 @@ func resolveMedium(p *entity.Player, grid *collision.SolidGridCache, cfg *sessio
 }
 
 func cellBelowSolid(p *entity.Player, grid *collision.SolidGridCache) bool {
-	return grid.IsCellSolid(int(math.Floor(p.X)), int(math.Floor(p.Y)), int(math.Floor(p.Z))-1)
+	x, y, z := particlecell.ColumnIndex(p.X), particlecell.ColumnIndex(p.Y), int(math.Floor(p.Z))-1
+	solid := grid.IsCellSolid(x, y, z)
+	if solid && !p.GroundCellDebugLogged {
+		log.Printf("ground cell: player=%s position=(%.3f,%.3f,%.3f) cell=(%d,%d,%d) solid=%t", p.ID, p.X, p.Y, p.Z, x, y, z, solid)
+		p.GroundCellDebugLogged = true
+	}
+	return solid
 }
 
 func tryMoveAxis(p *entity.Player, grid *collision.SolidGridCache, axis string, delta float64) {
@@ -74,7 +79,7 @@ func tryMoveAxis(p *entity.Player, grid *collision.SolidGridCache, axis string, 
 	case "z":
 		nz += delta
 	}
-	fx, fy, fz := int(math.Floor(nx)), int(math.Floor(ny)), int(math.Floor(nz))
+	fx, fy, fz := particlecell.ColumnIndex(nx), particlecell.ColumnIndex(ny), int(math.Floor(nz))
 	if grid.IsBodyBlocked(fx, fy, fz) {
 		switch axis {
 		case "x":

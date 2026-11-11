@@ -6,16 +6,30 @@ import { buildRig, SkeletonPose } from '@/poc/character-studio/rig-math';
 import { createDefaultClipLibrary, sampleClip } from '@/poc/character-studio/studio-clip';
 import { defaultBipedDocument } from '@/poc/character-studio/studio-document';
 import { StudioRenderer } from '@/poc/character-studio/studio-renderer';
-import type { StudioAnimationClip } from '@/poc/character-studio/types';
+import type { StudioAnimationClip, StudioDocument } from '@/poc/character-studio/types';
 import { DEFAULT_PALETTE } from '@/poc/shared';
-import { MeshStandardMaterial, type Scene } from 'three';
+import { PARTICLE_SIZE_RATIO } from '@/game/terrain/particle-geometry';
+import { Box3, MeshStandardMaterial, Vector3, type Scene } from 'three';
 
-// Compensa el origen del rig y la separación entre la celda física y la cara visible del voxel.
-const PLAYER_GROUND_VISUAL_OFFSET_CELLS = 1.04;
+const UNIT_ELEMENT_BOUNDS = new Box3(new Vector3(-0.5, -0.5, -0.5), new Vector3(0.5, 0.5, 0.5));
+
+function rigOriginOffset(doc: StudioDocument, pose: SkeletonPose): Vector3 {
+  const min = new Vector3(Infinity, Infinity, Infinity);
+  const max = new Vector3(-Infinity, -Infinity, -Infinity);
+  for (const element of doc.elements) {
+    const matrix = pose.elementWorldMatrix(element).clone().scale(new Vector3(...element.scale));
+    const bounds = UNIT_ELEMENT_BOUNDS.clone().applyMatrix4(matrix);
+    min.min(bounds.min);
+    max.max(bounds.max);
+  }
+  if (!Number.isFinite(min.x)) throw new Error('El rig no tiene elementos renderizables');
+  return new Vector3((min.x + max.x) / 2, min.y, (min.z + max.z) / 2).multiplyScalar(doc.gridStep);
+}
 
 export class PlayerCharacterVisual {
   private readonly doc = defaultBipedDocument();
   private readonly pose = new SkeletonPose(buildRig(this.doc), this.doc);
+  private readonly rigOriginOffset = rigOriginOffset(this.doc, this.pose);
   private readonly renderer: StudioRenderer;
   private readonly clips = new Map<string, StudioAnimationClip>(
     createDefaultClipLibrary(this.doc.bones).clips.map((clip) => [clip.id, clip] as const),
@@ -55,11 +69,14 @@ export class PlayerCharacterVisual {
 
     const clip = this.clips.get(this.clipId)!;
     this.pose.setBoneRots(sampleClip(clip, this.time, this.doc.bones));
+    const visualYaw = yaw + Math.PI / 2;
+    const cosYaw = Math.cos(visualYaw);
+    const sinYaw = Math.sin(visualYaw);
     this.renderer.sync(this.doc, this.pose, {
-      x,
-      y,
-      z: z - PLAYER_GROUND_VISUAL_OFFSET_CELLS,
-      yaw: yaw + Math.PI / 2,
+      x: x - cosYaw * this.rigOriginOffset.x - sinYaw * this.rigOriginOffset.z,
+      y: y + sinYaw * this.rigOriginOffset.x - cosYaw * this.rigOriginOffset.z,
+      z: z - (1 - PARTICLE_SIZE_RATIO / 2) - this.rigOriginOffset.y,
+      yaw: visualYaw,
       showBones: false,
     });
     const color = this.damageFlashUntilMs > performance.now() ? 0xff5555 : tint;

@@ -3,6 +3,7 @@
  */
 
 import type { Particle, ParticleType } from '@/types/particle';
+import { particleColumnIndex } from '@/game/terrain/particle-cell';
 
 /**
  * Altura Z (celdas) para pararse sobre el sólido más alto en (x, y).
@@ -13,8 +14,8 @@ export function findSpawnZ(
   centerY: number,
   typesByNombre: ReadonlyMap<string, ParticleType>,
 ): number {
-  const fx = Math.floor(centerX);
-  const fy = Math.floor(centerY);
+  const fx = particleColumnIndex(centerX);
+  const fy = particleColumnIndex(centerY);
   let topSolid = -1;
   for (const p of particles) {
     const tipo = typesByNombre.get(p.tipo_nombre);
@@ -26,5 +27,5 @@ export function findSpawnZ(
       topSolid = Math.max(topSolid, p.celda_z);
     }
   }
-  return topSolid >= 0 ? topSolid + 1.05 : 2;
+  return topSolid >= 0 ? topSolid + 1 : 2;
 }

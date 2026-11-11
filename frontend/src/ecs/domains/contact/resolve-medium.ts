@@ -15,6 +15,7 @@ import {
 import type { ContactContext } from '@/types/contact-context';
 import type { Medium } from '@/types/medium';
 import type { Particle, ParticleType } from '@/types/particle';
+import { particleColumnIndex } from '@/game/terrain/particle-cell';
 
 /**
  * Grilla de colisión local (p. ej. {@link TerrainStore.isCellSolid}).
@@ -49,8 +50,8 @@ export function solidUnderFeetFromGrid(
   centerY: number,
   centerZ: number,
 ): boolean {
-  const fx = Math.floor(centerX);
-  const fy = Math.floor(centerY);
+  const fx = particleColumnIndex(centerX);
+  const fy = particleColumnIndex(centerY);
   const feetZ = Math.floor(centerZ) - 1;
   return solidGrid.isCellSolid(fx, fy, feetZ);
 }
@@ -137,8 +138,8 @@ export function countContactSamples(
 ): ContactSampleCounts {
   const radiusSq = radiusCells * radiusCells;
   const feetZ = Math.floor(centerZ) - 1;
-  const fx = Math.floor(centerX);
-  const fy = Math.floor(centerY);
+  const fx = particleColumnIndex(centerX);
+  const fy = particleColumnIndex(centerY);
   let submergedCount = 0;
   let solidUnderFeet = 0;
   let totalSampled = 0;
