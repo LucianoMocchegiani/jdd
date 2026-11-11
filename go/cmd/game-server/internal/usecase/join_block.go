@@ -105,6 +105,7 @@ func (s *Services) Leave(connID uint64) (leftJSON, bloqueID string, ecoID int, o
 		_ = s.Registry.Release(bloqueID, playerID, ecoID)
 	}
 	if !active {
+		s.Sessions.RemoveIfEmpty(bloqueID, ecoID)
 		return "", bloqueID, ecoID, false
 	}
 	sess, exists := s.Sessions.Get(bloqueID, ecoID)
