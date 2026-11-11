@@ -18,6 +18,9 @@ import type { WorldRealtimeClient } from '@/game/network/ws-client';
 import type { TerrainStore } from '@/game/terrain/terrain-store';
 import type { SwingCommand } from '@/types/world-events';
 
+/** Señala al HUD que una habilidad inició su cooldown tras enviar el golpe. */
+const COOLDOWN_EVENT = 'ability-cooldown-start';
+
 /**
  * Envía intención de combate al servidor mientras `body_actions` está latched.
  *
@@ -73,7 +76,9 @@ export class WorldDamageSystem extends System {
       if (sentFor !== attack.id) {
         this.swingActionByEntity.set(entityId, attack.id);
         const facing = this.world?.getComponent<FacingComponent>(entityId, 'facing');
-        this.sendSwingCommand(entityId, attack.id, pos, facing?.yaw);
+        if (this.sendSwingCommand(entityId, attack.id, pos, facing?.yaw)) {
+          window.dispatchEvent(new CustomEvent(COOLDOWN_EVENT, { detail: { actionId: attack.id } }));
+        }
       }
     }
   }
@@ -83,7 +88,7 @@ export class WorldDamageSystem extends System {
     actionId: string,
     pos: PositionComponent,
     yaw?: number,
-  ): void {
+  ): boolean {
     const seq = (this.swingSeqByEntity.get(entityId) ?? 0) + 1;
     this.swingSeqByEntity.set(entityId, seq);
     const cmd: SwingCommand = {
@@ -100,5 +105,6 @@ export class WorldDamageSystem extends System {
     if (!sent && import.meta.env.DEV) {
       console.warn('[world-damage] WS no disponible para swing');
     }
+    return sent;
   }
 }

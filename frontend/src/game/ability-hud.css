@@ -43,6 +43,46 @@
   color: #94a3b8;
 }
 
+.ability-hud__clock {
+  display: none;
+  position: relative;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border: 1.5px solid #fbbf24;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.ability-hud__clock::after {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  width: 1px;
+  height: 4px;
+  border-radius: 1px;
+  background: #fbbf24;
+  content: '';
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+}
+
+.ability-hud__clock.is-spinning::after {
+  animation: ability-cooldown-spin linear forwards;
+}
+
+.ability-hud__item.is-cooling-down .ability-hud__clock {
+  display: inline-block;
+}
+
+.ability-hud__item.is-cooling-down small {
+  color: #fbbf24;
+}
+
+@keyframes ability-cooldown-spin {
+  to { transform: translateX(-50%) rotate(1turn); }
+}
+
 body.character-studio-mode #ability-hud {
   display: none;
 }

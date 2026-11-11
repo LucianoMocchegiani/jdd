@@ -2,23 +2,55 @@
 import { BODY_ACTIONS } from '@/game-data/actions';
 import { INTENT_KEY_CODES } from '@/ecs/domains/input/input-system';
 
+const COOLDOWN_EVENT = 'ability-cooldown-start';
+
 export function mountAbilityHud(root: HTMLElement): void {
+  const rows = new Map<string, { item: HTMLElement; clock: HTMLElement; cooldown: HTMLElement; cooldownMs: number; label: string }>();
+
   for (const action of BODY_ACTIONS) {
     const keyText = (INTENT_KEY_CODES[action.control.inputIntent] ?? [])
       .map((code) => code.startsWith('Key') ? code.slice(3) : code === 'Mouse0' ? 'Click izq.' : code)
       .join(' / ') || '—';
-    const cooldownText = `${((action.cooldownMs ?? 0) / 1000).toFixed(1)} s`;
+    const cooldownMs = action.cooldownMs ?? 0;
+    const cooldownText = `${(cooldownMs / 1000).toFixed(1)} s`;
+    const nameText = action.id === 'attack' ? 'Ataque' : action.id.replaceAll('_', ' ');
     const item = document.createElement('div');
     item.className = 'ability-hud__item';
-    item.setAttribute('aria-label', `${action.id}, ${keyText}, cooldown configurado ${cooldownText}`);
+    item.setAttribute('aria-label', `${nameText}, ${keyText}, cooldown configurado ${cooldownText}`);
 
     const key = document.createElement('kbd');
     key.textContent = keyText;
     const name = document.createElement('span');
-    name.textContent = action.id === 'attack' ? 'Ataque' : action.id.replaceAll('_', ' ');
+    name.textContent = nameText;
     const cooldown = document.createElement('small');
     cooldown.textContent = `CD ${cooldownText}`;
-    item.append(key, name, cooldown);
+    const clock = document.createElement('span');
+    clock.className = 'ability-hud__clock';
+    clock.setAttribute('aria-hidden', 'true');
+    item.append(key, name, cooldown, clock);
     root.append(item);
+    rows.set(action.id, { item, clock, cooldown, cooldownMs, label: `${nameText}, ${keyText}` });
+  }
+
+  root.addEventListener(COOLDOWN_EVENT, (event) => {
+    const actionId = (event as CustomEvent<{ actionId: string }>).detail?.actionId;
+    const row = actionId ? rows.get(actionId) : undefined;
+    if (!row || row.cooldownMs <= 0) return;
+
+    row.clock.style.animationDuration = `${row.cooldownMs}ms`;
+    row.item.classList.add('is-cooling-down');
+    row.cooldown.textContent = 'Enfriando…';
+    row.item.setAttribute('aria-label', `${row.label}, en cooldown`);
+    row.clock.classList.remove('is-spinning');
+    void row.clock.offsetWidth;
+    row.clock.classList.add('is-spinning');
+  });
+
+  for (const { item, clock, cooldown, cooldownMs, label } of rows.values()) {
+    clock.addEventListener('animationend', () => {
+      item.classList.remove('is-cooling-down');
+      cooldown.textContent = 'Listo';
+      item.setAttribute('aria-label', `${label}, listo para usar; cooldown ${((cooldownMs) / 1000).toFixed(1)} segundos`);
+    });
   }
 }
