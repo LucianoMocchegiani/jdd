@@ -33,6 +33,16 @@ type ChunkReady struct {
 	RequesterID string
 }
 
+// TerrainPublisher representa terrain publisher.
+type TerrainPublisher interface {
+	PublishChunkRequest(req ChunkRequest) error
+}
+
+// TerrainSubscriber representa terrain subscriber.
+type TerrainSubscriber interface {
+	Run(readyCh chan<- ChunkReady) error
+}
+
 // SwingTarget is a server-snapshotted player candidate for a melee strike.
 type SwingTarget struct {
 	PlayerID string  `json:"player_id"`

@@ -35,7 +35,7 @@ func ForwardDistance(origin Point, yaw, x, y float64) float64 {
 	return forward
 }
 
-func planarHit(origin Point, yaw float64, x, y float64) (forward, lateral float64) {
+func planarHit(origin Point, yaw, x, y float64) (forward, lateral float64) {
 	dx, dy := x-origin.X, y-origin.Y
 	fx, fy := -math.Sin(yaw), -math.Cos(yaw)
 	return dx*fx + dy*fy, math.Abs(dx*fy - dy*fx)
