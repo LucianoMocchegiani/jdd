@@ -3,7 +3,9 @@
  */
 
 import '@/style.css';
+import '@/game/ability-hud.css';
 import { bootstrapApp } from '@/game/app';
+import { mountAbilityHud } from '@/game/ability-hud';
 import { bootstrapCharacterStudioPoc } from '@/poc/character-studio';
 import { STUDIO_PANEL_W, TIMELINE_HEIGHT } from '@/poc/character-studio/studio-timeline';
 import { bindInputStatsHud } from '@/game/debug/input-stats-debug';
@@ -26,13 +28,15 @@ const debugCameraEl = document.querySelector<HTMLElement>('#debug-camera');
 const debugMovementEl = document.querySelector<HTMLElement>('#debug-movement');
 const debugInputStatsEl = document.querySelector<HTMLElement>('#debug-input-stats');
 const debugPosSyncEl = document.querySelector<HTMLElement>('#debug-pos-sync');
+const abilityHud = document.querySelector<HTMLElement>('#ability-hud');
 
 bindInputStatsHud(debugInputStatsEl);
 bindPositionSyncHud(debugPosSyncEl);
 
-if (!container || !statusEl || !debugMediumEl || !debugConditionsEl || !debugCameraEl || !debugMovementEl) {
+if (!container || !statusEl || !debugMediumEl || !debugConditionsEl || !debugCameraEl || !debugMovementEl || !abilityHud) {
   throw new Error('Missing #canvas-container, #status or #debug-hud children');
 }
+mountAbilityHud(abilityHud);
 
 const scene = new Scene();
 scene.background = new Color(0x0a0a12);
