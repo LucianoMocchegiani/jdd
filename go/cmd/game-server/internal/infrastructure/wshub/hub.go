@@ -14,10 +14,17 @@ import (
 
 // Hub representa hub.
 type Hub struct {
-	mu          sync.RWMutex
-	conns       map[uint64]*Conn
-	bySession   map[string]map[uint64]struct{}
-	nextID      uint64
+	mu        sync.RWMutex
+	conns     map[uint64]*Conn
+	bySession map[string]map[uint64]struct{}
+	nextID    uint64
+}
+
+// JoinInfo es la posición reservada antes de activar al jugador.
+type JoinInfo struct {
+	BloqueID, PlayerID, WireFormat string
+	EcoID                          int
+	X, Y, Z, Yaw, Pitch            float64
 }
 
 // Conn representa conn.
@@ -28,6 +35,8 @@ type Conn struct {
 	PlayerID   string
 	Claims     *jdauth.Claims
 	WireFormat string
+	Active     bool
+	join       JoinInfo
 	WS         *websocket.Conn
 	writeMu    sync.Mutex
 	TerrainOut chan string
@@ -35,10 +44,7 @@ type Conn struct {
 
 // NewHub construye hub.
 func NewHub() *Hub {
-	return &Hub{
-		conns:     make(map[uint64]*Conn),
-		bySession: make(map[string]map[uint64]struct{}),
-	}
+	return &Hub{conns: make(map[uint64]*Conn), bySession: make(map[string]map[uint64]struct{})}
 }
 
 // Register implementa register.
@@ -46,32 +52,66 @@ func (h *Hub) Register(ws *websocket.Conn) *Conn {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.nextID++
-	c := &Conn{
-		ID:         h.nextID,
-		WS:         ws,
-		TerrainOut: make(chan string, 256),
-	}
+	c := &Conn{ID: h.nextID, WS: ws, TerrainOut: make(chan string, 256)}
 	h.conns[c.ID] = c
 	return c
 }
 
-// Bind implementa bind.
+// Bind une una conexión y marca al jugador como activo (flujo legacy).
 func (h *Hub) Bind(connID uint64, bloqueID string, ecoID int, playerID, wireFormat string) {
+	h.bind(connID, JoinInfo{BloqueID: bloqueID, EcoID: ecoID, PlayerID: playerID, WireFormat: wireFormat}, true)
+}
+
+// BindPending registra la conexión para cargar terreno sin activar al jugador.
+func (h *Hub) BindPending(connID uint64, join JoinInfo) {
+	h.bind(connID, join, false)
+}
+
+func (h *Hub) bind(connID uint64, join JoinInfo, active bool) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	c, ok := h.conns[connID]
 	if !ok {
 		return
 	}
-	c.BloqueID = bloqueID
-	c.EcoID = ecoID
-	c.PlayerID = playerID
-	c.WireFormat = wireFormat
-	key := entity.SessionKey(bloqueID, ecoID)
+	c.BloqueID, c.EcoID, c.PlayerID = join.BloqueID, join.EcoID, join.PlayerID
+	c.WireFormat, c.Active, c.join = join.WireFormat, active, join
+	key := entity.SessionKey(join.BloqueID, join.EcoID)
 	if h.bySession[key] == nil {
 		h.bySession[key] = make(map[uint64]struct{})
 	}
 	h.bySession[key][connID] = struct{}{}
+}
+
+// PendingJoin devuelve los datos de una conexión aún no activada.
+func (h *Hub) PendingJoin(connID uint64) (JoinInfo, bool) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	c, ok := h.conns[connID]
+	if !ok || c.Active || c.join.BloqueID == "" {
+		return JoinInfo{}, false
+	}
+	return c.join, true
+}
+
+// MarkActive termina el join aplazado.
+func (h *Hub) MarkActive(connID uint64) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	c, ok := h.conns[connID]
+	if !ok || c.Active || c.join.BloqueID == "" {
+		return false
+	}
+	c.Active = true
+	return true
+}
+
+// IsActive informa si la conexión ya puede enviar comandos de juego.
+func (h *Hub) IsActive(connID uint64) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	c, ok := h.conns[connID]
+	return ok && c.Active
 }
 
 // Unbind implementa unbind.
@@ -93,7 +133,7 @@ func (h *Hub) Unbind(connID uint64) (bloqueID, playerID string, ecoID int, ok bo
 		}
 	}
 	c.BloqueID, c.PlayerID, c.EcoID = "", "", 0
-	c.WireFormat = ""
+	c.WireFormat, c.Active, c.join = "", false, JoinInfo{}
 	return bloqueID, playerID, ecoID, bloqueID != ""
 }
 
