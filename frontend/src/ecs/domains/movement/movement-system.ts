@@ -167,7 +167,11 @@ export class MovementSystem extends System {
       this.tryMoveAxis(pos, kin, 'y', kin.vy * deltaTime);
       this.tryMoveAxis(pos, kin, 'z', kin.vz * deltaTime);
 
-      const below = cellKey(Math.floor(pos.x + 0.5), Math.floor(pos.y + 0.5), Math.floor(pos.z) - 1);
+      const below = cellKey(
+        Math.floor(pos.x + 0.5),
+        Math.floor(pos.y + 0.5),
+        Math.floor(pos.z) - 1,
+      );
       const solidBelowFeet = this.terrain.getOccupiedSolidCells().has(below);
       if (solidBelowFeet) {
         kin.vz = Math.min(kin.vz, 0);
