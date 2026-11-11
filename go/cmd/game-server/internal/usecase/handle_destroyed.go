@@ -3,27 +3,28 @@ package usecase
 
 import (
 	"encoding/json"
+	"math"
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/wshub"
 )
 
 type DestroyedEvent struct {
-	BloqueID string
+	BloqueID   string
 	ParticleID string
-	X, Y, Z int
+	X, Y, Z    int
 }
 
 type SwingResultEvent struct {
-	BloqueID string
-	PlayerID string
-	EntityID int
-	Seq int
-	ActionID string
+	BloqueID       string
+	PlayerID       string
+	EntityID       int
+	Seq            int
+	ActionID       string
 	TargetPlayerID string
 	TargetEntityID int
-	EntityDamage float64
-	RawJSON string
+	EntityDamage   float64
+	RawJSON        string
 }
 
 func (s *Services) HandleParticleDestroyed(ev DestroyedEvent) {
@@ -38,15 +39,17 @@ func (s *Services) HandleParticleDestroyed(ev DestroyedEvent) {
 
 func (s *Services) HandleSwingResult(ev SwingResultEvent) {
 	for _, sess := range s.Sessions.GetByBloque(ev.BloqueID) {
-		if _, exists := sess.GetPlayer(ev.PlayerID); !exists {
+		attacker, exists := sess.GetPlayer(ev.PlayerID)
+		if !exists || attacker.EntityID != uint32(ev.EntityID) {
 			continue
 		}
-		if ev.TargetPlayerID != "" && ev.EntityDamage > 0 {
+		if ev.TargetPlayerID != "" && ev.TargetPlayerID != ev.PlayerID &&
+			ev.TargetEntityID > 0 && ev.EntityDamage > 0 && !math.IsInf(ev.EntityDamage, 0) && !math.IsNaN(ev.EntityDamage) {
 			sess.UpdatePlayer(ev.TargetPlayerID, func(p *entity.Player) {
-				p.Health -= ev.EntityDamage
-				if p.Health < 0 {
-					p.Health = 0
+				if p.EntityID != uint32(ev.TargetEntityID) || p.Health <= 0 {
+					return
 				}
+				p.Health = math.Max(0, p.Health-ev.EntityDamage)
 			})
 		}
 		s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
