@@ -6,9 +6,9 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	jdauth "github.com/juego-de-dioses/jd/pkg/jd/auth"
 	"github.com/juego-de-dioses/jd/pkg/jd/wire"
-	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 )
 
 type Hub struct {
@@ -40,7 +40,11 @@ type Conn struct {
 }
 
 func NewHub() *Hub {
-	return &Hub{conns: make(map[uint64]*Conn), bySession: make(map[string]map[uint64]struct{}), activeByPlayer: make(map[string]uint64)}
+	return &Hub{
+		conns:          make(map[uint64]*Conn),
+		bySession:      make(map[string]map[uint64]struct{}),
+		activeByPlayer: make(map[string]uint64),
+	}
 }
 
 func (h *Hub) Register(ws *websocket.Conn) *Conn {
@@ -52,12 +56,12 @@ func (h *Hub) Register(ws *websocket.Conn) *Conn {
 	return c
 }
 
-// Bind une una conexión y marca al jugador como activo (flujo legacy).
+// Bind une y activa al jugador en una conexión legacy.
 func (h *Hub) Bind(connID uint64, bloqueID string, ecoID int, playerID, wireFormat string) {
 	h.bind(connID, JoinInfo{BloqueID: bloqueID, EcoID: ecoID, PlayerID: playerID, WireFormat: wireFormat}, true)
 }
 
-// BindPending registra la conexión para cargar terreno sin activar al jugador.
+// BindPending permite cargar terreno sin incorporar aún al jugador.
 func (h *Hub) BindPending(connID uint64, join JoinInfo) { h.bind(connID, join, false) }
 
 func activePlayerKey(bloqueID string, ecoID int, playerID string) string {
@@ -70,6 +74,14 @@ func (h *Hub) bind(connID uint64, join JoinInfo, active bool) {
 	c, ok := h.conns[connID]
 	if !ok {
 		return
+	}
+	if c.BloqueID != "" {
+		oldKey := entity.SessionKey(c.BloqueID, c.EcoID)
+		delete(h.bySession[oldKey], connID)
+		oldPlayerKey := activePlayerKey(c.BloqueID, c.EcoID, c.PlayerID)
+		if h.activeByPlayer[oldPlayerKey] == connID {
+			delete(h.activeByPlayer, oldPlayerKey)
+		}
 	}
 	c.BloqueID, c.EcoID, c.PlayerID = join.BloqueID, join.EcoID, join.PlayerID
 	c.WireFormat, c.Active, c.join = join.WireFormat, active, join
@@ -150,6 +162,10 @@ func (h *Hub) Remove(connID uint64) {
 		if m := h.bySession[key]; m != nil {
 			delete(m, connID)
 		}
+		activeKey := activePlayerKey(c.BloqueID, c.EcoID, c.PlayerID)
+		if h.activeByPlayer[activeKey] == connID {
+			delete(h.activeByPlayer, activeKey)
+		}
 	}
 	delete(h.conns, connID)
 }
@@ -161,24 +177,26 @@ func (h *Hub) Get(connID uint64) (*Conn, bool) {
 	return c, ok
 }
 
+// ForSession itera solo conexiones con jugador activo.
 func (h *Hub) ForSession(bloqueID string, ecoID int, fn func(*Conn)) {
 	key := entity.SessionKey(bloqueID, ecoID)
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	for id := range h.bySession[key] {
-		if c, ok := h.conns[id]; ok {
+		if c, ok := h.conns[id]; ok && c.Active && h.activeByPlayer[activePlayerKey(bloqueID, ecoID, c.PlayerID)] == id {
 			fn(c)
 		}
 	}
 }
 
+// ForSessionExcept omite el jugador dado y las conexiones todavía cargando.
 func (h *Hub) ForSessionExcept(bloqueID string, ecoID int, playerID string, fn func(*Conn)) {
 	key := entity.SessionKey(bloqueID, ecoID)
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	for id := range h.bySession[key] {
 		c, ok := h.conns[id]
-		if ok && c.PlayerID != playerID {
+		if ok && c.PlayerID != playerID && c.Active && h.activeByPlayer[activePlayerKey(bloqueID, ecoID, c.PlayerID)] == id {
 			fn(c)
 		}
 	}
