@@ -32,7 +32,7 @@ export function mountAbilityHud(root: HTMLElement): void {
     rows.set(action.id, { item, clock, cooldown, cooldownMs, label: `${nameText}, ${keyText}` });
   }
 
-  root.addEventListener(COOLDOWN_EVENT, (event) => {
+  window.addEventListener(COOLDOWN_EVENT, (event) => {
     const actionId = (event as CustomEvent<{ actionId: string }>).detail?.actionId;
     const row = actionId ? rows.get(actionId) : undefined;
     if (!row || row.cooldownMs <= 0) return;
