@@ -3,61 +3,46 @@ package domain
 
 // ParticleNear representa particle near.
 type ParticleNear struct {
-	ID          string
-	BloqueID    string
-	CeldaX      int
-	CeldaY      int
-	CeldaZ      int
-	TipoFisico  string
-	Extraida    bool
+	ID string
+	BloqueID string
+	CeldaX int
+	CeldaY int
+	CeldaZ int
+	TipoFisico string
+	Extraida bool
 }
 
 // ParticleWithDureza representa particle with dureza.
 type ParticleWithDureza struct {
-	ID               string
-	BloqueID         string
-	CeldaX           int
-	CeldaY           int
-	CeldaZ           int
-	TipoParticulaID  string
-	Integridad       float64
-	Dureza           float64
+	ID string
+	BloqueID string
+	CeldaX int
+	CeldaY int
+	CeldaZ int
+	TipoParticulaID string
+	Integridad float64
+	Dureza float64
 }
 
 // IntegrityTransition representa integrity transition.
-type IntegrityTransition struct {
-	Condicion string
-	Valor     float64
-}
+type IntegrityTransition struct { Condicion string; Valor float64 }
 
-// DamageResult representa damage result.
+// DamageResult representa particle damage results.
 type DamageResult struct {
-	ParticleID      string
+	ParticleID string
 	NuevaIntegridad float64
-	Destroyed       bool
-	Position        *CellPos
+	Destroyed bool
+	Position *CellPos
+	ConsumedDamage float64
 }
 
-// CellPos representa cell pos.
-type CellPos struct {
-	X, Y, Z int
-}
+type CellPos struct { X, Y, Z int }
 
-// WorldDamageProfile representa world damage profile.
-type WorldDamageProfile struct {
-	Reach  int
-	Damage float64
-}
-
-// EntityDamageProfile representa entity damage profile.
-type EntityDamageProfile struct {
-	Reach  float64
-	Damage float64
+// ImpactProfile representa el daño total y el alcance de un impacto.
+type ImpactProfile struct {
+	Reach float64 `json:"reach"`
+	Damage float64 `json:"damage"`
 }
 
 // CombatProfile representa combat profile.
-type CombatProfile struct {
-	ActionID     string
-	WorldDamage  *WorldDamageProfile
-	EntityDamage *EntityDamageProfile
-}
+type CombatProfile struct { ActionID string; Impact *ImpactProfile }

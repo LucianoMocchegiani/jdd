@@ -1,5 +1,5 @@
 /**
- * @file Daño a partículas del viewport según `impact.worldDamage` de la ficha activa.
+ * @file Daño a partículas del viewport según el `impact` de la ficha activa.
  *
  * Corre **después** de {@link MovementSystem} (`priority` 22): la posición del frame
  * ya está integrada y el latch de `body_actions` viene del {@link ActionOrchestratorSystem}.
@@ -62,9 +62,9 @@ export class WorldDamageSystem extends System {
 
       const attack =
         active.bodyActions && active.bodyActionsUntilMs > now ? active.bodyActions : null;
-      const worldDamage = attack?.impact?.worldDamage;
+      const impact = attack?.impact;
 
-      if (!attack || !worldDamage) {
+      if (!attack || impact?.reach == null || impact.damage == null) {
         this.swingActionByEntity.delete(entityId);
         continue;
       }

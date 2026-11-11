@@ -3,30 +3,62 @@ package usecase
 
 import (
 	"encoding/json"
+	"math"
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/wshub"
 )
 
-type DestroyedEvent struct { BloqueID string; ParticleID string; X, Y, Z int }
-type SwingResultEvent struct { BloqueID string; EntityID int; Seq int; ActionID string; RawJSON string }
-
-func (s *Services) HandleParticleDestroyed(ev DestroyedEvent) {
-	for _, sess := range s.Sessions.GetByBloque(ev.BloqueID) { sess.SolidGrid.RemoveCell(ev.X, ev.Y, ev.Z) }
-	wire := buildParticleDestroyedWS(ev)
-	for _, sess := range s.Sessions.GetByBloque(ev.BloqueID) { s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) { wshub.SafeWrite(c, wire) }) }
+type DestroyedEvent struct {
+	BloqueID string
+	ParticleID string
+	X, Y, Z int
 }
 
-func (s *Services) HandleSwingResult(ev SwingResultEvent) {
+type SwingResultEvent struct {
+	BloqueID string
+	EcoID int
+	PlayerID string
+	EntityID int
+	Seq int
+	ActionID string
+	TargetPlayerID string
+	TargetEntityID int
+	EntityDamage float64
+	RawJSON string
+}
+
+func (s *Services) HandleParticleDestroyed(ev DestroyedEvent) {
 	for _, sess := range s.Sessions.GetByBloque(ev.BloqueID) {
-		var targetPlayerID string
-		sess.ForEachPlayer(func(p *entity.Player) { if p.EntityID == uint32(ev.EntityID) { targetPlayerID = p.ID } })
-		if targetPlayerID == "" { continue }
-		s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) { if c.PlayerID == targetPlayerID { wshub.SafeWrite(c, ev.RawJSON) } })
+		sess.SolidGrid.RemoveCell(ev.X, ev.Y, ev.Z)
+	}
+	wire := buildParticleDestroyedWS(ev)
+	for _, sess := range s.Sessions.GetByBloque(ev.BloqueID) {
+		s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) { wshub.SafeWrite(c, wire) })
 	}
 }
 
+func (s *Services) HandleSwingResult(ev SwingResultEvent) {
+	sess, exists := s.Sessions.Get(ev.BloqueID, ev.EcoID)
+	if !exists { return }
+	if ev.TargetPlayerID != "" && ev.TargetPlayerID != ev.PlayerID && ev.TargetEntityID > 0 &&
+		ev.EntityDamage > 0 && !math.IsInf(ev.EntityDamage, 0) && !math.IsNaN(ev.EntityDamage) {
+		sess.UpdatePlayer(ev.TargetPlayerID, func(p *entity.Player) {
+			if p.EntityID != uint32(ev.TargetEntityID) || p.Health <= 0 { return }
+			p.Health = math.Max(0, p.Health-ev.EntityDamage)
+		})
+	}
+	attacker, exists := sess.GetPlayer(ev.PlayerID)
+	if !exists || attacker.EntityID != uint32(ev.EntityID) { return }
+	s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
+		if c.PlayerID == ev.PlayerID { wshub.SafeWrite(c, ev.RawJSON) }
+	})
+}
+
 func buildParticleDestroyedWS(ev DestroyedEvent) string {
-	b, _ := json.Marshal(map[string]interface{}{"type":"particle_destroyed", "particle_id":ev.ParticleID, "bloque_id":ev.BloqueID, "position":map[string]int{"x":ev.X,"y":ev.Y,"z":ev.Z}})
+	b, _ := json.Marshal(map[string]interface{}{
+		"type": "particle_destroyed", "particle_id": ev.ParticleID, "bloque_id": ev.BloqueID,
+		"position": map[string]int{"x": ev.X, "y": ev.Y, "z": ev.Z},
+	})
 	return string(b)
 }

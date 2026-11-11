@@ -43,9 +43,19 @@ type TerrainSubscriber interface {
 	Run(readyCh chan<- ChunkReady) error
 }
 
+// SwingTarget is a server-snapshotted player candidate for a melee strike.
+type SwingTarget struct {
+	PlayerID string  `json:"player_id"`
+	EntityID int     `json:"entity_id"`
+	X        float64 `json:"x"`
+	Y        float64 `json:"y"`
+	Z        float64 `json:"z"`
+}
+
 // SwingCommand represents a server-validated strike for world damage.
 type SwingCommand struct {
 	BloqueID string
+	EcoID    int
 	PlayerID string
 	ActionID string
 	EntityID int
@@ -55,6 +65,7 @@ type SwingCommand struct {
 	PosZ     float64
 	Yaw      float64
 	IsNPC    bool
+	Targets  []SwingTarget
 }
 
 // SwingPublisher represents swing publisher.

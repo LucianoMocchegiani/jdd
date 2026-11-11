@@ -26,18 +26,18 @@ type combatCatalog map[string]*port.CombatProfile
 
 func (c combatCatalog) Get(id string) *port.CombatProfile { return c[id] }
 
-func TestHandleSwingUsesAuthoritativePoseAndRejectsDuplicate(t *testing.T) {
+func TestHandleSwingUsesAuthoritativePoseAndQueuesPlayerCandidates(t *testing.T) {
 	store := memory.NewSessionStore()
 	sess := store.GetOrCreate("block", 1)
 	sess.AddPlayer("player", 3, 4, 5, 1.25, 0)
+	sess.AddPlayer("target", 1.1, 3.4, 5, 0, 0)
 	publisher := &swingPublisher{}
 	svc := &usecase.Services{
 		Sessions: store,
 		SwingPub: publisher,
 		Combat: combatCatalog{"attack": {
 			Cooldown: 500 * time.Millisecond,
-			WorldDamage: &port.DamageProfile{Reach: 2, Damage: 15},
-			EntityDamage: &port.DamageProfile{Reach: 2, Damage: 15},
+			Impact:   &port.DamageProfile{Reach: 2, Damage: 15},
 		}},
 	}
 
@@ -49,6 +49,13 @@ func TestHandleSwingUsesAuthoritativePoseAndRejectsDuplicate(t *testing.T) {
 	}
 	if publisher.command.PosX != 3 || publisher.command.PosY != 4 || publisher.command.PosZ != 5 || publisher.command.Yaw != 1.25 {
 		t.Fatalf("swing used non-authoritative pose: %+v", publisher.command)
+	}
+	if len(publisher.command.Targets) != 1 || publisher.command.Targets[0].PlayerID != "target" {
+		t.Fatalf("swing did not snapshot the target candidate: %+v", publisher.command.Targets)
+	}
+	target, _ := sess.GetPlayer("target")
+	if target.Health != 100 {
+		t.Fatalf("entity damage should wait for the shared resolver, got health %v", target.Health)
 	}
 	var ack map[string]interface{}
 	if err := json.Unmarshal([]byte(response), &ack); err != nil || ack["type"] != "swing_queued" {

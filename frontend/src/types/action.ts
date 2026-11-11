@@ -77,12 +77,10 @@ export interface ActionDamage {
   damage: number;
 }
 
-/** @deprecated Alias compatible para los perfiles de daño al mundo. */
-export type ActionWorldDamage = ActionDamage;
-
 /** Bloque `impact`. */
 export interface ActionImpact {
-  worldDamage?: ActionDamage;
+  reach?: number;
+  damage?: number;
   entityDamage?: ActionDamage;
   /** Aplica instancias de condición al impactar (ids en condition registry). */
   applyConditions?: readonly ConditionApplyRef[];

@@ -21,10 +21,7 @@ type actionFile struct {
 				} `json:"not"`
 			} `json:"when"`
 		} `json:"control"`
-		Impact struct {
-			WorldDamage  *port.DamageProfile `json:"worldDamage"`
-			EntityDamage *port.DamageProfile `json:"entityDamage"`
-		} `json:"impact"`
+		Impact *port.DamageProfile `json:"impact"`
 	} `json:"actions"`
 }
 
@@ -46,9 +43,12 @@ func LoadCatalog(path string) (*Catalog, error) {
 		if action.ID == "" {
 			return nil, fmt.Errorf("action without id")
 		}
-		if action.Impact.WorldDamage != nil || action.Impact.EntityDamage != nil {
+		if action.Impact != nil {
 			if action.CooldownMs <= 0 {
 				return nil, fmt.Errorf("action %q has combat impact without positive cooldownMs", action.ID)
+			}
+			if action.Impact.Reach <= 0 || action.Impact.Damage <= 0 {
+				return nil, fmt.Errorf("action %q has invalid impact", action.ID)
 			}
 		}
 		if _, exists := catalog.profiles[action.ID]; exists {
@@ -57,18 +57,10 @@ func LoadCatalog(path string) (*Catalog, error) {
 		catalog.profiles[action.ID] = &port.CombatProfile{
 			Cooldown:       time.Duration(action.CooldownMs) * time.Millisecond,
 			BlockedMediums: action.Control.When.Not.Medium,
-			WorldDamage:    validDamage(action.Impact.WorldDamage),
-			EntityDamage:   validDamage(action.Impact.EntityDamage),
+			Impact:         action.Impact,
 		}
 	}
 	return catalog, nil
-}
-
-func validDamage(profile *port.DamageProfile) *port.DamageProfile {
-	if profile == nil || profile.Reach <= 0 || profile.Damage <= 0 {
-		return nil
-	}
-	return profile
 }
 
 func (c *Catalog) Get(actionID string) *port.CombatProfile {

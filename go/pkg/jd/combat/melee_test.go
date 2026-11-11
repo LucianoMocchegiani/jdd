@@ -29,3 +29,13 @@ func TestMeleeHitVolumes(t *testing.T) {
 		t.Fatal("particle beyond reach should not be hit based on its center")
 	}
 }
+
+func TestForwardDistanceOrdersAlongFacingDirection(t *testing.T) {
+	origin := Point{}
+	if got := ForwardDistance(origin, 0, 0, -2); got != 2 {
+		t.Fatalf("forward distance = %v, want 2", got)
+	}
+	if got := ForwardDistance(origin, 0, 0, 2); got != -2 {
+		t.Fatalf("behind distance = %v, want -2", got)
+	}
+}

@@ -29,6 +29,12 @@ func HitsWorldCell(origin Point, yaw float64, x, y, z int, reach float64) bool {
 	return forward > 0 && forward <= reach+0.5 && lateral <= 0.65 && math.Abs(cell.Z-(origin.Z+1)) <= 1
 }
 
+// ForwardDistance projects a point onto the attack direction for impact ordering.
+func ForwardDistance(origin Point, yaw, x, y float64) float64 {
+	forward, _ := planarHit(origin, yaw, x, y)
+	return forward
+}
+
 func planarHit(origin Point, yaw, x, y float64) (forward, lateral float64) {
 	dx, dy := x-origin.X, y-origin.Y
 	fx, fy := -math.Sin(yaw), -math.Cos(yaw)

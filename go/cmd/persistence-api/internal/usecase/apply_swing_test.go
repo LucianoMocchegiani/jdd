@@ -9,8 +9,11 @@ import (
 
 func TestActionCombatProfileLoad(t *testing.T) {
 	c, err := combat.LoadCatalog("../../../../shared/game-data/actions/body-actions.json")
-	if err != nil { t.Skip("shared action data not in cwd:", err) }
+	if err != nil {
+		t.Skip("shared action data not in cwd:", err)
+	}
 	p := c.Get("attack")
-	if p == nil || p.WorldDamage == nil || p.EntityDamage == nil { t.Fatal("expected action profile with world and entity damage") }
-	if p.WorldDamage.Reach != 2 || p.WorldDamage.Damage != 15 || p.EntityDamage.Reach != 2 || p.EntityDamage.Damage != 15 { t.Fatalf("unexpected profile: %+v", p) }
+	if p == nil || p.Impact == nil || p.Impact.Reach != 2 || p.Impact.Damage != 15 {
+		t.Fatalf("unexpected profile: %+v", p)
+	}
 }
