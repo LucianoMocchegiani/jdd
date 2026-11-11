@@ -1,6 +1,52 @@
-// --- Presencia (Sprint B) ---
+// --- Mundo (terreno) ---
 
-/** Inicia la carga de terreno sin incorporar aún al jugador a la sesión. */
+export interface ParticleDestroyedEvent {
+  type: 'particle_destroyed';
+  particle_id: string;
+  bloque_id: string;
+  position?: CellPosition;
+}
+
+export type TerrainWsPhysicsType = 'solido' | 'liquido' | 'gas' | 'energia';
+export interface TerrainWsParticle {
+  id: string;
+  x: number;
+  y: number;
+  z: number;
+  tipo_nombre: string;
+  tipo_fisico: TerrainWsPhysicsType;
+}
+export interface TerrainWsTypeEntry {
+  nombre: string;
+  tipo_fisico: TerrainWsPhysicsType;
+  color?: string | null;
+  viscosidad?: number | null;
+  opacidad?: number | null;
+}
+export interface TerrainTypesEvent {
+  type: 'terrain_types';
+  bloque_id: string;
+  types: TerrainWsTypeEntry[];
+}
+export interface TerrainChunkEvent {
+  type: 'terrain_chunk';
+  bloque_id: string;
+  chunk_cx: number;
+  chunk_cy: number;
+  z_min: number;
+  z_max: number;
+  seq: number;
+  particles: TerrainWsParticle[];
+}
+export interface TerrainChunkDoneEvent {
+  type: 'terrain_chunk_done';
+  bloque_id: string;
+  seq: number;
+  chunks_sent?: number;
+}
+export type TerrainWsEvent = TerrainTypesEvent | TerrainChunkEvent | TerrainChunkDoneEvent;
+
+// --- Presencia ---
 export interface PrepareJoinCommand {
   type: 'prepare_join';
   bloque_id: string;
@@ -11,14 +57,10 @@ export interface PrepareJoinCommand {
   entity_id?: number;
   wire_format?: 'json' | 'msgpack';
 }
-
-/** Activa al jugador una vez conectado y con terreno/spawn listos. */
 export interface ActivatePlayerCommand {
   type: 'activate_player';
   position: CellPosition;
 }
-
-/** Cliente entra a la sala de un bloque (flujo legacy). */
 export interface JoinBlockCommand {
   type: 'join_block';
   bloque_id: string;
@@ -29,8 +71,6 @@ export interface JoinBlockCommand {
   entity_id?: number;
   wire_format?: 'json' | 'msgpack';
 }
-
-/** Confirmación de activación del jugador. */
 export interface JoinOkEvent {
   type: 'join_ok';
   bloque_id: string;
@@ -40,43 +80,16 @@ export interface JoinOkEvent {
   eco_label?: string;
   wire_format?: 'json' | 'msgpack';
 }
-
-/** Export `JoinErrorEvent` — join error event. */
-export interface JoinErrorEvent {
-  type: 'join_error';
-  error: string;
-}
-
-/** Otro jugador entró a la sala. */
-export interface PlayerJoinedEvent {
-  type: 'player_joined';
-  bloque_id: string;
-  player_id: string;
-  position: CellPosition;
-}
-
-/** Otro jugador salió de la sala. */
-export interface PlayerLeftEvent {
-  type: 'player_left';
-  bloque_id: string;
-  player_id: string;
-}
-
-/**
- * Snapshot autoritativo de un jugador (~30 Hz desde servidor).
- * Sprint D: el cliente reconcilia posición local con `input_seq` + snap/replay.
- */
+export interface JoinErrorEvent { type: 'join_error'; error: string; }
+export interface PlayerJoinedEvent { type: 'player_joined'; bloque_id: string; player_id: string; position: CellPosition; }
+export interface PlayerLeftEvent { type: 'player_left'; bloque_id: string; player_id: string; }
 export interface PlayerStateEvent {
   type: 'player_state';
   server_tick: number;
   player_id: string;
   bloque_id: string;
-  x: number;
-  y: number;
-  z: number;
-  vx: number;
-  vy: number;
-  vz: number;
+  x: number; y: number; z: number;
+  vx: number; vy: number; vz: number;
   yaw: number;
   pitch?: number;
   medium: string;
@@ -89,13 +102,9 @@ export interface PlayerStateEvent {
   max_health?: number;
   receivedAtMs?: number;
 }
-
-/** Export `PresenceEvent` — presence event. */
 export type PresenceEvent = JoinOkEvent | JoinErrorEvent | PlayerJoinedEvent | PlayerLeftEvent | PlayerStateEvent;
 
-// --- Locomoción (Sprint C) ---
-
-/** Intents de locomoción hacia el servidor (~30 Hz). */
+// --- Locomoción ---
 export interface InputCommand {
   type: 'input';
   bloque_id: string;
@@ -105,16 +114,9 @@ export interface InputCommand {
   yaw: number;
   pitch?: number;
 }
-
-/** Export `InputErrorEvent` — input error event. */
-export interface InputErrorEvent {
-  type: 'input_error';
-  error: string;
-}
+export interface InputErrorEvent { type: 'input_error'; error: string; }
 
 // --- Combate ---
-
-/** Export `SwingCommand` — swing command. */
 export interface SwingCommand {
   type: 'swing';
   seq: number;
@@ -125,8 +127,6 @@ export interface SwingCommand {
   position: CellPosition;
   yaw?: number;
 }
-
-/** Export `SwingResultEvent` — swing result event. */
 export interface SwingResultEvent {
   type: 'swing_result';
   seq: number;
@@ -134,23 +134,9 @@ export interface SwingResultEvent {
   action_id: string;
   hits: Array<{ particle_id: string; destroyed: boolean; integridad?: number }>;
 }
-
-/** Export `SwingErrorEvent` — swing error event. */
-export interface SwingErrorEvent {
-  type: 'swing_error';
-  error: string;
-  action_id?: string;
-  seq?: number;
-}
-
-/** Export `CombatServerEvent` — combat server event. */
+export interface SwingErrorEvent { type: 'swing_error'; error: string; action_id?: string; seq?: number; }
 export type CombatServerEvent = SwingResultEvent | SwingErrorEvent;
-
-/** Eventos servidor → cliente que mutan terreno local (destrucción + carga WS). */
 export type WorldEvent = ParticleDestroyedEvent | TerrainWsEvent;
-/** Eventos servidor → cliente de presencia y combate (no terreno). */
 export type SessionEvent = PresenceEvent | CombatServerEvent | InputErrorEvent;
-/** Export `RealtimeInboundMessage` — realtime inbound message. */
 export type RealtimeInboundMessage = WorldEvent | SessionEvent;
-/** Comandos cliente → servidor. */
 export type WorldCommand = JoinBlockCommand | PrepareJoinCommand | ActivatePlayerCommand | InputCommand | SwingCommand;

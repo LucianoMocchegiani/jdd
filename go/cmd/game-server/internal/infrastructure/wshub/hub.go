@@ -8,26 +8,23 @@ import (
 
 	jdauth "github.com/juego-de-dioses/jd/pkg/jd/auth"
 	"github.com/juego-de-dioses/jd/pkg/jd/wire"
-
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 )
 
-// Hub representa hub.
 type Hub struct {
-	mu        sync.RWMutex
-	conns     map[uint64]*Conn
-	bySession map[string]map[uint64]struct{}
-	nextID    uint64
+	mu             sync.RWMutex
+	conns          map[uint64]*Conn
+	bySession      map[string]map[uint64]struct{}
+	activeByPlayer map[string]uint64
+	nextID         uint64
 }
 
-// JoinInfo es la posición reservada antes de activar al jugador.
 type JoinInfo struct {
 	BloqueID, PlayerID, WireFormat, EcoLabel string
 	EcoID                                    int
 	X, Y, Z, Yaw, Pitch                      float64
 }
 
-// Conn representa conn.
 type Conn struct {
 	ID         uint64
 	BloqueID   string
@@ -42,12 +39,10 @@ type Conn struct {
 	TerrainOut chan string
 }
 
-// NewHub construye hub.
 func NewHub() *Hub {
-	return &Hub{conns: make(map[uint64]*Conn), bySession: make(map[string]map[uint64]struct{})}
+	return &Hub{conns: make(map[uint64]*Conn), bySession: make(map[string]map[uint64]struct{}), activeByPlayer: make(map[string]uint64)}
 }
 
-// Register implementa register.
 func (h *Hub) Register(ws *websocket.Conn) *Conn {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -63,8 +58,10 @@ func (h *Hub) Bind(connID uint64, bloqueID string, ecoID int, playerID, wireForm
 }
 
 // BindPending registra la conexión para cargar terreno sin activar al jugador.
-func (h *Hub) BindPending(connID uint64, join JoinInfo) {
-	h.bind(connID, join, false)
+func (h *Hub) BindPending(connID uint64, join JoinInfo) { h.bind(connID, join, false) }
+
+func activePlayerKey(bloqueID string, ecoID int, playerID string) string {
+	return entity.SessionKey(bloqueID, ecoID) + "\x00" + playerID
 }
 
 func (h *Hub) bind(connID uint64, join JoinInfo, active bool) {
@@ -81,9 +78,11 @@ func (h *Hub) bind(connID uint64, join JoinInfo, active bool) {
 		h.bySession[key] = make(map[uint64]struct{})
 	}
 	h.bySession[key][connID] = struct{}{}
+	if active {
+		h.activeByPlayer[activePlayerKey(join.BloqueID, join.EcoID, join.PlayerID)] = connID
+	}
 }
 
-// PendingJoin devuelve los datos de una conexión aún no activada.
 func (h *Hub) PendingJoin(connID uint64) (JoinInfo, bool) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
@@ -94,7 +93,6 @@ func (h *Hub) PendingJoin(connID uint64) (JoinInfo, bool) {
 	return c.join, true
 }
 
-// MarkActive termina el join aplazado.
 func (h *Hub) MarkActive(connID uint64) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -103,18 +101,17 @@ func (h *Hub) MarkActive(connID uint64) bool {
 		return false
 	}
 	c.Active = true
+	h.activeByPlayer[activePlayerKey(c.BloqueID, c.EcoID, c.PlayerID)] = connID
 	return true
 }
 
-// IsActive informa si la conexión ya puede enviar comandos de juego.
 func (h *Hub) IsActive(connID uint64) bool {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	c, ok := h.conns[connID]
-	return ok && c.Active
+	return ok && c.Active && h.activeByPlayer[activePlayerKey(c.BloqueID, c.EcoID, c.PlayerID)] == connID
 }
 
-// Unbind implementa unbind.
 func (h *Hub) Unbind(connID uint64) (bloqueID, playerID string, ecoID int, ok bool) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -131,13 +128,16 @@ func (h *Hub) Unbind(connID uint64) (bloqueID, playerID string, ecoID int, ok bo
 				delete(h.bySession, key)
 			}
 		}
+		activeKey := activePlayerKey(bloqueID, ecoID, playerID)
+		if h.activeByPlayer[activeKey] == connID {
+			delete(h.activeByPlayer, activeKey)
+		}
 	}
 	c.BloqueID, c.PlayerID, c.EcoID = "", "", 0
 	c.WireFormat, c.Active, c.join = "", false, JoinInfo{}
 	return bloqueID, playerID, ecoID, bloqueID != ""
 }
 
-// Remove implementa remove.
 func (h *Hub) Remove(connID uint64) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -154,7 +154,6 @@ func (h *Hub) Remove(connID uint64) {
 	delete(h.conns, connID)
 }
 
-// Get implementa get.
 func (h *Hub) Get(connID uint64) (*Conn, bool) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
@@ -162,7 +161,6 @@ func (h *Hub) Get(connID uint64) (*Conn, bool) {
 	return c, ok
 }
 
-// ForSession implementa for session.
 func (h *Hub) ForSession(bloqueID string, ecoID int, fn func(*Conn)) {
 	key := entity.SessionKey(bloqueID, ecoID)
 	h.mu.RLock()
@@ -174,7 +172,6 @@ func (h *Hub) ForSession(bloqueID string, ecoID int, fn func(*Conn)) {
 	}
 }
 
-// ForSessionExcept implementa for session except.
 func (h *Hub) ForSessionExcept(bloqueID string, ecoID int, playerID string, fn func(*Conn)) {
 	key := entity.SessionKey(bloqueID, ecoID)
 	h.mu.RLock()
@@ -187,7 +184,6 @@ func (h *Hub) ForSessionExcept(bloqueID string, ecoID int, playerID string, fn f
 	}
 }
 
-// SafeWrite ejecuta safe write.
 func SafeWrite(c *Conn, msg string) {
 	if c == nil || c.WS == nil {
 		return
@@ -197,7 +193,6 @@ func SafeWrite(c *Conn, msg string) {
 	_ = c.WS.WriteMessage(websocket.TextMessage, []byte(msg))
 }
 
-// WritePlayerState ejecuta write player state.
 func WritePlayerState(c *Conn, jsonPayload string) {
 	if c == nil || c.WS == nil {
 		return
@@ -216,7 +211,6 @@ func WritePlayerState(c *Conn, jsonPayload string) {
 	SafeWrite(c, jsonPayload)
 }
 
-// ForEachConn implementa for each conn.
 func (h *Hub) ForEachConn(fn func(*Conn)) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
