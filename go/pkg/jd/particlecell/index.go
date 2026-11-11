@@ -1,10 +1,10 @@
-// Package particlecell maps horizontal world coordinates to integer-centered particle columns.
+// Package particlecell convierte coordenadas horizontales del mundo en columnas de partículas centradas en enteros.
 package particlecell
 
 import "math"
 
-// ColumnIndex returns the particle column whose integer center is nearest to coordinate.
-// Half-cell ties belong to the higher-indexed column.
+// ColumnIndex devuelve la columna de partículas cuyo centro entero está más cerca de coordinate.
+// Los empates en media celda corresponden a la columna de índice mayor.
 func ColumnIndex(coordinate float64) int {
 	return int(math.Floor(coordinate + 0.5))
 }

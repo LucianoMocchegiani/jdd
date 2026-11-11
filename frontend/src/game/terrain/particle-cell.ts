@@ -1,6 +1,6 @@
 /**
- * Horizontal particle centers use integer world coordinates; ties belong to the higher cell.
- * Z is intentionally excluded because player Z represents feet height.
+ * Los centros de las partículas horizontales usan coordenadas enteras; los empates corresponden a la celda de índice mayor.
+ * Z se excluye intencionalmente porque la coordenada Z del jugador representa la altura de los pies.
  */
 export function particleColumnIndex(coordinate: number): number {
   return Math.floor(coordinate + 0.5);
