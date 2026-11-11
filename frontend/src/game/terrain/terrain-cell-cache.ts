@@ -5,6 +5,7 @@
 import type { Particle } from '@/types/particle';
 import type { TerrainWsParticle } from '@/types/world-events';
 import { cellKey } from '@/game/utils/cell-key';
+import { particleColumnIndex } from '@/game/terrain/particle-cell';
 
 /** Convierte wire compacto a {@link Particle} mínimo para colisión/render. */
 export function particleFromWsWire(
@@ -55,10 +56,13 @@ export function collectParticlesInXYWindow(
   zMin: number,
   zMax: number,
 ): Particle[] {
-  const minX = Math.floor(centerX) - radiusXY;
-  const maxX = Math.floor(centerX) + radiusXY;
-  const minY = Math.floor(centerY) - radiusXY;
-  const maxY = Math.floor(centerY) + radiusXY;
+  const centerCellX = particleColumnIndex(centerX);
+  const centerCellY = particleColumnIndex(centerY);
+  const radius = Math.ceil(radiusXY);
+  const minX = centerCellX - radius;
+  const maxX = centerCellX + radius;
+  const minY = centerCellY - radius;
+  const maxY = centerCellY + radius;
   const out: Particle[] = [];
   for (const p of cache.values()) {
     if (
