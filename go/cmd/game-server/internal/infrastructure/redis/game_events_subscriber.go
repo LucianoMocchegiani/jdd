@@ -33,7 +33,7 @@ func NewGameEventsSubscriber(client *goredis.Client, instanceID string, svc *use
 
 func (s *GameEventsSubscriber) ensureGroup(ctx context.Context, stream, group string) error {
 	err := s.client.XGroupCreateMkStream(ctx, stream, group, "0").Err()
-	if err != nil && err.Error() != "BUSYGROUP Consumer group name already exists" {
+	if err != nil && err.Error() != "BUSYGROUP Consumer Group name already exists" {
 		return err
 	}
 	return nil
