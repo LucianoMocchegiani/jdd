@@ -14,9 +14,7 @@ import (
 	jdauth "github.com/juego-de-dioses/jd/pkg/jd/auth"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
+var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
 
 // Server representa server.
 type Server struct {
@@ -37,7 +35,6 @@ func (s *Server) HandleWS(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
@@ -46,14 +43,11 @@ func (s *Server) HandleWS(w http.ResponseWriter, r *http.Request) {
 	conn.Claims = claims
 	defer func() {
 		if left, bloqueID, ecoID, ok := s.svc.Leave(conn.ID); ok {
-			s.hub.ForSession(bloqueID, ecoID, func(c *wshub.Conn) {
-				wshub.SafeWrite(c, left)
-			})
+			s.hub.ForSession(bloqueID, ecoID, func(c *wshub.Conn) { wshub.SafeWrite(c, left) })
 		}
 		s.hub.Remove(conn.ID)
 		_ = ws.Close()
 	}()
-
 	for {
 		_, raw, err := ws.ReadMessage()
 		if err != nil {
@@ -79,15 +73,23 @@ func (s *Server) dispatch(c *wshub.Conn, raw string) {
 	t, _ := msg["type"].(string)
 	switch t {
 	case "join_block":
-		s.handleJoin(c, msg)
+		s.handleJoin(c, msg, false)
+	case "prepare_join":
+		s.handleJoin(c, msg, true)
+	case "activate_player":
+		s.handleActivatePlayer(c)
 	case "input":
-		s.handleInput(c, msg)
+		if s.hub.IsActive(c.ID) {
+			s.handleInput(c, msg)
+		}
 	case "swing":
-		s.handleSwing(c, msg)
+		if s.hub.IsActive(c.ID) {
+			s.handleSwing(c, msg)
+		}
 	}
 }
 
-func (s *Server) handleJoin(c *wshub.Conn, msg map[string]interface{}) {
+func (s *Server) handleJoin(c *wshub.Conn, msg map[string]interface{}, deferActivation bool) {
 	bloqueID, _ := msg["bloque_id"].(string)
 	playerID, _ := msg["player_id"].(string)
 	if !s.cfg.DevBypassAuth() && c.Claims != nil {
@@ -111,7 +113,8 @@ func (s *Server) handleJoin(c *wshub.Conn, msg map[string]interface{}) {
 	wirePref, _ := msg["wire_format"].(string)
 	res := s.svc.JoinBlock(usecase.JoinBlockInput{
 		BloqueID: bloqueID, PlayerID: playerID, WireFormat: wirePref,
-		X: pos[0], Y: pos[1], Z: pos[2], Yaw: yaw, Pitch: pitch, ConnID: c.ID,
+		X: pos[0], Y: pos[1], Z: pos[2], Yaw: yaw, Pitch: pitch,
+		ConnID: c.ID, DeferActivation: deferActivation,
 	})
 	if res.JoinErrJSON != "" {
 		wshub.SafeWrite(c, res.JoinErrJSON)
@@ -122,6 +125,25 @@ func (s *Server) handleJoin(c *wshub.Conn, msg map[string]interface{}) {
 	}
 	if res.IsNew && res.PlayerJoinedJSON != "" {
 		s.hub.ForSessionExcept(c.BloqueID, c.EcoID, playerID, func(o *wshub.Conn) {
+			wshub.SafeWrite(o, res.PlayerJoinedJSON)
+		})
+	}
+	if res.JoinOKJSON != "" {
+		wshub.SafeWrite(c, res.JoinOKJSON)
+	}
+}
+
+func (s *Server) handleActivatePlayer(c *wshub.Conn) {
+	res := s.svc.ActivatePlayer(c.ID)
+	if res.JoinErrJSON != "" {
+		wshub.SafeWrite(c, res.JoinErrJSON)
+		return
+	}
+	for _, st := range res.PlayerStates {
+		wshub.WritePlayerState(c, st)
+	}
+	if res.IsNew && res.PlayerJoinedJSON != "" {
+		s.hub.ForSessionExcept(c.BloqueID, c.EcoID, c.PlayerID, func(o *wshub.Conn) {
 			wshub.SafeWrite(o, res.PlayerJoinedJSON)
 		})
 	}
