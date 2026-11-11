@@ -1,13 +1,5 @@
 /**
- * @file Handler de presencia — gestiona join_block y eventos de jugadores remotos.
- *
- * Espejo servidor: `backend/src/game/network/presence_handler.py`.
- *
- * Responsabilidades:
- * - Enviar `join_block` al conectar el WS.
- * - Actualizar {@link RemotePresence} con `player_state`, `player_joined`, `player_left`.
- *
- * No maneja debug — esos callbacks quedan en `app.ts`.
+ * @file Handler de presencia — prepara la sesión y actualiza jugadores remotos.
  */
 
 import type { SessionEvent } from '@/types/world-events';
@@ -24,10 +16,10 @@ export class PresenceHandler {
     private readonly bloqueId: string,
   ) {}
 
-  /** Llamar desde `onOpen` del WS — envía join_block al servidor. */
-  onOpen(spawnX: number, spawnY: number, spawnZ: number, playerEntityId: number): void {
+  /** Inicia la carga de terreno; el servidor no activa al jugador hasta recibir activate_player. */
+  onOpen(spawnX: number, spawnY: number, spawnZ: number, playerEntityId: number): boolean {
     const sent = this.client.send({
-      type: 'join_block',
+      type: 'prepare_join',
       bloque_id: this.bloqueId,
       player_id: this.playerId,
       position: { x: spawnX, y: spawnY, z: spawnZ },
@@ -36,8 +28,9 @@ export class PresenceHandler {
       wire_format: getPreferredWireFormat(),
     });
     if (!sent && import.meta.env.DEV) {
-      console.warn('[presence] join_block no enviado (WS no OPEN)');
+      console.warn('[presence] prepare_join no enviado (WS no OPEN)');
     }
+    return sent;
   }
 
   /** Llamar desde `onSessionEvent` del WS — actualiza presencia remota. */
