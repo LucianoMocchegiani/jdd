@@ -43,6 +43,10 @@
   color: #94a3b8;
 }
 
+body.character-studio-mode #ability-hud {
+  display: none;
+}
+
 @media (max-width: 520px) {
   #ability-hud {
     top: auto;
