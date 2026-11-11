@@ -57,6 +57,11 @@ func (s *Services) JoinBlock(in JoinBlockInput) JoinBlockResult {
 			result.PlayerJoinedJSON = BuildPlayerJoined(in.BloqueID, in.PlayerID, in.X, in.Y, in.Z)
 		}
 	}
+	if in.DeferActivation {
+		s.fetchAndSendTypes(in.ConnID, in.BloqueID, in.X, in.Y, s.SessionCfg.TerrainCollisionLoadRadiusCells)
+		s.StartPushRound(in.ConnID, in.BloqueID, in.PlayerID, in.X, in.Y, PushRoundOpts{})
+		return result
+	}
 	s.StartPushRound(in.ConnID, in.BloqueID, in.PlayerID, in.X, in.Y, PushRoundOpts{IncludeTypes: true})
 	return result
 }
@@ -66,7 +71,7 @@ func (s *Services) ActivatePlayer(connID uint64, position [3]float64) JoinBlockR
 	if !ok {
 		return JoinBlockResult{JoinErrJSON: BuildJoinError("join_not_pending")}
 	}
-	if !s.TerrainPush.IsReady(connID) {
+	if s.TerrainPush == nil || !s.TerrainPush.IsReady(connID) {
 		return JoinBlockResult{JoinErrJSON: BuildJoinError("terrain_not_ready")}
 	}
 	join.X, join.Y, join.Z = position[0], position[1], position[2]
@@ -86,7 +91,9 @@ func (s *Services) ActivatePlayer(connID uint64, position [3]float64) JoinBlockR
 }
 
 func (s *Services) Leave(connID uint64) (leftJSON, bloqueID string, ecoID int, ok bool) {
-	s.TerrainPush.Remove(connID)
+	if s.TerrainPush != nil {
+		s.TerrainPush.Remove(connID)
+	}
 	active := s.Hub.IsActive(connID)
 	bloqueID, playerID, ecoID, bound := s.Hub.Unbind(connID)
 	if !bound {

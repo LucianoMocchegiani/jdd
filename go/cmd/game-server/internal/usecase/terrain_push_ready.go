@@ -1,3 +1,5 @@
+package usecase
+
 func (m *TerrainPushManager) IsReady(connID uint64) bool {
 	state, ok := m.get(connID)
 	if !ok {
