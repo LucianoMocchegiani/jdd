@@ -4,18 +4,16 @@ package usecase
 import (
 	"log"
 
+	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/wshub"
 	jdwire "github.com/juego-de-dioses/jd/pkg/jd/wire"
 )
 
 // JoinBlockInput representa join block input.
 type JoinBlockInput struct {
-	BloqueID   string
-	PlayerID   string
-	WireFormat string
-	X, Y, Z    float64
-	Yaw      float64
-	Pitch    float64
-	ConnID   uint64
+	BloqueID, PlayerID, WireFormat string
+	X, Y, Z, Yaw, Pitch            float64
+	ConnID                         uint64
+	DeferActivation                bool
 }
 
 // JoinBlockResult representa join block result.
@@ -27,7 +25,7 @@ type JoinBlockResult struct {
 	IsNew            bool
 }
 
-// JoinBlock implementa join block.
+// JoinBlock inicia la carga del terreno y, si se solicita, aplaza la incorporación del jugador.
 func (s *Services) JoinBlock(in JoinBlockInput) JoinBlockResult {
 	ecoID := 1
 	ecoLabel := "Eco 1"
@@ -46,37 +44,67 @@ func (s *Services) JoinBlock(in JoinBlockInput) JoinBlockResult {
 		ecoLabel = resolved.EcoLabel
 	}
 
-	sess := s.Sessions.GetOrCreate(in.BloqueID, ecoID)
-	isNew, _ := sess.AddPlayer(in.PlayerID, in.X, in.Y, in.Z, in.Yaw, in.Pitch)
-	s.Hub.Bind(in.ConnID, in.BloqueID, ecoID, in.PlayerID, wireFormat)
-	tick := sess.IncrementTick()
+	if in.DeferActivation {
+		s.Hub.BindPending(in.ConnID, wshub.JoinInfo{
+			BloqueID: in.BloqueID, EcoID: ecoID, PlayerID: in.PlayerID, WireFormat: wireFormat,
+			X: in.X, Y: in.Y, Z: in.Z, Yaw: in.Yaw, Pitch: in.Pitch,
+		})
+	} else {
+		s.Hub.Bind(in.ConnID, in.BloqueID, ecoID, in.PlayerID, wireFormat)
+	}
 
-	states := BuildAllPlayerStates(sess, tick)
+	result := JoinBlockResult{}
+	if !in.DeferActivation {
+		sess := s.Sessions.GetOrCreate(in.BloqueID, ecoID)
+		isNew, _ := sess.AddPlayer(in.PlayerID, in.X, in.Y, in.Z, in.Yaw, in.Pitch)
+		result.IsNew = isNew
+		result.JoinOKJSON = BuildJoinOK(in.BloqueID, ecoID, ecoLabel, in.PlayerID, wireFormat, sess.PlayerIDs())
+		result.PlayerStates = BuildAllPlayerStates(sess, sess.IncrementTick())
+		if isNew {
+			result.PlayerJoinedJSON = BuildPlayerJoined(in.BloqueID, in.PlayerID, in.X, in.Y, in.Z)
+		}
+	}
+
+	s.StartPushRound(in.ConnID, in.BloqueID, in.PlayerID, in.X, in.Y, PushRoundOpts{IncludeTypes: true})
+	return result
+}
+
+// ActivatePlayer incorpora a la sesión una conexión cuyo terreno ya fue cargado.
+func (s *Services) ActivatePlayer(connID uint64) JoinBlockResult {
+	join, ok := s.Hub.PendingJoin(connID)
+	if !ok {
+		return JoinBlockResult{JoinErrJSON: BuildJoinError("join_not_pending")}
+	}
+	sess := s.Sessions.GetOrCreate(join.BloqueID, join.EcoID)
+	isNew, _ := sess.AddPlayer(join.PlayerID, join.X, join.Y, join.Z, join.Yaw, join.Pitch)
+	if !s.Hub.MarkActive(connID) {
+		sess.RemovePlayer(join.PlayerID)
+		return JoinBlockResult{JoinErrJSON: BuildJoinError("join_not_pending")}
+	}
 	result := JoinBlockResult{
-		JoinOKJSON:   BuildJoinOK(in.BloqueID, ecoID, ecoLabel, in.PlayerID, wireFormat, sess.PlayerIDs()),
-		PlayerStates: states,
+		JoinOKJSON:   BuildJoinOK(join.BloqueID, join.EcoID, "", join.PlayerID, join.WireFormat, sess.PlayerIDs()),
+		PlayerStates: BuildAllPlayerStates(sess, sess.IncrementTick()),
 		IsNew:        isNew,
 	}
 	if isNew {
-		result.PlayerJoinedJSON = BuildPlayerJoined(in.BloqueID, in.PlayerID, in.X, in.Y, in.Z)
+		result.PlayerJoinedJSON = BuildPlayerJoined(join.BloqueID, join.PlayerID, join.X, join.Y, join.Z)
 	}
-
-	s.StartPushRound(in.ConnID, in.BloqueID, in.PlayerID, in.X, in.Y, PushRoundOpts{
-		IncludeTypes: true,
-		OnlyNew:      false,
-	})
 	return result
 }
 
 // Leave implementa leave.
 func (s *Services) Leave(connID uint64) (leftJSON, bloqueID string, ecoID int, ok bool) {
 	s.TerrainPush.Remove(connID)
+	active := s.Hub.IsActive(connID)
 	bloqueID, playerID, ecoID, bound := s.Hub.Unbind(connID)
 	if !bound {
 		return "", "", 0, false
 	}
 	if s.Registry != nil {
 		_ = s.Registry.Release(bloqueID, playerID, ecoID)
+	}
+	if !active {
+		return "", bloqueID, ecoID, false
 	}
 	sess, exists := s.Sessions.Get(bloqueID, ecoID)
 	if !exists {
