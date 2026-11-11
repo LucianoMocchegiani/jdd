@@ -36,4 +36,9 @@ func TestResolveUsesSharedParticleAndMediumRules(t *testing.T) {
 	if got := resolver.Resolve(nil, true, 0, 0, 1, 2); got != "ground" {
 		t.Fatalf("expected ground, got %s", got)
 	}
+
+	edgeGround := []Particle{{X: 1, Y: 0, Z: -1, Name: "piedra", Physics: "solido"}}
+	if got := resolver.Resolve(edgeGround, false, 0.6, 0, 0, 2); got != "ground" {
+		t.Fatalf("expected centered particle below feet to resolve ground, got %s", got)
+	}
 }

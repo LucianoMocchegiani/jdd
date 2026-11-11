@@ -49,8 +49,8 @@ export function solidUnderFeetFromGrid(
   centerY: number,
   centerZ: number,
 ): boolean {
-  const fx = Math.floor(centerX);
-  const fy = Math.floor(centerY);
+  const fx = Math.floor(centerX + 0.5);
+  const fy = Math.floor(centerY + 0.5);
   const feetZ = Math.floor(centerZ) - 1;
   return solidGrid.isCellSolid(fx, fy, feetZ);
 }
@@ -137,8 +137,8 @@ export function countContactSamples(
 ): ContactSampleCounts {
   const radiusSq = radiusCells * radiusCells;
   const feetZ = Math.floor(centerZ) - 1;
-  const fx = Math.floor(centerX);
-  const fy = Math.floor(centerY);
+  const fx = Math.floor(centerX + 0.5);
+  const fy = Math.floor(centerY + 0.5);
   let submergedCount = 0;
   let solidUnderFeet = 0;
   let totalSampled = 0;

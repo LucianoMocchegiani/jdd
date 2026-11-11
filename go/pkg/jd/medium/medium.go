@@ -68,7 +68,7 @@ func Load(mediumRulesPath, particleRegistryPath string) (*Resolver, error) {
 
 func (r *Resolver) Resolve(particles []Particle, solidUnderFeet bool, x, y, z, radius float64) string {
 	radiusSq := radius * radius
-	feetZ, fx, fy := math.Floor(z)-1, math.Floor(x), math.Floor(y)
+	feetZ, fx, fy := math.Floor(z)-1, math.Floor(x+0.5), math.Floor(y+0.5)
 	total, submerged, ground := 0, 0, 0
 	for _, p := range particles {
 		dx, dy, dz := p.X-x, p.Y-y, p.Z-z
