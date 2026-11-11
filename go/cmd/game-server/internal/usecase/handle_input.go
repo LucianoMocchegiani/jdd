@@ -79,15 +79,22 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 	if !ok {
 		return buildError("swing_error", "swing_rejected"), true
 	}
+	origin := jdcombat.Point{X: reservation.X, Y: reservation.Y, Z: reservation.Z}
+	targets := make([]port.SwingTarget, 0)
+	sess.ForEachPlayer(func(p *entity.Player) {
+		if p.ID != in.PlayerID && p.Health > 0 && jdcombat.HitsPlayer(origin, reservation.Yaw, jdcombat.Point{X: p.X, Y: p.Y, Z: p.Z}, profile.Impact.Reach) {
+			targets = append(targets, port.SwingTarget{PlayerID: p.ID, EntityID: int(p.EntityID), X: p.X, Y: p.Y, Z: p.Z})
+		}
+	})
 	if err := s.SwingPub.PublishSwing(port.SwingCommand{
 		BloqueID: in.BloqueID, PlayerID: in.PlayerID, ActionID: in.ActionID,
 		EntityID: int(reservation.EntityID), Seq: in.Seq,
 		PosX: reservation.X, PosY: reservation.Y, PosZ: reservation.Z, Yaw: reservation.Yaw,
+		Targets: targets,
 	}); err != nil {
 		sess.CancelSwing(in.PlayerID, reservation)
 		return buildError("swing_error", "enqueue_failed"), true
 	}
-	sess.ApplyMeleeDamage(in.PlayerID, jdcombat.Point{X: reservation.X, Y: reservation.Y, Z: reservation.Z}, reservation.Yaw, profile.Impact.Reach, profile.Impact.Damage)
 	ack, _ := json.Marshal(map[string]interface{}{
 		"type": "swing_queued", "seq": in.Seq, "entity_id": reservation.EntityID, "action_id": in.ActionID,
 	})

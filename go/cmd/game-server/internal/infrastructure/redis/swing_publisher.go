@@ -13,51 +13,37 @@ import (
 )
 
 // SwingPublisher representa swing publisher.
-type SwingPublisher struct {
-	client *goredis.Client
-}
+type SwingPublisher struct { client *goredis.Client }
 
 // NewSwingPublisher construye swing publisher.
-func NewSwingPublisher(client *goredis.Client) *SwingPublisher {
-	return &SwingPublisher{client: client}
-}
+func NewSwingPublisher(client *goredis.Client) *SwingPublisher { return &SwingPublisher{client: client} }
 
 type swingPayload struct {
-	BloqueID string  `json:"bloque_id"`
-	PlayerID string  `json:"player_id"`
-	ActionID string  `json:"action_id"`
-	EntityID int     `json:"entity_id"`
-	Seq      int     `json:"seq"`
-	PosX     float64 `json:"pos_x"`
-	PosY     float64 `json:"pos_y"`
-	PosZ     float64 `json:"pos_z"`
-	Yaw      float64 `json:"yaw"`
-	IsNPC    bool    `json:"is_npc"`
+	BloqueID string `json:"bloque_id"`
+	PlayerID string `json:"player_id"`
+	ActionID string `json:"action_id"`
+	EntityID int `json:"entity_id"`
+	Seq int `json:"seq"`
+	PosX float64 `json:"pos_x"`
+	PosY float64 `json:"pos_y"`
+	PosZ float64 `json:"pos_z"`
+	Yaw float64 `json:"yaw"`
+	IsNPC bool `json:"is_npc"`
+	Targets []port.SwingTarget `json:"targets"`
 }
 
 // PublishSwing implementa publish swing.
 func (p *SwingPublisher) PublishSwing(cmd port.SwingCommand) error {
 	payload, err := json.Marshal(swingPayload{
-		BloqueID: cmd.BloqueID,
-		PlayerID: cmd.PlayerID,
-		ActionID: cmd.ActionID,
-		EntityID: cmd.EntityID,
-		Seq:      cmd.Seq,
-		PosX:     cmd.PosX,
-		PosY:     cmd.PosY,
-		PosZ:     cmd.PosZ,
-		Yaw:      cmd.Yaw,
-		IsNPC:    cmd.IsNPC,
+		BloqueID: cmd.BloqueID, PlayerID: cmd.PlayerID, ActionID: cmd.ActionID,
+		EntityID: cmd.EntityID, Seq: cmd.Seq, PosX: cmd.PosX, PosY: cmd.PosY,
+		PosZ: cmd.PosZ, Yaw: cmd.Yaw, IsNPC: cmd.IsNPC, Targets: cmd.Targets,
 	})
-	if err != nil {
-		return err
-	}
+	if err != nil { return err }
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	return p.client.XAdd(ctx, &goredis.XAddArgs{
-		Stream: rediskeys.StreamSwingCommands,
-		MaxLen: 10000,
-		Approx: true,
+		Stream: rediskeys.StreamSwingCommands, MaxLen: 10000, Approx: true,
 		Values: map[string]interface{}{"payload": string(payload)},
 	}).Err()
 }

@@ -9,7 +9,17 @@ import (
 )
 
 type DestroyedEvent struct { BloqueID string; ParticleID string; X, Y, Z int }
-type SwingResultEvent struct { BloqueID string; EntityID int; Seq int; ActionID string; RawJSON string }
+type SwingResultEvent struct {
+	BloqueID string
+	PlayerID string
+	EntityID int
+	Seq int
+	ActionID string
+	TargetPlayerID string
+	TargetEntityID int
+	EntityDamage float64
+	RawJSON string
+}
 
 func (s *Services) HandleParticleDestroyed(ev DestroyedEvent) {
 	for _, sess := range s.Sessions.GetByBloque(ev.BloqueID) { sess.SolidGrid.RemoveCell(ev.X, ev.Y, ev.Z) }
@@ -19,10 +29,14 @@ func (s *Services) HandleParticleDestroyed(ev DestroyedEvent) {
 
 func (s *Services) HandleSwingResult(ev SwingResultEvent) {
 	for _, sess := range s.Sessions.GetByBloque(ev.BloqueID) {
-		var targetPlayerID string
-		sess.ForEachPlayer(func(p *entity.Player) { if p.EntityID == uint32(ev.EntityID) { targetPlayerID = p.ID } })
-		if targetPlayerID == "" { continue }
-		s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) { if c.PlayerID == targetPlayerID { wshub.SafeWrite(c, ev.RawJSON) } })
+		if _, exists := sess.GetPlayer(ev.PlayerID); !exists { continue }
+		if ev.TargetPlayerID != "" && ev.EntityDamage > 0 {
+			sess.UpdatePlayer(ev.TargetPlayerID, func(p *entity.Player) {
+				p.Health -= ev.EntityDamage
+				if p.Health < 0 { p.Health = 0 }
+			})
+		}
+		s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) { if c.PlayerID == ev.PlayerID { wshub.SafeWrite(c, ev.RawJSON) } })
 	}
 }
 
