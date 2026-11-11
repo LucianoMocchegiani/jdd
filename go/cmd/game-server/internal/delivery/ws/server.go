@@ -77,7 +77,7 @@ func (s *Server) dispatch(c *wshub.Conn, raw string) {
 	case "prepare_join":
 		s.handleJoin(c, msg, true)
 	case "activate_player":
-		s.handleActivatePlayer(c)
+		s.handleActivatePlayer(c, msg)
 	case "input":
 		if s.hub.IsActive(c.ID) {
 			s.handleInput(c, msg)
@@ -133,8 +133,13 @@ func (s *Server) handleJoin(c *wshub.Conn, msg map[string]interface{}, deferActi
 	}
 }
 
-func (s *Server) handleActivatePlayer(c *wshub.Conn) {
-	res := s.svc.ActivatePlayer(c.ID)
+func (s *Server) handleActivatePlayer(c *wshub.Conn, msg map[string]interface{}) {
+	position, ok := parsePosition(msg["position"])
+	if !ok {
+		wshub.SafeWrite(c, usecase.BuildJoinError("invalid_activation_payload"))
+		return
+	}
+	res := s.svc.ActivatePlayer(c.ID, position)
 	if res.JoinErrJSON != "" {
 		wshub.SafeWrite(c, res.JoinErrJSON)
 		return

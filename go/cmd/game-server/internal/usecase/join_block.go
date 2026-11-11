@@ -46,7 +46,7 @@ func (s *Services) JoinBlock(in JoinBlockInput) JoinBlockResult {
 
 	if in.DeferActivation {
 		s.Hub.BindPending(in.ConnID, wshub.JoinInfo{
-			BloqueID: in.BloqueID, EcoID: ecoID, PlayerID: in.PlayerID, WireFormat: wireFormat,
+			BloqueID: in.BloqueID, EcoID: ecoID, EcoLabel: ecoLabel, PlayerID: in.PlayerID, WireFormat: wireFormat,
 			X: in.X, Y: in.Y, Z: in.Z, Yaw: in.Yaw, Pitch: in.Pitch,
 		})
 	} else {
@@ -70,19 +70,19 @@ func (s *Services) JoinBlock(in JoinBlockInput) JoinBlockResult {
 }
 
 // ActivatePlayer incorpora a la sesión una conexión cuyo terreno ya fue cargado.
-func (s *Services) ActivatePlayer(connID uint64) JoinBlockResult {
+func (s *Services) ActivatePlayer(connID uint64, position [3]float64) JoinBlockResult {
 	join, ok := s.Hub.PendingJoin(connID)
 	if !ok {
 		return JoinBlockResult{JoinErrJSON: BuildJoinError("join_not_pending")}
 	}
+	join.X, join.Y, join.Z = position[0], position[1], position[2]
 	sess := s.Sessions.GetOrCreate(join.BloqueID, join.EcoID)
 	isNew, _ := sess.AddPlayer(join.PlayerID, join.X, join.Y, join.Z, join.Yaw, join.Pitch)
 	if !s.Hub.MarkActive(connID) {
-		sess.RemovePlayer(join.PlayerID)
 		return JoinBlockResult{JoinErrJSON: BuildJoinError("join_not_pending")}
 	}
 	result := JoinBlockResult{
-		JoinOKJSON:   BuildJoinOK(join.BloqueID, join.EcoID, "", join.PlayerID, join.WireFormat, sess.PlayerIDs()),
+		JoinOKJSON:   BuildJoinOK(join.BloqueID, join.EcoID, join.EcoLabel, join.PlayerID, join.WireFormat, sess.PlayerIDs()),
 		PlayerStates: BuildAllPlayerStates(sess, sess.IncrementTick()),
 		IsNew:        isNew,
 	}

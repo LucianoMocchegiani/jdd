@@ -22,9 +22,9 @@ type Hub struct {
 
 // JoinInfo es la posición reservada antes de activar al jugador.
 type JoinInfo struct {
-	BloqueID, PlayerID, WireFormat string
-	EcoID                          int
-	X, Y, Z, Yaw, Pitch            float64
+	BloqueID, PlayerID, WireFormat, EcoLabel string
+	EcoID                                    int
+	X, Y, Z, Yaw, Pitch                      float64
 }
 
 // Conn representa conn.
