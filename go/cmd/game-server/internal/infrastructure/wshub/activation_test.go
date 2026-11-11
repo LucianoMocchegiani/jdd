@@ -12,6 +12,11 @@ func TestPendingJoinIsNotActiveUntilMarkedAndOwnershipMoves(t *testing.T) {
 	if join, ok := h.PendingJoin(first.ID); !ok || join.Z != 5 {
 		t.Fatalf("pending join not preserved: %+v, %v", join, ok)
 	}
+	called := false
+	h.ForSession("block", 1, func(*Conn) { called = true })
+	if called {
+		t.Fatal("pending connection must not receive active session broadcasts")
+	}
 	if !h.MarkActive(first.ID) || !h.IsActive(first.ID) {
 		t.Fatal("mark active did not activate pending connection")
 	}
