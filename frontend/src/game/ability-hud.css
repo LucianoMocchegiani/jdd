@@ -68,7 +68,7 @@
 }
 
 .ability-hud__clock.is-spinning::after {
-  animation: ability-cooldown-spin linear forwards;
+  animation: ability-cooldown-spin var(--cooldown-duration) linear forwards;
 }
 
 .ability-hud__item.is-cooling-down .ability-hud__clock {
@@ -81,6 +81,16 @@
 
 @keyframes ability-cooldown-spin {
   to { transform: translateX(-50%) rotate(1turn); }
+}
+
+@keyframes ability-cooldown-static {
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ability-hud__clock.is-spinning::after {
+    animation-name: ability-cooldown-static;
+  }
 }
 
 body.character-studio-mode #ability-hud {

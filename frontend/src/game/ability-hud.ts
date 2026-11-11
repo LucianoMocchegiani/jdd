@@ -37,7 +37,7 @@ export function mountAbilityHud(root: HTMLElement): void {
     const row = actionId ? rows.get(actionId) : undefined;
     if (!row || row.cooldownMs <= 0) return;
 
-    row.clock.style.animationDuration = `${row.cooldownMs}ms`;
+    row.clock.style.setProperty('--cooldown-duration', `${row.cooldownMs}ms`);
     row.item.classList.add('is-cooling-down');
     row.cooldown.textContent = 'Enfriando…';
     row.item.setAttribute('aria-label', `${row.label}, en cooldown`);
@@ -50,7 +50,7 @@ export function mountAbilityHud(root: HTMLElement): void {
     clock.addEventListener('animationend', () => {
       item.classList.remove('is-cooling-down');
       cooldown.textContent = 'Listo';
-      item.setAttribute('aria-label', `${label}, listo para usar; cooldown ${((cooldownMs) / 1000).toFixed(1)} segundos`);
+      item.setAttribute('aria-label', `${label}, listo para usar; cooldown ${cooldownMs / 1000} segundos`);
     });
   }
 }
