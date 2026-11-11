@@ -25,4 +25,7 @@ func TestMeleeHitVolumes(t *testing.T) {
 	if HitsWorldCell(origin, 0, 0, 1, 0, 2) {
 		t.Fatal("particle behind attacker should not be hit")
 	}
+	if HitsWorldCell(origin, 0, 0, -2, 0, 1) {
+		t.Fatal("particle beyond reach should not be hit based on its center")
+	}
 }

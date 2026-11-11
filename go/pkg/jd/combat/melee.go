@@ -24,12 +24,12 @@ func HitsPlayer(origin Point, yaw float64, target Point, reach float64) bool {
 
 // HitsWorldCell approximates contact with one particle cell in front of the player.
 func HitsWorldCell(origin Point, yaw float64, x, y, z int, reach float64) bool {
-	cell := Point{float64(x) + 0.5, float64(y) + 0.5, float64(z) + 0.5}
+	cell := Point{float64(x), float64(y), float64(z)}
 	forward, lateral := planarHit(origin, yaw, cell.X, cell.Y)
 	return forward > 0 && forward <= reach+0.5 && lateral <= 0.65 && math.Abs(cell.Z-(origin.Z+1)) <= 1
 }
 
-func planarHit(origin Point, yaw, x, y float64) (forward, lateral float64) {
+func planarHit(origin Point, yaw float64, x, y float64) (forward, lateral float64) {
 	dx, dy := x-origin.X, y-origin.Y
 	fx, fy := -math.Sin(yaw), -math.Cos(yaw)
 	return dx*fx + dy*fy, math.Abs(dx*fy - dy*fx)
