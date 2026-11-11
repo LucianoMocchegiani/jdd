@@ -26,8 +26,28 @@ func TestParseJoinBlock(t *testing.T) {
 	if err != ErrNotJoinBlock {
 		t.Fatalf("got %v", err)
 	}
-	join, err := parseJoinBlock([]byte(`{"type":"join_block","bloque_id":"b","player_id":"p"}`))
-	if err != nil || join.BloqueID != "b" || join.PlayerID != "p" {
-		t.Fatalf("join: %+v err %v", join, err)
+	for _, message := range []string{
+		`{"type":"join_block","bloque_id":"b","player_id":"p"}`,
+		`{"type":"prepare_join","bloque_id":"b","player_id":"p"}`,
+	} {
+		join, err := parseJoinBlock([]byte(message))
+		if err != nil || join.BloqueID != "b" || join.PlayerID != "p" {
+			t.Fatalf("join: %+v err %v", join, err)
+		}
+	}
+}
+
+func TestPatchPrepareJoinEnforcesPlayerIDWithoutChangingType(t *testing.T) {
+	raw := []byte(`{"type":"prepare_join","bloque_id":"b","player_id":"spoof"}`)
+	out, err := patchJoinBlock(raw, "trusted-player", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var msg map[string]interface{}
+	if err := json.Unmarshal(out, &msg); err != nil {
+		t.Fatal(err)
+	}
+	if msg["type"] != "prepare_join" || msg["player_id"] != "trusted-player" {
+		t.Fatalf("patched prepare_join incorrectly: %v", msg)
 	}
 }
