@@ -26,7 +26,16 @@ const BLOCKED_IN_INSPECT = new Set([
   'attack_light',
 ]);
 
-/** Intent → KeyboardEvent.code. También lo consume el HUD para mostrar los atajos reales. */
+/**
+ * Mapa intent → códigos `KeyboardEvent.code` que lo activan.
+ *
+ * Regla **OR**: si **cualquiera** de la lista está pulsada, el intent queda `true`.
+ * Ej.: Shift izquierdo o derecho → `run_forward`.
+ *
+ * Debe alinearse con `INPUT_INTENTS` en `input-registry.ts` (validación de fichas).
+ * Intents derivados (`constant_displacements_move`) no van aquí: los arma `context-builder`.
+ * Se exporta también para que el HUD refleje estos mismos atajos.
+ */
 export const INTENT_KEY_CODES: Record<string, readonly string[]> = {
   move_forward: ['KeyW', 'ArrowUp'],
   move_backward: ['KeyS', 'ArrowDown'],
