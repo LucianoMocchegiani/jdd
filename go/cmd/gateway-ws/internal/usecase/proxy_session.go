@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	ErrNotJoinBlock     = errors.New("first message must be join_block")
+	ErrNotJoinBlock      = errors.New("first message must be join_block or prepare_join")
 	ErrMissingJoinFields = errors.New("join_block missing bloque_id or player_id")
 )
 
@@ -145,7 +145,7 @@ func parseJoinBlock(raw []byte) (joinBlockMsg, error) {
 		return joinBlockMsg{}, err
 	}
 	t, _ := msg["type"].(string)
-	if t != "join_block" {
+	if t != "join_block" && t != "prepare_join" {
 		return joinBlockMsg{}, ErrNotJoinBlock
 	}
 	bloqueID, _ := msg["bloque_id"].(string)
