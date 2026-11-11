@@ -43,6 +43,8 @@ func (s *Services) JoinBlock(in JoinBlockInput) JoinBlockResult {
 			BloqueID: in.BloqueID, EcoID: ecoID, EcoLabel: ecoLabel, PlayerID: in.PlayerID, WireFormat: wireFormat,
 			X: in.X, Y: in.Y, Z: in.Z, Yaw: in.Yaw, Pitch: in.Pitch,
 		})
+		// Keep the session's collision grid available while chunks arrive, without adding a player.
+		s.Sessions.GetOrCreate(in.BloqueID, ecoID)
 	} else {
 		s.Hub.Bind(in.ConnID, in.BloqueID, ecoID, in.PlayerID, wireFormat)
 	}
