@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"sync"
 
 	"github.com/juego-de-dioses/jd/cmd/persistence-api/internal/domain"
@@ -105,7 +106,7 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 	}
 
 	impact := profile.Impact
-	queryReach := int(impact.Reach) + 1
+	queryReach := int(math.Ceil(impact.Reach)) + 1
 	candidates, err := s.Repo.GetParticlesNear(ctx, cmd.BloqueID, cmd.PosX, cmd.PosY, cmd.PosZ, queryReach)
 	if err != nil {
 		return SwingOutcome{}, err
