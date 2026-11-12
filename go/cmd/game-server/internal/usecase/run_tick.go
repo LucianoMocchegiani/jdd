@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	tickHz = 30
+	tickHz      = 30
 	maxDeltaSec = 0.1
 )
 
@@ -29,6 +29,12 @@ func (s *Services) RunTick(deltaSec float64) {
 		sess.ForEachPlayer(func(p *entity.Player) {
 			systems.RunPlayerTick(p, sess.SolidGrid, s.SessionCfg, s.Medium, deltaSec)
 		})
+		if s.Hub != nil {
+			for _, projectile := range sess.AdvanceProjectiles(deltaSec) {
+				payload, _ := json.Marshal(projectile)
+				s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) { wshub.SafeWrite(c, string(payload)) })
+			}
+		}
 		tick := sess.IncrementTick()
 		states := BuildAllPlayerStates(sess, tick)
 		s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
@@ -86,7 +92,7 @@ func BuildPlayerJoined(bloqueID, playerID string, x, y, z float64) string {
 }
 
 func BuildPlayerLeft(bloqueID, playerID string) string {
-	b, _ := json.Marshal(map[string]interface{}{"type": "player_left", "bloque_id": bloqueID, "player_id": playerID})
+	b, _ := json.Marshal(map[string]string{"type": "player_left", "bloque_id": bloqueID, "player_id": playerID})
 	return string(b)
 }
 
