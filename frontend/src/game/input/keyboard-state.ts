@@ -5,6 +5,7 @@
 import { logInputKey } from '@/game/debug/input-flow-debug';
 
 const HELD = new Set<string>();
+const VIRTUAL_HELD = new Set<string>();
 let attached = false;
 
 /** `true` si el foco está en un campo editable (no capturar teclas de juego). */
@@ -29,6 +30,7 @@ const GAME_KEY_CODES = new Set([
   'ShiftLeft',
   'ShiftRight',
   'KeyF',
+  'KeyG',
   'KeyC',
   'Mouse0',
 ]);
@@ -78,25 +80,33 @@ export function attachKeyboardInput(): void {
         || t instanceof HTMLSelectElement
       ) {
         HELD.clear();
+        VIRTUAL_HELD.clear();
       }
     },
     { capture: true },
   );
 
   window.addEventListener('blur', () => {
-    if (HELD.size > 0) {
+    if (HELD.size > 0 || VIRTUAL_HELD.size > 0) {
       HELD.clear();
+      VIRTUAL_HELD.clear();
       logInputKey('blur', '(cleared)', []);
     }
   });
 }
 
+/** Lets touch controls feed the existing intent pipeline without synthetic key events. */
+export function setVirtualKeyHeld(code: string, held: boolean): void {
+  if (held) VIRTUAL_HELD.add(code);
+  else VIRTUAL_HELD.delete(code);
+}
+
 /** @param code - `KeyboardEvent.code` */
 export function isKeyHeld(code: string): boolean {
-  return HELD.has(code);
+  return HELD.has(code) || VIRTUAL_HELD.has(code);
 }
 
 /** Códigos pulsados ahora (para debug HUD). */
 export function getHeldKeyCodes(): string[] {
-  return [...HELD];
+  return [...new Set([...HELD, ...VIRTUAL_HELD])];
 }

@@ -6,6 +6,7 @@ import '@/style.css';
 import '@/game/ability-hud.css';
 import { bootstrapApp } from '@/game/app';
 import { mountAbilityHud } from '@/game/ability-hud';
+import { mountMobileControls } from '@/game/mobile-controls';
 import { bootstrapCharacterStudioPoc } from '@/poc/character-studio';
 import { STUDIO_PANEL_W, TIMELINE_HEIGHT } from '@/poc/character-studio/studio-timeline';
 import { bindInputStatsHud } from '@/game/debug/input-stats-debug';
@@ -29,14 +30,16 @@ const debugMovementEl = document.querySelector<HTMLElement>('#debug-movement');
 const debugInputStatsEl = document.querySelector<HTMLElement>('#debug-input-stats');
 const debugPosSyncEl = document.querySelector<HTMLElement>('#debug-pos-sync');
 const abilityHud = document.querySelector<HTMLElement>('#ability-hud');
+const mobileControls = document.querySelector<HTMLElement>('#mobile-controls');
 
 bindInputStatsHud(debugInputStatsEl);
 bindPositionSyncHud(debugPosSyncEl);
 
-if (!container || !statusEl || !debugMediumEl || !debugConditionsEl || !debugCameraEl || !debugMovementEl || !abilityHud) {
+if (!container || !statusEl || !debugMediumEl || !debugConditionsEl || !debugCameraEl || !debugMovementEl || !abilityHud || !mobileControls) {
   throw new Error('Missing #canvas-container, #status or #debug-hud children');
 }
 mountAbilityHud(abilityHud);
+mountMobileControls(mobileControls);
 
 const scene = new Scene();
 scene.background = new Color(0x0a0a12);
