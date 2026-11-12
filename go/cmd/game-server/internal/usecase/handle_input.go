@@ -10,6 +10,42 @@ import (
 	jdcombat "github.com/juego-de-dioses/jd/pkg/jd/combat"
 )
 
+type InputPayload struct {
+	BloqueID string
+	EcoID    int
+	PlayerID string
+	Seq      int
+	Intents  map[string]bool
+	Yaw      *float64
+	Pitch    *float64
+}
+
+func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
+	sess, exists := s.Sessions.Get(in.BloqueID, in.EcoID)
+	if !exists {
+		return buildError("input_error", "not_in_block"), false
+	}
+	updated := sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) {
+		if in.Seq != 0 {
+			p.InputSeq = in.Seq
+		}
+		if in.Intents != nil {
+			p.Intents = in.Intents
+		}
+		if in.Yaw != nil {
+			p.Yaw = *in.Yaw
+		}
+		if in.Pitch != nil {
+			p.Pitch = *in.Pitch
+		}
+	})
+	if !updated {
+		return buildError("input_error", "player_not_in_session"), false
+	}
+	return "", true
+}
+
+// SwingPayload carries only client intent; pose, cooldown, and damage are server-resolved.
 type SwingPayload struct {
 	BloqueID string
 	EcoID    int
@@ -23,9 +59,9 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 	if in.PlayerID == "" {
 		return buildError("swing_error", "missing_player_id"), true
 	}
-	sess, ok := s.Sessions.Get(in.BloqueID, in.EcoID)
-	if !ok {
-		return buildError("swing_error", "session_not_found"), true
+	sess, exists := s.Sessions.Get(in.BloqueID, in.EcoID)
+	if !exists {
+		return buildError("swing_error", "not_in_block"), true
 	}
 	if s.Combat == nil {
 		return buildError("swing_error", "not_configured"), true
@@ -69,4 +105,9 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 		"type": "swing_queued", "seq": in.Seq, "entity_id": reservation.EntityID, "action_id": in.ActionID,
 	})
 	return string(ack), false
+}
+
+func buildError(msgType, code string) string {
+	b, _ := json.Marshal(map[string]string{"type": msgType, "error": code})
+	return string(b)
 }
