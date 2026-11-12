@@ -2,6 +2,8 @@
 package entity
 
 import (
+	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -11,19 +13,51 @@ import (
 
 // BlockSession — sala multijugador por bloque_id + eco_id.
 type BlockSession struct {
-	mu          sync.RWMutex
-	BloqueID    string
-	EcoID       int
-	ServerTick  int
-	Players     map[string]*Player
-	SolidGrid   *collision.SolidGridCache
-	TypesByName map[string]TypeInfo
-	nextEntity  uint32
+	mu             sync.RWMutex
+	BloqueID       string
+	EcoID          int
+	ServerTick     int
+	Players        map[string]*Player
+	SolidGrid      *collision.SolidGridCache
+	TypesByName    map[string]TypeInfo
+	nextEntity     uint32
+	nextProjectile uint64
+	projectiles    []Projectile
 }
 
 type TypeInfo struct {
 	TipoFisico string
 	Viscosidad *float64
+}
+
+type Projectile struct {
+	ID, OwnerID, ActionID string
+	EntityID              uint32
+	Seq                   int
+	X, Y, Z               float64
+	DX, DY, DZ            float64
+	Speed, Range           float64
+	Damage, Radius         float64
+	Traveled, DelaySec     float64
+	ParticleID             string
+	ParticleX, ParticleY, ParticleZ int
+}
+
+type ProjectileState struct {
+	Type       string  `json:"type"`
+	ID         string  `json:"id"`
+	OwnerID    string  `json:"owner_id"`
+	ActionID   string  `json:"action_id"`
+	X          float64 `json:"x"`
+	Y          float64 `json:"y"`
+	Z          float64 `json:"z"`
+	Active     bool    `json:"active"`
+	EntityID   uint32  `json:"-"`
+	Seq        int     `json:"-"`
+	ParticleID string  `json:"-"`
+	ParticleX  int     `json:"-"`
+	ParticleY  int     `json:"-"`
+	ParticleZ  int     `json:"-"`
 }
 
 func NewBlockSession(bloqueID string, ecoID int) *BlockSession {
@@ -80,11 +114,11 @@ func (s *BlockSession) UpdatePlayer(playerID string, fn func(*Player)) bool {
 }
 
 type SwingReservation struct {
-	X, Y, Z, Yaw float64
-	EntityID     uint32
-	Seq          int
-	previousSeq  int
-	previousAt   time.Time
+	X, Y, Z, Yaw, Pitch float64
+	EntityID            uint32
+	Seq                 int
+	previousSeq         int
+	previousAt          time.Time
 }
 
 func (s *BlockSession) BeginSwing(playerID string, seq int, now time.Time, cooldown time.Duration, blockedMediums []string) (SwingReservation, bool) {
@@ -99,7 +133,7 @@ func (s *BlockSession) BeginSwing(playerID string, seq int, now time.Time, coold
 			return SwingReservation{}, false
 		}
 	}
-	reservation := SwingReservation{X: p.X, Y: p.Y, Z: p.Z, Yaw: p.Yaw, EntityID: p.EntityID, Seq: seq, previousSeq: p.lastSwingSeq, previousAt: p.lastSwingAt}
+	reservation := SwingReservation{X: p.X, Y: p.Y, Z: p.Z, Yaw: p.Yaw, Pitch: p.Pitch, EntityID: p.EntityID, Seq: seq, previousSeq: p.lastSwingSeq, previousAt: p.lastSwingAt}
 	p.lastSwingSeq, p.lastSwingAt = seq, now
 	return reservation, true
 }
@@ -110,6 +144,141 @@ func (s *BlockSession) CancelSwing(playerID string, reservation SwingReservation
 	if p := s.Players[playerID]; p != nil && p.lastSwingSeq == reservation.Seq {
 		p.lastSwingSeq, p.lastSwingAt = reservation.previousSeq, reservation.previousAt
 	}
+}
+
+func (s *BlockSession) SpawnProjectile(ownerID, actionID string, pose SwingReservation, speed, reach, damage, radius float64, delay time.Duration) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	owner := s.Players[ownerID]
+	if owner == nil || owner.Health <= 0 || len(s.projectiles) >= 256 {
+		return false
+	}
+	cp, sp := math.Cos(pose.Pitch), math.Sin(pose.Pitch)
+	dx, dy, dz := -math.Sin(pose.Yaw)*cp, -math.Cos(pose.Yaw)*cp, sp
+	s.nextProjectile++
+	s.projectiles = append(s.projectiles, Projectile{
+		ID: fmt.Sprintf("%s:%d:%d", s.BloqueID, s.EcoID, s.nextProjectile), OwnerID: ownerID, ActionID: actionID,
+		EntityID: pose.EntityID, Seq: pose.Seq,
+		X: pose.X + dx*0.8, Y: pose.Y + dy*0.8, Z: pose.Z + 1,
+		DX: dx, DY: dy, DZ: dz, Speed: speed, Range: reach, Damage: damage, Radius: radius,
+		DelaySec: delay.Seconds(),
+	})
+	return true
+}
+
+func (s *BlockSession) AdvanceProjectiles(deltaSec float64) []ProjectileState {
+	if deltaSec <= 0 {
+		return nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	const stepSize = 0.2
+	states := make([]ProjectileState, 0, len(s.projectiles))
+	remaining := s.projectiles[:0]
+	for _, p := range s.projectiles {
+		if p.ParticleID != "" {
+			states = append(states, projectileState(p, false))
+			remaining = append(remaining, p)
+			continue
+		}
+		if p.DelaySec >= deltaSec {
+			p.DelaySec -= deltaSec
+			remaining = append(remaining, p)
+			continue
+		}
+		moveSec := deltaSec - p.DelaySec
+		p.DelaySec = 0
+		distance := math.Min(p.Speed*moveSec, p.Range-p.Traveled)
+		steps := int(math.Ceil(distance / stepSize))
+		if steps < 1 {
+			steps = 1
+		}
+		step := distance / float64(steps)
+		active := true
+		for i := 0; i < steps; i++ {
+			p.X += p.DX * step
+			p.Y += p.DY * step
+			p.Z += p.DZ * step
+			p.Traveled += step
+			particleID, px, py, pz, blocked := s.projectileBlocked(p.X, p.Y, p.Z, p.Radius)
+			if blocked {
+				active = false
+				p.ParticleID, p.ParticleX, p.ParticleY, p.ParticleZ = particleID, px, py, pz
+				break
+			}
+			if s.projectileHitPlayer(&p) {
+				active = false
+				break
+			}
+			if p.Traveled >= p.Range {
+				active = false
+				break
+			}
+		}
+		states = append(states, projectileState(p, active))
+		if active || p.ParticleID != "" {
+			remaining = append(remaining, p)
+		}
+	}
+	s.projectiles = remaining
+	return states
+}
+
+func projectileState(p Projectile, active bool) ProjectileState {
+	return ProjectileState{
+		Type: "projectile_state", ID: p.ID, OwnerID: p.OwnerID, ActionID: p.ActionID,
+		X: p.X, Y: p.Y, Z: p.Z, Active: active, EntityID: p.EntityID, Seq: p.Seq,
+		ParticleID: p.ParticleID, ParticleX: p.ParticleX, ParticleY: p.ParticleY, ParticleZ: p.ParticleZ,
+	}
+}
+
+func (s *BlockSession) AcknowledgeProjectileParticleHit(projectileID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	remaining := s.projectiles[:0]
+	for _, p := range s.projectiles {
+		if p.ID != projectileID || p.ParticleID == "" {
+			remaining = append(remaining, p)
+		}
+	}
+	s.projectiles = remaining
+}
+
+func (s *BlockSession) projectileBlocked(x, y, z, radius float64) (string, int, int, int, bool) {
+	if s.SolidGrid == nil {
+		return "", 0, 0, 0, false
+	}
+	for ix := int(math.Floor(x - radius)); ix <= int(math.Floor(x+radius)); ix++ {
+		for iy := int(math.Floor(y - radius)); iy <= int(math.Floor(y+radius)); iy++ {
+			for iz := int(math.Floor(z - radius)); iz <= int(math.Floor(z+radius)); iz++ {
+				if !s.SolidGrid.IsCellSolid(ix, iy, iz) {
+					continue
+				}
+				particle, ok := s.SolidGrid.ParticleAtCell(ix, iy, iz)
+				if ok && particle.Physics == "solido" {
+					return particle.ID, ix, iy, iz, true
+				}
+				return "", ix, iy, iz, true
+			}
+		}
+	}
+	return "", 0, 0, 0, false
+}
+
+func (s *BlockSession) projectileHitPlayer(projectile *Projectile) bool {
+	for id, target := range s.Players {
+		if id == projectile.OwnerID || target.Health <= 0 || projectile.Z < target.Z-0.3 || projectile.Z > target.Z+2.1 {
+			continue
+		}
+		dx, dy := projectile.X-target.X, projectile.Y-target.Y
+		r := projectile.Radius + 0.45
+		if dx*dx+dy*dy > r*r {
+			continue
+		}
+		target.Health = math.Max(0, target.Health-projectile.Damage)
+		return true
+	}
+	return false
 }
 
 func (s *BlockSession) ApplyMeleeDamage(attackerID string, origin jdcombat.Point, yaw, reach, damage float64) {

@@ -16,12 +16,9 @@ import type {
 } from '@/types/world-events';
 import { parseTerrainWsMessage } from '@/game/network/parse-terrain-ws';
 
-/** Export `WorldEventHandler` — world event handler. */
 export type WorldEventHandler = (event: WorldEvent) => void;
-/** Export `SessionEventHandler` — session event handler. */
 export type SessionEventHandler = (event: SessionEvent) => void;
 
-/** Export `WorldRealtimeHandlers` — world realtime handlers. */
 export interface WorldRealtimeHandlers {
   onWorldEvent: WorldEventHandler;
   onSessionEvent?: SessionEventHandler;
@@ -43,12 +40,24 @@ function parsePlayerStateIntents(raw: unknown): Record<string, true> | undefined
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
-/** Export `parseInboundMessage` — parse inbound message. */
 export function parseInboundMessage(raw: unknown): RealtimeInboundMessage | null {
   if (!raw || typeof raw !== 'object') return null;
   const msg = raw as Record<string, unknown>;
   const type = msg.type;
   if (typeof type !== 'string') return null;
+
+  if (type === 'projectile_state') {
+    if (
+      typeof msg.id !== 'string' || typeof msg.owner_id !== 'string' || typeof msg.action_id !== 'string' ||
+      typeof msg.x !== 'number' || !Number.isFinite(msg.x) ||
+      typeof msg.y !== 'number' || !Number.isFinite(msg.y) ||
+      typeof msg.z !== 'number' || !Number.isFinite(msg.z) || typeof msg.active !== 'boolean'
+    ) return null;
+    return {
+      type: 'projectile_state', id: msg.id, owner_id: msg.owner_id, action_id: msg.action_id,
+      x: msg.x, y: msg.y, z: msg.z, active: msg.active,
+    };
+  }
 
   if (type === 'particle_destroyed') {
     const particleId = msg.particle_id;
@@ -93,12 +102,7 @@ export function parseInboundMessage(raw: unknown): RealtimeInboundMessage | null
     if (!pos || typeof pos !== 'object') return null;
     const p = pos as Record<string, unknown>;
     if (typeof p.x !== 'number' || typeof p.y !== 'number' || typeof p.z !== 'number') return null;
-    return {
-      type: 'player_joined',
-      bloque_id: bloqueId,
-      player_id: playerId,
-      position: { x: p.x, y: p.y, z: p.z },
-    };
+    return { type: 'player_joined', bloque_id: bloqueId, player_id: playerId, position: { x: p.x, y: p.y, z: p.z } };
   }
 
   if (type === 'player_state') {
@@ -150,22 +154,10 @@ export function parseInboundMessage(raw: unknown): RealtimeInboundMessage | null
   }
 
   const terrain = parseTerrainWsMessage(msg);
-  if (terrain) {
-    return terrain;
-  }
-
+  if (terrain) return terrain;
   return null;
 }
 
-/**
- * Enruta mensaje WS ya validado al handler correspondiente.
- *
- * **Terreno (Fase 0+):** `terrain_types`, `terrain_chunk`, `terrain_chunk_done` y
- * `particle_destroyed` van a {@link WorldRealtimeHandlers.onWorldEvent} — mutan
- * {@link TerrainStore}, no presencia ni reconciliación.
- *
- * **Presencia/combate:** resto → {@link WorldRealtimeHandlers.onSessionEvent}.
- */
 export function dispatchMessage(msg: RealtimeInboundMessage, handlers: WorldRealtimeHandlers): void {
   if (
     msg.type === 'particle_destroyed' ||

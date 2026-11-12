@@ -27,6 +27,7 @@ import { getOrCreatePlayerId, NetworkInputSender, WorldRealtimeClient } from '@/
 import { InputHistory, LocalPlayerReconciler, RemotePresence } from '@/game/client-prediction';
 import { PresenceHandler } from '@/game/network/presence-handler';
 import { HealthHud } from '@/game/health-hud';
+import { ProjectileVisuals } from '@/game/projectile-visuals';
 import type { PlayerCharacterVisual } from '@/game/player/player-character-visual';
 import type { SessionEvent } from '@/types/world-events';
 import { findSpawnZ } from '@/game/player/find-spawn';
@@ -68,10 +69,7 @@ export interface AppContext {
   worldRealtime: WorldRealtimeClient;
 }
 
-export interface BootstrapResult {
-  app: AppContext;
-  health: HealthResponse;
-}
+export interface BootstrapResult { app: AppContext; health: HealthResponse; }
 
 function registerGameplaySystems(
   world: World,
@@ -84,31 +82,18 @@ function registerGameplaySystems(
 ): PlayerSimulationRunner {
   let mediumLine = 'medium: —';
   let actionLine = 'acción: —';
-  const refreshContactHud = (): void => {
-    debugMediumEl.textContent = `${mediumLine}\n${actionLine}`;
-  };
+  const refreshContactHud = (): void => { debugMediumEl.textContent = `${mediumLine}\n${actionLine}`; };
   const inputSystem = new InputSystem();
-  const particleContext = new ParticleContextSystem(terrain, (label) => {
-    mediumLine = label;
-    refreshContactHud();
-  });
+  const particleContext = new ParticleContextSystem(terrain, (label) => { mediumLine = label; refreshContactHud(); });
   const conditionSystem = new ConditionSystem(terrain);
-  const actionOrchestrator = new ActionOrchestratorSystem((label) => {
-    actionLine = label;
-    refreshContactHud();
-  });
+  const actionOrchestrator = new ActionOrchestratorSystem((label) => { actionLine = label; refreshContactHud(); });
   const movementSystem = new MovementSystem(terrain);
   world.registerSystem(inputSystem);
   world.registerSystem(particleContext);
   world.registerSystem(conditionSystem);
   world.registerSystem(actionOrchestrator);
   world.registerSystem(movementSystem);
-  const simulationRunner = new PlayerSimulationRunner(
-    particleContext,
-    conditionSystem,
-    actionOrchestrator,
-    movementSystem,
-  );
+  const simulationRunner = new PlayerSimulationRunner(particleContext, conditionSystem, actionOrchestrator, movementSystem);
   movementSystem.setPitchSource(simulationRunner);
   world.registerSystem(new WorldDamageSystem(terrain, worldRealtime, playerId));
   world.registerSystem(new AppearanceSystem(playerEntityId, playerMesh));
@@ -139,9 +124,7 @@ export async function bootstrapApp(
   const particleRenderer = new SimpleParticleRenderer(scene);
   let cellSize = 1;
   let terrain: TerrainStore;
-  const rebuildTerrainMeshes = (): void => {
-    particleRenderer.rebuildIncremental(terrain.getParticles(), terrain.getTypesByNombre(), terrain.cellSize);
-  };
+  const rebuildTerrainMeshes = (): void => { particleRenderer.rebuildIncremental(terrain.getParticles(), terrain.getTypesByNombre(), terrain.cellSize); };
   let spawnResolved = false;
   let terrainReady = false;
   let socketReady = false;
@@ -156,9 +139,7 @@ export async function bootstrapApp(
   const catalog = await syncParticleCatalog(client);
   const bloquesApi = new BloquesApi(client);
   const bloque = await resolveActiveBloque(bloquesApi);
-  if (!bloque) {
-    throw new Error('No se encontró bloque activo. Comprueba la base de datos o ?bloque= en la URL.');
-  }
+  if (!bloque) throw new Error('No se encontró bloque activo. Comprueba la base de datos o ?bloque= en la URL.');
 
   cellSize = bloque.tamano_celda;
   const spawnCell = resolveSpawnCell(bloque);
@@ -167,6 +148,7 @@ export async function bootstrapApp(
   const bloqueId = bloque.id;
   const bloqueNombre = bloque.nombre;
   terrain = new TerrainStore(bloqueId, cellSize);
+  const projectileVisuals = new ProjectileVisuals(scene, cellSize);
   spawnZ = 8;
   terrain.onViewportLoaded(() => {
     rebuildTerrainMeshes();
@@ -200,14 +182,15 @@ export async function bootstrapApp(
 
   requestActivation = (): void => {
     if (socketReady && terrainReady && !activationSent) {
-      activationSent = worldRealtime.send({
-        type: 'activate_player',
-        position: { x: spawnX, y: spawnY, z: spawnZ },
-      });
+      activationSent = worldRealtime.send({ type: 'activate_player', position: { x: spawnX, y: spawnY, z: spawnZ } });
     }
   };
 
   const handleSessionEvent = (event: SessionEvent): void => {
+    if (event.type === 'projectile_state') {
+      projectileVisuals.apply(event);
+      return;
+    }
     if (event.type === 'player_state') {
       ingestLocalPlayerState(event, playerId);
       recordObservedPlayerState(event);
@@ -238,9 +221,7 @@ export async function bootstrapApp(
   if (posSyncDebug) ensureServerGhost(scene, cellSize);
 
   worldRealtime.connect(getWebSocketUrl(), {
-    onWorldEvent: (event) => {
-      if (event.bloque_id === bloqueId) terrain.applyWorldEvent(event);
-    },
+    onWorldEvent: (event) => { if (event.bloque_id === bloqueId) terrain.applyWorldEvent(event); },
     onSessionEvent: handleSessionEvent,
     onOpen: () => {
       playerActive = false;
@@ -256,9 +237,7 @@ export async function bootstrapApp(
   debugMediumEl.textContent = 'medium: —';
   const cameraController = new CameraController(camera, renderer.domElement, playerMesh);
   setCameraController(cameraController);
-  if (isMovementDebugEnabled()) {
-    console.info('[movement:debug] Flujo: [input:key] → [input:intents] → [movement:vel] → [movement:apply]. HUD arriba-izq. Off: ?debug=movement-off');
-  }
+  if (isMovementDebugEnabled()) console.info('[movement:debug] Flujo: [input:key] → [input:intents] → [movement:vel] → [movement:apply]. HUD arriba-izq. Off: ?debug=movement-off');
 
   const loop = new GameLoop((deltaTime) => {
     worldRealtime.drainInboundQueue();
@@ -268,9 +247,7 @@ export async function bootstrapApp(
       inputSendClockSec += deltaTime;
       const inputComp = world.getComponent<InputComponent>(playerEntityId, 'input');
       const facingComp = world.getComponent<FacingComponent>(playerEntityId, 'facing');
-      if (inputComp && facingComp) {
-        networkInput.tick(inputSendClockSec, inputComp.intents, facingComp.yaw, cameraController.pitch);
-      }
+      if (inputComp && facingComp) networkInput.tick(inputSendClockSec, inputComp.intents, facingComp.yaw, cameraController.pitch);
     }
     const pos = world.getComponent<PositionComponent>(playerEntityId, 'position');
     if (pos) {
@@ -284,10 +261,7 @@ export async function bootstrapApp(
         if (inputStatsPollClockSec >= 1 && !inputStatsPollInFlight) {
           inputStatsPollClockSec = 0;
           inputStatsPollInFlight = true;
-          void fetchBackendInputStats(API_BASE_URL, playerId).then((stats) => {
-            backendInputStats = stats;
-            inputStatsPollInFlight = false;
-          });
+          void fetchBackendInputStats(API_BASE_URL, playerId).then((stats) => { backendInputStats = stats; inputStatsPollInFlight = false; });
         }
         debugInputStatsEl.textContent = formatInputStatsHud(playerId, backendInputStats);
       }
@@ -295,11 +269,8 @@ export async function bootstrapApp(
         const ws = worldRealtime.getWsDebugStats();
         const contactComp = world.getComponent<ContactComponent>(playerEntityId, 'contact');
         debugPosSyncEl.textContent = formatPositionSyncHud(pos.x, pos.y, pos.z, {
-          lastRxAgeSec: ws.lastRxAgeSec,
-          lastAppliedAgeSec: ws.lastAppliedAgeSec,
-          maxRxGapMs: ws.maxRxGapMs,
-          rxPerSec: ws.rxPerSec,
-          terrainRebuilding: particleRenderer.isRebuilding || terrain.isRebuildingIndexes,
+          lastRxAgeSec: ws.lastRxAgeSec, lastAppliedAgeSec: ws.lastAppliedAgeSec, maxRxGapMs: ws.maxRxGapMs,
+          rxPerSec: ws.rxPerSec, terrainRebuilding: particleRenderer.isRebuilding || terrain.isRebuildingIndexes,
           localMedium: contactComp?.medium ?? null,
         });
       }
@@ -310,20 +281,5 @@ export async function bootstrapApp(
     renderer.render(scene, camera);
   });
   loop.start();
-  return {
-    app: {
-      world,
-      loop,
-      scene,
-      camera,
-      renderer,
-      playerEntityId,
-      playerMesh,
-      terrain,
-      particleRenderer,
-      cameraController,
-      worldRealtime,
-    },
-    health,
-  };
+  return { app: { world, loop, scene, camera, renderer, playerEntityId, playerMesh, terrain, particleRenderer, cameraController, worldRealtime }, health };
 }

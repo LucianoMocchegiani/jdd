@@ -14,6 +14,7 @@ import { ActionsComponent } from '@/ecs/components/actions';
 import { FacingComponent } from '@/ecs/components/facing';
 import { PositionComponent } from '@/ecs/components/position';
 import { System } from '@/ecs/core';
+import { getActionById } from '@/game-data/actions';
 import type { WorldRealtimeClient } from '@/game/network/ws-client';
 import type { TerrainStore } from '@/game/terrain/terrain-store';
 import type { SwingCommand } from '@/types/world-events';
@@ -36,11 +37,6 @@ export class WorldDamageSystem extends System {
   /** Contador monotónico de swings por entidad (`seq` WS). */
   private readonly swingSeqByEntity = new Map<number, number>();
 
-  /**
-   * @param terrain - Viewport con `bloqueId` del bloque activo.
-   * @param worldRealtime - Cliente WS para mandar `swing`.
-   * @param playerId - Identidad estable por pestaña (`join_block.player_id`).
-   */
   constructor(
     private readonly terrain: TerrainStore,
     private readonly worldRealtime: WorldRealtimeClient,
@@ -65,9 +61,9 @@ export class WorldDamageSystem extends System {
 
       const attack =
         active.bodyActions && active.bodyActionsUntilMs > now ? active.bodyActions : null;
-      const impact = attack?.impact;
+      const action = attack && getActionById(attack.id);
 
-      if (!attack || impact?.reach == null || impact.damage == null) {
+      if (!attack || (!action?.impact && !action?.projectile)) {
         this.swingActionByEntity.delete(entityId);
         continue;
       }

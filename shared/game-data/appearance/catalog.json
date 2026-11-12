@@ -5,7 +5,8 @@
     "run": { "durationMs": 0 },
     "swim": { "durationMs": 0 },
     "jump": { "durationMs": 450 },
-    "attack": { "durationMs": 400 }
+    "attack": { "durationMs": 400 },
+    "kamehameha": { "durationMs": 2000 }
   },
   "defaultDurationMs": 350
 }

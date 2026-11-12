@@ -13,8 +13,11 @@ import (
 
 type catalogFile struct {
 	Actions []struct {
-		ID     string                `json:"id"`
-		Impact *domain.ImpactProfile `json:"impact"`
+		ID         string                `json:"id"`
+		Impact     *domain.ImpactProfile `json:"impact"`
+		Projectile *struct {
+			Damage float64 `json:"damage"`
+		} `json:"projectile"`
 	} `json:"actions"`
 }
 
@@ -40,10 +43,19 @@ func LoadCatalog(path string) (*Catalog, error) {
 		if action.Impact != nil && (action.Impact.Reach <= 0 || action.Impact.Damage <= 0) {
 			return nil, fmt.Errorf("action %q has invalid impact", action.ID)
 		}
+		var projectileDamage float64
+		if action.Projectile != nil {
+			projectileDamage = action.Projectile.Damage
+			if projectileDamage <= 0 {
+				return nil, fmt.Errorf("action %q has invalid projectile", action.ID)
+			}
+		}
 		if _, exists := c.profiles[action.ID]; exists {
 			return nil, fmt.Errorf("duplicate action id %q", action.ID)
 		}
-		c.profiles[action.ID] = &domain.CombatProfile{ActionID: action.ID, Impact: action.Impact}
+		c.profiles[action.ID] = &domain.CombatProfile{
+			ActionID: action.ID, Impact: action.Impact, ProjectileDamage: projectileDamage,
+		}
 	}
 	return c, nil
 }

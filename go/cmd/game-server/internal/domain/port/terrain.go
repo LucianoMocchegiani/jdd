@@ -52,20 +52,24 @@ type SwingTarget struct {
 	Z        float64 `json:"z"`
 }
 
-// SwingCommand represents a server-validated strike for world damage.
+// SwingCommand represents a server-validated strike or projectile particle impact.
 type SwingCommand struct {
-	BloqueID string
-	EcoID    int
-	PlayerID string
-	ActionID string
-	EntityID int
-	Seq      int
-	PosX     float64
-	PosY     float64
-	PosZ     float64
-	Yaw      float64
-	IsNPC    bool
-	Targets  []SwingTarget
+	BloqueID   string
+	EcoID      int
+	PlayerID   string
+	ActionID   string
+	EntityID   int
+	Seq        int
+	PosX       float64
+	PosY       float64
+	PosZ       float64
+	Yaw        float64
+	IsNPC      bool
+	Targets    []SwingTarget
+	ParticleID string
+	ParticleX  int
+	ParticleY  int
+	ParticleZ  int
 }
 
 // SwingPublisher represents swing publisher.

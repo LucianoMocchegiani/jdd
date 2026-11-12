@@ -100,12 +100,12 @@ func (s *Services) HandleChunkReady(ready port.ChunkReady) {
 }
 
 func parseContactParticles(wire string) []jdmedium.Particle {
-	var msg struct { Particles []struct { X float64 `json:"x"`; Y float64 `json:"y"`; Z float64 `json:"z"`; Name string `json:"tipo_nombre"`; Physics string `json:"tipo_fisico"` } `json:"particles"` }
+	var msg struct { Particles []struct { ID string `json:"id"`; X float64 `json:"x"`; Y float64 `json:"y"`; Z float64 `json:"z"`; Name string `json:"tipo_nombre"`; Physics string `json:"tipo_fisico"` } `json:"particles"` }
 	if json.Unmarshal([]byte(wire), &msg) != nil { return nil }
 	particles := make([]jdmedium.Particle, 0, len(msg.Particles))
 	for _, p := range msg.Particles {
 		if p.Name == "" || p.Physics == "" { continue }
-		particles = append(particles, jdmedium.Particle{X: p.X, Y: p.Y, Z: p.Z, Name: p.Name, Physics: p.Physics})
+		particles = append(particles, jdmedium.Particle{ID: p.ID, X: p.X, Y: p.Y, Z: p.Z, Name: p.Name, Physics: p.Physics})
 	}
 	return particles
 }

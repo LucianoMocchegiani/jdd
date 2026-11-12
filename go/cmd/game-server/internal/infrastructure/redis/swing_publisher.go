@@ -29,6 +29,10 @@ type swingPayload struct {
 	Yaw float64 `json:"yaw"`
 	IsNPC bool `json:"is_npc"`
 	Targets []port.SwingTarget `json:"targets"`
+	ParticleID string `json:"particle_id,omitempty"`
+	ParticleX int `json:"particle_x,omitempty"`
+	ParticleY int `json:"particle_y,omitempty"`
+	ParticleZ int `json:"particle_z,omitempty"`
 }
 
 func (p *SwingPublisher) PublishSwing(cmd port.SwingCommand) error {
@@ -36,6 +40,7 @@ func (p *SwingPublisher) PublishSwing(cmd port.SwingCommand) error {
 		BloqueID: cmd.BloqueID, EcoID: cmd.EcoID, PlayerID: cmd.PlayerID, ActionID: cmd.ActionID,
 		EntityID: cmd.EntityID, Seq: cmd.Seq, PosX: cmd.PosX, PosY: cmd.PosY,
 		PosZ: cmd.PosZ, Yaw: cmd.Yaw, IsNPC: cmd.IsNPC, Targets: cmd.Targets,
+		ParticleID: cmd.ParticleID, ParticleX: cmd.ParticleX, ParticleY: cmd.ParticleY, ParticleZ: cmd.ParticleZ,
 	})
 	if err != nil { return err }
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)

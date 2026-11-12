@@ -64,10 +64,7 @@ export interface PrepareJoinCommand {
   wire_format?: 'json' | 'msgpack';
 }
 /** Activa al jugador después de cargar el terreno y resolver el spawn. */
-export interface ActivatePlayerCommand {
-  type: 'activate_player';
-  position: CellPosition;
-}
+export interface ActivatePlayerCommand { type: 'activate_player'; position: CellPosition; }
 /** Cliente entra a la sala (flujo legacy). */
 export interface JoinBlockCommand {
   type: 'join_block';
@@ -89,12 +86,7 @@ export interface JoinOkEvent {
   wire_format?: 'json' | 'msgpack';
 }
 export interface JoinErrorEvent { type: 'join_error'; error: string; }
-export interface PlayerJoinedEvent {
-  type: 'player_joined';
-  bloque_id: string;
-  player_id: string;
-  position: CellPosition;
-}
+export interface PlayerJoinedEvent { type: 'player_joined'; bloque_id: string; player_id: string; position: CellPosition; }
 export interface PlayerLeftEvent { type: 'player_left'; bloque_id: string; player_id: string; }
 export interface PlayerStateEvent {
   type: 'player_state';
@@ -152,7 +144,17 @@ export interface SwingResultEvent {
   hits: Array<{ particle_id: string; destroyed: boolean; integridad?: number }>;
 }
 export interface SwingErrorEvent { type: 'swing_error'; error: string; action_id?: string; seq?: number; }
-export type CombatServerEvent = SwingResultEvent | SwingErrorEvent;
+export interface ProjectileStateEvent {
+  type: 'projectile_state';
+  id: string;
+  owner_id: string;
+  action_id: string;
+  x: number;
+  y: number;
+  z: number;
+  active: boolean;
+}
+export type CombatServerEvent = SwingResultEvent | SwingErrorEvent | ProjectileStateEvent;
 export type WorldEvent = ParticleDestroyedEvent | TerrainWsEvent;
 export type SessionEvent = PresenceEvent | CombatServerEvent | InputErrorEvent;
 export type RealtimeInboundMessage = WorldEvent | SessionEvent;

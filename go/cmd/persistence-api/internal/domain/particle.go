@@ -1,48 +1,58 @@
 // Package domain — Modelos de dominio persistence-api.
+
 package domain
 
 // ParticleNear representa particle near.
 type ParticleNear struct {
-	ID string
-	BloqueID string
-	CeldaX int
-	CeldaY int
-	CeldaZ int
+	ID        string
+	BloqueID  string
+	CeldaX    int
+	CeldaY    int
+	CeldaZ    int
 	TipoFisico string
-	Extraida bool
+	Extraida  bool
 }
 
 // ParticleWithDureza representa particle with dureza.
 type ParticleWithDureza struct {
-	ID string
-	BloqueID string
-	CeldaX int
-	CeldaY int
-	CeldaZ int
+	ID             string
+	BloqueID       string
+	CeldaX         int
+	CeldaY         int
+	CeldaZ         int
 	TipoParticulaID string
-	Integridad float64
-	Dureza float64
+	Integridad     float64
+	Dureza         float64
 }
 
 // IntegrityTransition representa integrity transition.
-type IntegrityTransition struct { Condicion string; Valor float64 }
+type IntegrityTransition struct {
+	Condicion string
+	Valor     float64
+}
 
 // DamageResult representa particle damage results.
 type DamageResult struct {
-	ParticleID string
+	ParticleID      string
 	NuevaIntegridad float64
-	Destroyed bool
-	Position *CellPos
-	ConsumedDamage float64
+	Destroyed       bool
+	Position        *CellPos
+	ConsumedDamage  float64
 }
 
-type CellPos struct { X, Y, Z int }
+type CellPos struct {
+	X, Y, Z int
+}
 
 // ImpactProfile representa el daño total y el alcance de un impacto.
 type ImpactProfile struct {
-	Reach float64 `json:"reach"`
+	Reach  float64 `json:"reach"`
 	Damage float64 `json:"damage"`
 }
 
 // CombatProfile representa combat profile.
-type CombatProfile struct { ActionID string; Impact *ImpactProfile }
+type CombatProfile struct {
+	ActionID        string
+	Impact          *ImpactProfile
+	ProjectileDamage float64
+}

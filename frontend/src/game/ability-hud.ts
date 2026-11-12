@@ -1,11 +1,24 @@
-/** Builds the ability reference HUD from the same action and key data used by gameplay. */
+/** Builds the ability HUD from action data and the same bindings used by gameplay. */
 import { BODY_ACTIONS } from '@/game-data/actions';
 import { INTENT_KEY_CODES } from '@/ecs/domains/input/input-system';
+import { setVirtualKeyHeld } from '@/game/input/keyboard-state';
 
 const COOLDOWN_EVENT = 'ability-cooldown-start';
+const pressTimers = new Map<string, number>();
+
+function pulseAction(intent: string): void {
+  const code = INTENT_KEY_CODES[intent]?.[0];
+  if (!code) return;
+  window.clearTimeout(pressTimers.get(code));
+  setVirtualKeyHeld(code, true);
+  pressTimers.set(code, window.setTimeout(() => {
+    setVirtualKeyHeld(code, false);
+    pressTimers.delete(code);
+  }, 120));
+}
 
 export function mountAbilityHud(root: HTMLElement): void {
-  const rows = new Map<string, { item: HTMLElement; clock: HTMLElement; cooldown: HTMLElement; cooldownMs: number; label: string }>();
+  const rows = new Map<string, { item: HTMLButtonElement; clock: HTMLElement; cooldown: HTMLElement; cooldownMs: number; label: string }>();
 
   for (const action of BODY_ACTIONS) {
     const keyText = (INTENT_KEY_CODES[action.control.inputIntent] ?? [])
@@ -13,10 +26,19 @@ export function mountAbilityHud(root: HTMLElement): void {
       .join(' / ') || '—';
     const cooldownMs = action.cooldownMs ?? 0;
     const cooldownText = `${(cooldownMs / 1000).toFixed(1)} s`;
-    const nameText = action.id === 'attack' ? 'Ataque' : action.id.replaceAll('_', ' ');
-    const item = document.createElement('div');
+    const nameText = action.id === 'attack' ? 'Ataque' : action.id === 'kamehameha' ? 'Kamehameha' : action.id.replaceAll('_', ' ');
+    const item = document.createElement('button');
+    item.type = 'button';
     item.className = 'ability-hud__item';
-    item.setAttribute('aria-label', `${nameText}, ${keyText}, cooldown configurado ${cooldownText}`);
+    item.setAttribute('aria-label', `${nameText}, ${keyText}, cooldown configurado ${cooldownText}; activar`);
+    const activate = (event: Event): void => {
+      if (event instanceof PointerEvent) event.preventDefault();
+      pulseAction(action.control.inputIntent);
+    };
+    item.addEventListener('pointerdown', activate);
+    item.addEventListener('click', (event) => {
+      if (event.detail === 0) activate(event);
+    });
 
     const icon = document.createElement('span');
     icon.className = 'ability-hud__icon';

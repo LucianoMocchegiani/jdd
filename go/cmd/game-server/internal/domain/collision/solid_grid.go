@@ -54,6 +54,13 @@ func (g *SolidGridCache) ContactParticlesNear(x, y, z, radius float64) []jdmediu
 	return particles
 }
 
+func (g *SolidGridCache) ParticleAtCell(x, y, z int) (jdmedium.Particle, bool) {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	p, ok := g.particles[cellkey.Format(x, y, z)]
+	return p, ok
+}
+
 func (g *SolidGridCache) RemoveCell(x, y, z int) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
