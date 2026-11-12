@@ -18,6 +18,7 @@ import { DEFAULT_CLIP_DURATION } from '@/poc/character-studio/types';
 import attackClipRaw from '@/poc/attack.json?raw';
 import flyClipRaw from '@/poc/fly.json?raw';
 import jumpClipRaw from '@/poc/jump.json?raw';
+import kamehamehaClipRaw from '@/poc/kamehameha.json?raw';
 import swimClipRaw from '@/poc/swim.json?raw';
 import walkClipRaw from '@/poc/walk.json?raw';
 
@@ -39,6 +40,7 @@ export function createDefaultClipLibrary(bones: StudioBone[], fps: StudioFps = 3
     presetClip(jumpClipRaw),
     presetClip(swimClipRaw),
     presetClip(flyClipRaw),
+    presetClip(kamehamehaClipRaw),
     createBindClip('death', 'death', bones, fps),
   ];
   return { clips, activeId: 'idle' };
