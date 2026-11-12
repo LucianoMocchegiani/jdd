@@ -11,8 +11,8 @@ interface BarElements {
 function createBar(label: string, local: boolean): BarElements {
   const element = document.createElement('div');
   Object.assign(element.style, {
-    position: 'absolute',
-    width: local ? '190px' : '78px',
+    position: local ? 'relative' : 'absolute',
+    width: local ? 'min(190px, calc(50vw - 24px))' : '78px',
     padding: local ? '8px 10px' : '3px 4px',
     borderRadius: '6px',
     color: '#fff',
@@ -20,7 +20,7 @@ function createBar(label: string, local: boolean): BarElements {
     border: '1px solid rgba(148, 163, 184, 0.35)',
     font: local ? '12px system-ui, sans-serif' : '10px system-ui, sans-serif',
     textAlign: 'center',
-    transform: local ? 'translateX(-50%)' : 'translate(-50%, -100%)',
+    transform: local ? 'none' : 'translate(-50%, -100%)',
     pointerEvents: 'none',
   });
   element.setAttribute('role', 'progressbar');
@@ -49,14 +49,15 @@ export class HealthHud {
   private readonly projected = new Vector3();
 
   constructor() {
+    const bottomHud = document.querySelector<HTMLElement>('#bottom-hud');
+    if (!bottomHud) throw new Error('Missing #bottom-hud');
     Object.assign(this.root.style, {
       position: 'fixed',
       inset: '0',
       zIndex: '8',
       pointerEvents: 'none',
     });
-    Object.assign(this.local.element.style, { left: '50%', bottom: '18px' });
-    this.root.append(this.local.element);
+    bottomHud.prepend(this.local.element);
     document.body.append(this.root);
   }
 
