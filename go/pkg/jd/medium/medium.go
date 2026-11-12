@@ -10,6 +10,7 @@ import (
 )
 
 type Particle struct {
+	ID       string  `json:"id"`
 	X, Y, Z  float64
 	Name     string `json:"tipo_nombre"`
 	Physics  string `json:"tipo_fisico"`
@@ -21,9 +22,9 @@ type particleRule struct {
 }
 
 type particleRegistry struct {
-	SubmergedCountFamilies []string                  `json:"submergedCountFamilies"`
-	TypeOverrides          map[string]particleRule   `json:"typeOverrides"`
-	DefaultByPhysics       map[string]particleRule   `json:"defaultByPhysics"`
+	SubmergedCountFamilies []string                `json:"submergedCountFamilies"`
+	TypeOverrides          map[string]particleRule `json:"typeOverrides"`
+	DefaultByPhysics       map[string]particleRule `json:"defaultByPhysics"`
 }
 
 type rulesFile struct {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
+	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/sim/systems"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/wshub"
 )
@@ -30,8 +31,19 @@ func (s *Services) RunTick(deltaSec float64) {
 			systems.RunPlayerTick(p, sess.SolidGrid, s.SessionCfg, s.Medium, deltaSec)
 		})
 		projectiles := sess.AdvanceProjectiles(deltaSec)
-		if s.Hub != nil {
-			for _, projectile := range projectiles {
+		for _, projectile := range projectiles {
+			if projectile.ParticleID != "" && s.SwingPub != nil {
+				err := s.SwingPub.PublishSwing(port.SwingCommand{
+					BloqueID: sess.BloqueID, EcoID: sess.EcoID, PlayerID: projectile.OwnerID,
+					ActionID: projectile.ActionID, EntityID: int(projectile.EntityID), Seq: projectile.Seq,
+					ParticleID: projectile.ParticleID, ParticleX: projectile.ParticleX,
+					ParticleY: projectile.ParticleY, ParticleZ: projectile.ParticleZ,
+				})
+				if err == nil {
+					sess.AcknowledgeProjectileParticleHit(projectile.ID)
+				}
+			}
+			if s.Hub != nil {
 				payload, _ := json.Marshal(projectile)
 				s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
 					wshub.SafeWrite(c, string(payload))
@@ -40,11 +52,13 @@ func (s *Services) RunTick(deltaSec float64) {
 		}
 		tick := sess.IncrementTick()
 		states := BuildAllPlayerStates(sess, tick)
-		s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
-			for _, msg := range states {
-				wshub.WritePlayerState(c, msg)
-			}
-		})
+		if s.Hub != nil {
+			s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
+				for _, msg := range states {
+					wshub.WritePlayerState(c, msg)
+				}
+			})
+		}
 	}
 	s.DrainTerrainFanout()
 }
@@ -95,7 +109,7 @@ func BuildPlayerJoined(bloqueID, playerID string, x, y, z float64) string {
 }
 
 func BuildPlayerLeft(bloqueID, playerID string) string {
-	b, _ := json.Marshal(map[string]interface{}{"type": "player_left", "bloque_id": bloqueID, "player_id": playerID})
+	b, _ := json.Marshal(map[string]string{"type": "player_left", "bloque_id": bloqueID, "player_id": playerID})
 	return string(b)
 }
 
