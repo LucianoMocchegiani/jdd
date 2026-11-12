@@ -12,7 +12,7 @@ function createBar(label: string, local: boolean): BarElements {
   const element = document.createElement('div');
   Object.assign(element.style, {
     position: 'absolute',
-    width: local ? '190px' : '78px',
+    width: local ? 'min(190px, calc(50vw - 24px))' : '78px',
     padding: local ? '8px 10px' : '3px 4px',
     borderRadius: '6px',
     color: '#fff',
@@ -20,7 +20,7 @@ function createBar(label: string, local: boolean): BarElements {
     border: '1px solid rgba(148, 163, 184, 0.35)',
     font: local ? '12px system-ui, sans-serif' : '10px system-ui, sans-serif',
     textAlign: 'center',
-    transform: local ? 'translateX(-50%)' : 'translate(-50%, -100%)',
+    transform: local ? 'none' : 'translate(-50%, -100%)',
     pointerEvents: 'none',
   });
   element.setAttribute('role', 'progressbar');
@@ -55,7 +55,7 @@ export class HealthHud {
       zIndex: '8',
       pointerEvents: 'none',
     });
-    Object.assign(this.local.element.style, { left: '50%', bottom: '18px' });
+    Object.assign(this.local.element.style, { left: '12px', bottom: '18px' });
     this.root.append(this.local.element);
     document.body.append(this.root);
   }
