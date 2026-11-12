@@ -19,7 +19,7 @@ body {
 #status {
   position: fixed;
   left: 12px;
-  bottom: 72px;
+  bottom: 12px;
   padding: 6px 10px;
   font-size: 12px;
   border-radius: 6px;
@@ -298,6 +298,19 @@ body.character-studio-mode #canvas-container canvas.character-studio-canvas {
   background: #0f172a;
   color: #e2e8f0;
   font-size: 12px;
+}
+
+.studio-field-block {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.studio-field-block .studio-input,
+.studio-field-block input[type='range'] {
+  width: 100%;
+  margin-top: 4px;
 }
 
 .studio-btn {

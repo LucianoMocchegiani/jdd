@@ -17,6 +17,10 @@
   scrollbar-width: none;
 }
 
+#status {
+  bottom: 72px;
+}
+
 #ability-hud::-webkit-scrollbar {
   display: none;
 }
