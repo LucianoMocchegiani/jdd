@@ -1,7 +1,7 @@
 #ability-hud {
   position: fixed;
   left: 50%;
-  bottom: max(12px, env(safe-area-inset-bottom));
+  bottom: max(56px, calc(env(safe-area-inset-bottom) + 44px));
   z-index: 11;
   display: flex;
   gap: 8px;
@@ -139,7 +139,6 @@ body.character-studio-mode #ability-hud {
 
 @media (max-width: 520px) {
   #ability-hud {
-    bottom: max(8px, env(safe-area-inset-bottom));
     gap: 4px;
     padding: 7px;
   }
