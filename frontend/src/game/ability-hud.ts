@@ -18,16 +18,22 @@ export function mountAbilityHud(root: HTMLElement): void {
     item.className = 'ability-hud__item';
     item.setAttribute('aria-label', `${nameText}, ${keyText}, cooldown configurado ${cooldownText}`);
 
+    const icon = document.createElement('span');
+    icon.className = 'ability-hud__icon';
+    icon.textContent = action.id === 'attack' ? '⚔' : nameText.slice(0, 1).toUpperCase();
+    icon.setAttribute('aria-hidden', 'true');
     const key = document.createElement('kbd');
     key.textContent = keyText;
     const name = document.createElement('span');
+    name.className = 'ability-hud__name';
     name.textContent = nameText;
     const cooldown = document.createElement('small');
     cooldown.textContent = `CD ${cooldownText}`;
     const clock = document.createElement('span');
     clock.className = 'ability-hud__clock';
     clock.setAttribute('aria-hidden', 'true');
-    item.append(key, name, cooldown, clock);
+    icon.append(clock);
+    item.append(icon, key, name, cooldown);
     root.append(item);
     rows.set(action.id, { item, clock, cooldown, cooldownMs, label: `${nameText}, ${keyText}` });
   }
