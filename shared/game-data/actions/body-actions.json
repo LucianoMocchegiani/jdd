@@ -29,7 +29,8 @@
     },
     {
       "id": "kamehameha",
-      "description": "Acción visual de ataque de energía; todavía no genera proyectil ni daño.",
+      "description": "Proyectil de energía autoritativo; se dispara tras la carga de la animación.",
+      "cooldownMs": 3000,
       "control": {
         "inputIntent": "attack_projectile",
         "slot": "body_actions",
@@ -41,6 +42,13 @@
       "appearance": {
         "state": "attack",
         "clip": "kamehameha"
+      },
+      "projectile": {
+        "speed": 18,
+        "range": 28,
+        "damage": 30,
+        "radius": 0.55,
+        "delayMs": 1033
       }
     }
   ]
