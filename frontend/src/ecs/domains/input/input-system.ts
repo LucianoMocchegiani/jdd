@@ -24,6 +24,7 @@ const BLOCKED_IN_INSPECT = new Set([
   'run_forward',
   'jump',
   'attack_light',
+  'attack_projectile',
 ]);
 
 /**
@@ -44,6 +45,7 @@ export const INTENT_KEY_CODES: Record<string, readonly string[]> = {
   run_forward: ['ShiftLeft', 'ShiftRight'],
   jump: ['Space'],
   attack_light: ['KeyF', 'Mouse0'],
+  attack_projectile: ['KeyG'],
 };
 
 /**

@@ -7,7 +7,8 @@
     "move_right",
     "run_forward",
     "jump",
-    "attack_light"
+    "attack_light",
+    "attack_projectile"
   ],
   "derivedIntents": ["constant_displacements_move"]
 }

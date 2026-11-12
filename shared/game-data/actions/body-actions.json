@@ -26,6 +26,22 @@
         "reach": 2,
         "damage": 15
       }
+    },
+    {
+      "id": "kamehameha",
+      "description": "Acción visual de ataque de energía; todavía no genera proyectil ni daño.",
+      "control": {
+        "inputIntent": "attack_projectile",
+        "slot": "body_actions",
+        "type": "one_shot",
+        "interrupt": {
+          "blocks": ["run", "walk", "swim", "jump"]
+        }
+      },
+      "appearance": {
+        "state": "attack",
+        "clip": "kamehameha"
+      }
     }
   ]
 }
