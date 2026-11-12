@@ -11,7 +11,7 @@ interface BarElements {
 function createBar(label: string, local: boolean): BarElements {
   const element = document.createElement('div');
   Object.assign(element.style, {
-    position: 'absolute',
+    position: local ? 'relative' : 'absolute',
     width: local ? 'min(190px, calc(50vw - 24px))' : '78px',
     padding: local ? '8px 10px' : '3px 4px',
     borderRadius: '6px',
@@ -49,14 +49,15 @@ export class HealthHud {
   private readonly projected = new Vector3();
 
   constructor() {
+    const bottomHud = document.querySelector<HTMLElement>('#bottom-hud');
+    if (!bottomHud) throw new Error('Missing #bottom-hud');
     Object.assign(this.root.style, {
       position: 'fixed',
       inset: '0',
       zIndex: '8',
       pointerEvents: 'none',
     });
-    Object.assign(this.local.element.style, { left: '12px', bottom: '18px' });
-    this.root.append(this.local.element);
+    bottomHud.prepend(this.local.element);
     document.body.append(this.root);
   }
 

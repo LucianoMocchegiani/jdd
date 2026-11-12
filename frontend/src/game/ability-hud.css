@@ -1,8 +1,18 @@
-#ability-hud {
+#bottom-hud {
   position: fixed;
-  right: 12px;
+  left: 50%;
   bottom: 18px;
   z-index: 11;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  transform: translateX(-50%);
+}
+
+#ability-hud {
+  position: static;
   display: flex;
   gap: 8px;
   max-width: calc(50vw - 24px);
