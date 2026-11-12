@@ -54,7 +54,7 @@ type SwingPayload struct {
 	Seq      int
 }
 
-// HandleSwing validates and queues an authoritative melee strike or projectile.
+// HandleSwing validates and queues a server-positioned melee strike or projectile.
 func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bool) {
 	if in.PlayerID == "" {
 		return buildError("swing_error", "missing_player_id"), true

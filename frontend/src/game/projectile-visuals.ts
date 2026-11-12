@@ -1,6 +1,7 @@
 import { Mesh, MeshBasicMaterial, Scene, SphereGeometry } from 'three';
 import type { ProjectileStateEvent } from '@/types/world-events';
 
+/** Renderiza los estados autoritativos enviados por el game-server. */
 export class ProjectileVisuals {
   private readonly geometry = new SphereGeometry(1, 10, 8);
   private readonly material = new MeshBasicMaterial({ color: 0x45e7ff });
