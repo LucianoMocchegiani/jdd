@@ -1,0 +1,136 @@
+{
+  "version": 2,
+  "id": "kamehameha",
+  "label": "Kamehameha",
+  "duration": 2,
+  "loop": false,
+  "fps": 30,
+  "tracks": [
+    {
+      "boneId": "cintura",
+      "keys": [
+        { "t": 0, "rot": [0, 0, 0], "interp": "linear" },
+        { "t": 0.4, "rot": [0, -0.12, -0.06], "interp": "linear" },
+        { "t": 0.8, "rot": [0, -0.18, -0.12], "interp": "linear" },
+        { "t": 1.0333, "rot": [0, 0.04, 0.12], "interp": "linear" },
+        { "t": 1.3, "rot": [0, 0.06, 0.08], "interp": "linear" },
+        { "t": 1.6, "rot": [0, 0.02, 0.02], "interp": "linear" },
+        { "t": 2, "rot": [0, 0, 0], "interp": "linear" }
+      ]
+    },
+    {
+      "boneId": "hombro-derecho",
+      "keys": [
+        { "t": 0, "rot": [0, 0, 0], "interp": "linear" },
+        { "t": 0.4, "rot": [0, 0, -0.45], "interp": "linear" },
+        { "t": 0.8, "rot": [0, 0, -0.15], "interp": "linear" },
+        { "t": 1.0333, "rot": [0, 0, 1.25], "interp": "linear" },
+        { "t": 1.3, "rot": [0, 0, 1.4], "interp": "linear" },
+        { "t": 1.6, "rot": [0, 0, 1.35], "interp": "linear" },
+        { "t": 2, "rot": [0, 0, 0], "interp": "linear" }
+      ]
+    },
+    {
+      "boneId": "hombro-izquierdo",
+      "keys": [
+        { "t": 0, "rot": [0, 0, 0], "interp": "linear" },
+        { "t": 0.4, "rot": [0, 0, -0.35], "interp": "linear" },
+        { "t": 0.8, "rot": [0, 0, -0.15], "interp": "linear" },
+        { "t": 1.0333, "rot": [0, 0, 1.25], "interp": "linear" },
+        { "t": 1.3, "rot": [0, 0, 1.4], "interp": "linear" },
+        { "t": 1.6, "rot": [0, 0, 1.35], "interp": "linear" },
+        { "t": 2, "rot": [0, 0, 0], "interp": "linear" }
+      ]
+    },
+    {
+      "boneId": "codo-derecho",
+      "keys": [
+        { "t": 0, "rot": [0, 0, 0], "interp": "linear" },
+        { "t": 0.4, "rot": [0, 0, 0.85], "interp": "linear" },
+        { "t": 0.8, "rot": [0, 0, 1.1], "interp": "linear" },
+        { "t": 1.0333, "rot": [0, 0, 0.25], "interp": "linear" },
+        { "t": 1.3, "rot": [0, 0, 0.05], "interp": "linear" },
+        { "t": 1.6, "rot": [0, 0, 0.05], "interp": "linear" },
+        { "t": 2, "rot": [0, 0, 0], "interp": "linear" }
+      ]
+    },
+    {
+      "boneId": "codo-izquierdo",
+      "keys": [
+        { "t": 0, "rot": [0, 0, 0], "interp": "linear" },
+        { "t": 0.4, "rot": [0, 0, 0.75], "interp": "linear" },
+        { "t": 0.8, "rot": [0, 0, 1.1], "interp": "linear" },
+        { "t": 1.0333, "rot": [0, 0, 0.25], "interp": "linear" },
+        { "t": 1.3, "rot": [0, 0, 0.05], "interp": "linear" },
+        { "t": 1.6, "rot": [0, 0, 0.05], "interp": "linear" },
+        { "t": 2, "rot": [0, 0, 0], "interp": "linear" }
+      ]
+    },
+    {
+      "boneId": "muneca-derecha",
+      "keys": [
+        { "t": 0, "rot": [0, 0, 0], "interp": "linear" },
+        { "t": 0.4, "rot": [0, 0, 0.15], "interp": "linear" },
+        { "t": 0.8, "rot": [0, 0, -0.25], "interp": "linear" },
+        { "t": 1.0333, "rot": [0, 0, 0.1], "interp": "linear" },
+        { "t": 1.6, "rot": [0, 0, 0.1], "interp": "linear" },
+        { "t": 2, "rot": [0, 0, 0], "interp": "linear" }
+      ]
+    },
+    {
+      "boneId": "muneca-izquierda",
+      "keys": [
+        { "t": 0, "rot": [0, 0, 0], "interp": "linear" },
+        { "t": 0.4, "rot": [0, 0, 0.15], "interp": "linear" },
+        { "t": 0.8, "rot": [0, 0, -0.25], "interp": "linear" },
+        { "t": 1.0333, "rot": [0, 0, 0.1], "interp": "linear" },
+        { "t": 1.6, "rot": [0, 0, 0.1], "interp": "linear" },
+        { "t": 2, "rot": [0, 0, 0], "interp": "linear" }
+      ]
+    },
+    {
+      "boneId": "cadera-derecha",
+      "keys": [
+        { "t": 0, "rot": [0, 0, 0], "interp": "linear" },
+        { "t": 0.4, "rot": [0, 0, 0.25], "interp": "linear" },
+        { "t": 0.8, "rot": [0, 0, 0.3], "interp": "linear" },
+        { "t": 1.0333, "rot": [0, 0, 0.25], "interp": "linear" },
+        { "t": 1.6, "rot": [0, 0, 0.1], "interp": "linear" },
+        { "t": 2, "rot": [0, 0, 0], "interp": "linear" }
+      ]
+    },
+    {
+      "boneId": "cadera-izquierda",
+      "keys": [
+        { "t": 0, "rot": [0, 0, 0], "interp": "linear" },
+        { "t": 0.4, "rot": [0, 0, -0.25], "interp": "linear" },
+        { "t": 0.8, "rot": [0, 0, -0.3], "interp": "linear" },
+        { "t": 1.0333, "rot": [0, 0, -0.25], "interp": "linear" },
+        { "t": 1.6, "rot": [0, 0, -0.1], "interp": "linear" },
+        { "t": 2, "rot": [0, 0, 0], "interp": "linear" }
+      ]
+    },
+    {
+      "boneId": "rodilla-derecha",
+      "keys": [
+        { "t": 0, "rot": [0, 0, 0], "interp": "linear" },
+        { "t": 0.4, "rot": [0, 0, -0.18], "interp": "linear" },
+        { "t": 0.8, "rot": [0, 0, -0.22], "interp": "linear" },
+        { "t": 1.0333, "rot": [0, 0, -0.12], "interp": "linear" },
+        { "t": 1.6, "rot": [0, 0, -0.08], "interp": "linear" },
+        { "t": 2, "rot": [0, 0, 0], "interp": "linear" }
+      ]
+    },
+    {
+      "boneId": "rodilla-izquierda",
+      "keys": [
+        { "t": 0, "rot": [0, 0, 0], "interp": "linear" },
+        { "t": 0.4, "rot": [0, 0, -0.18], "interp": "linear" },
+        { "t": 0.8, "rot": [0, 0, -0.22], "interp": "linear" },
+        { "t": 1.0333, "rot": [0, 0, -0.12], "interp": "linear" },
+        { "t": 1.6, "rot": [0, 0, -0.08], "interp": "linear" },
+        { "t": 2, "rot": [0, 0, 0], "interp": "linear" }
+      ]
+    }
+  ]
+}
