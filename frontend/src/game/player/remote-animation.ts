@@ -16,7 +16,8 @@ export function selectRemoteClip(state: RemoteAnimationState): string | null {
   const moving =
     MOVE_INTENTS.some((intent) => state.intents?.[intent]) || Math.hypot(state.vx, state.vy) > 0.05;
 
-  // shortcut: infer attacks from the held input intent; send timed action events if taps are missed or exact timing matters.
+  // shortcut: infer one-shot animations from held input intents; send timed action events if taps are missed or exact timing matters.
+  if (state.intents?.attack_projectile) return 'kamehameha';
   if (state.intents?.attack_light && state.medium !== 'air' && state.medium !== 'submerged_full') {
     return 'attack';
   }
