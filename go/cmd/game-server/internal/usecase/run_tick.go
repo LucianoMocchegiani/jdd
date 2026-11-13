@@ -54,7 +54,7 @@ func (s *Services) RunTick(deltaSec float64) {
 			}
 		}
 		tick := sess.IncrementTick()
-		states := BuildAllPlayerStates(sess, tick)
+		states := buildPlayerStates(sess, tick, true)
 		if s.Hub != nil {
 			s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
 				for _, msg := range states {
@@ -67,6 +67,10 @@ func (s *Services) RunTick(deltaSec float64) {
 }
 
 func BuildAllPlayerStates(sess *entity.BlockSession, tick int) []string {
+	return buildPlayerStates(sess, tick, false)
+}
+
+func buildPlayerStates(sess *entity.BlockSession, tick int, publishActions bool) []string {
 	var out []string
 	now := time.Now()
 	sess.ForEachPlayer(func(p *entity.Player) {
@@ -80,9 +84,10 @@ func BuildAllPlayerStates(sess *entity.BlockSession, tick int) []string {
 		if p.Pitch != 0 {
 			payload["pitch"] = p.Pitch
 		}
-		if p.ActionSeq > 0 {
+		if publishActions && p.ActionID != "" {
 			payload["action_id"] = p.ActionID
 			payload["action_seq"] = p.ActionSeq
+			p.ActionID = ""
 		}
 		b, _ := json.Marshal(payload)
 		out = append(out, string(b))

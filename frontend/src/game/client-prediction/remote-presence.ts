@@ -1,14 +1,8 @@
-/**
- * @file Réplicas animadas de otros jugadores con interpolación (Sprint B + D4).
- *
- * Recibe `player_state`, interpola posición/yaw y reutiliza el visual del Character Studio.
- */
-
 import type { PlayerJoinedEvent, PlayerStateEvent } from '@/types/world-events';
 import type { RemoteSnapshot } from '@/types/remote-player';
 import { RemoteInterpolationBuffer } from '@/game/client-prediction/remote-interpolation';
 import { PlayerCharacterVisual } from '@/game/player/player-character-visual';
-import { selectRemoteClip } from '@/game/player/remote-animation';
+import { isNewActionSequence, selectRemoteClip } from '@/game/player/remote-animation';
 import { Scene } from 'three';
 
 const REMOTE_COLOR = 0x4488ff;
@@ -56,7 +50,7 @@ export class RemotePresence {
     };
     entry.clip = selectRemoteClip(animationState);
     if (event.action_seq !== undefined) {
-      if (entry.actionSeq !== null && event.action_seq > entry.actionSeq) {
+      if (event.action_id && isNewActionSequence(entry.actionSeq, event.action_seq)) {
         entry.actionClip = selectRemoteClip({ ...animationState, action_id: event.action_id });
       }
       entry.actionSeq = event.action_seq;

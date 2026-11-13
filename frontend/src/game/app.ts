@@ -1,7 +1,3 @@
-/**
- * @file Orquestador del cliente v2: ensambla API, terreno, ECS, cámara y game loop.
- */
-
 import type { HealthResponse } from '@/api/client';
 import { BloquesApi } from '@/api/bloques-api';
 import { getWebSocketUrl, API_BASE_URL } from '@/api/config';
@@ -26,7 +22,7 @@ import { RemoteInterpolationBuffer, RemotePresence } from '@/game/client-predict
 import { PresenceHandler } from '@/game/network/presence-handler';
 import { HealthHud } from '@/game/health-hud';
 import { ProjectileVisuals } from '@/game/projectile-visuals';
-import { selectRemoteClip } from '@/game/player/remote-animation';
+import { isNewActionSequence, selectRemoteClip } from '@/game/player/remote-animation';
 import type { PlayerCharacterVisual } from '@/game/player/player-character-visual';
 import type { PlayerStateEvent, SessionEvent } from '@/types/world-events';
 import { isMediumId } from '@/types/medium';
@@ -196,7 +192,7 @@ export async function bootstrapApp(
           receivedAtMs: event.receivedAtMs ?? performance.now(),
         });
         if (event.action_seq !== undefined) {
-          if (localActionSeq !== null && event.action_seq > localActionSeq) {
+          if (event.action_id && isNewActionSequence(localActionSeq, event.action_seq)) {
             pendingLocalActionClip = selectRemoteClip({
               medium: event.medium, vx: event.vx, vy: event.vy, vz: event.vz,
               intents: event.intents, action_id: event.action_id,

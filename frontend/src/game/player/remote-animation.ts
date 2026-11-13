@@ -13,6 +13,10 @@ export interface RemoteAnimationState {
 
 const MOVE_INTENTS = ['move_forward', 'move_backward', 'move_left', 'move_right'] as const;
 
+export function isNewActionSequence(previous: number | null, next: number): boolean {
+  return next > (previous ?? 0);
+}
+
 export function selectRemoteClip(state: RemoteAnimationState): string | null {
   if (state.action_id === 'attack') return 'attack';
   if (state.action_id === 'kamehameha') return 'kamehameha';
@@ -23,10 +27,11 @@ export function selectRemoteClip(state: RemoteAnimationState): string | null {
     return moving ? 'swim' : null;
   }
   if (state.medium === 'air') {
-    return moving ? 'fly' : state.vz > 0.1 ? 'jump' : null;
+    if (moving) return 'fly';
+    return state.vz > 0.05 ? 'jump' : null;
   }
-  if (state.medium === 'ground' && moving) {
-    return state.intents?.run_forward ? 'run' : 'walk';
+  if (moving) {
+    return state.intents?.run_forward || state.intents?.run_backward ? 'run' : 'walk';
   }
   return null;
 }

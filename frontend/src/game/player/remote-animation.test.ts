@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { selectRemoteClip } from './remote-animation.ts';
+import { isNewActionSequence, selectRemoteClip } from './remote-animation.ts';
 
 test('remote clips follow authoritative action and movement state', () => {
   const base = { medium: 'ground', vx: 0, vy: 0, vz: 0 };
@@ -12,5 +12,11 @@ test('remote clips follow authoritative action and movement state', () => {
   assert.equal(selectRemoteClip({ ...base, medium: 'submerged_full', vx: 1 }), 'swim');
   assert.equal(selectRemoteClip({ ...base, medium: 'air', intents: { move_forward: true } }), 'fly');
   assert.equal(selectRemoteClip({ ...base, medium: 'air', vz: 1 }), 'jump');
-  assert.equal(selectRemoteClip(base), null);
+});
+
+test('first accepted action sequence is played, duplicates and old events are ignored', () => {
+  assert.equal(isNewActionSequence(null, 1), true);
+  assert.equal(isNewActionSequence(1, 1), false);
+  assert.equal(isNewActionSequence(2, 1), false);
+  assert.equal(isNewActionSequence(1, 2), true);
 });
