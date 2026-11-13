@@ -75,7 +75,7 @@ function registerGameplaySystems(
 ): void {
   let mediumLine = 'medium: —';
   let actionLine = 'acción: —';
-  const refreshContactHud = (): void => { debugMediumEl.textContent = `${mediumLine}\\n${actionLine}`; };
+  const refreshContactHud = (): void => { debugMediumEl.textContent = `${mediumLine}\n${actionLine}`; };
   world.registerSystem(new InputSystem());
   world.registerSystem(new ParticleContextSystem(terrain, (label) => { mediumLine = label; refreshContactHud(); }));
   world.registerSystem(new ConditionSystem(terrain));
