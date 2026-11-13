@@ -51,40 +51,11 @@ func TestHandleSwingUsesAuthoritativePoseAndQueuesPlayerCandidates(t *testing.T)
 		t.Fatalf("swing used non-authoritative pose: %+v", publisher.command)
 	}
 	if len(publisher.command.Targets) != 1 || publisher.command.Targets[0].PlayerID != "target" {
-		t.Fatalf("swing did not snapshot the target candidate: %+v", publisher.command.Targets)
+		t.Fatalf("swing did not snapshot the target candidate: %+v", publisher.command)
 	}
 	player, _ := sess.GetPlayer("player")
 	if !player.InCombat(time.Now()) || time.Until(player.InCombatUntil) > 6*time.Second {
 		t.Fatalf("accepted attack did not apply six-second combat state: %+v", player.InCombatUntil)
-	}
-	states := usecase.BuildAllPlayerStates(sess, 1)
-	var replicated map[string]interface{}
-	for _, state := range states {
-		var candidate map[string]interface{}
-		if err := json.Unmarshal([]byte(state), &candidate); err != nil {
-			t.Fatal(err)
-		}
-		if candidate["player_id"] == "player" {
-			replicated = candidate
-			break
-		}
-	}
-	if replicated["action_id"] != "attack" {
-		t.Fatalf("accepted action was not replicated: %+v", replicated)
-	}
-	var next map[string]interface{}
-	for _, state := range usecase.BuildAllPlayerStates(sess, 2) {
-		var candidate map[string]interface{}
-		if err := json.Unmarshal([]byte(state), &candidate); err != nil {
-			t.Fatal(err)
-		}
-		if candidate["player_id"] == "player" {
-			next = candidate
-			break
-		}
-	}
-	if _, stillActive := next["action_id"]; stillActive {
-		t.Fatalf("action event should be transient: %+v", next)
 	}
 	target, _ := sess.GetPlayer("target")
 	if target.Health != 100 {

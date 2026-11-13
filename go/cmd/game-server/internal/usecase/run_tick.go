@@ -82,7 +82,6 @@ func BuildAllPlayerStates(sess *entity.BlockSession, tick int) []string {
 		}
 		if p.ActionID != "" {
 			payload["action_id"] = p.ActionID
-			p.ActionID = ""
 		}
 		b, _ := json.Marshal(payload)
 		out = append(out, string(b))
@@ -115,7 +114,7 @@ func BuildPlayerJoined(bloqueID, playerID string, x, y, z float64) string {
 }
 
 func BuildPlayerLeft(bloqueID, playerID string) string {
-	b, _ := json.Marshal(map[string]interface{}{"type": "player_left", "bloque_id": bloqueID, "player_id": playerID})
+	b, _ := json.Marshal(map[string]string{"type": "player_left", "bloque_id": bloqueID, "player_id": playerID})
 	return string(b)
 }
 

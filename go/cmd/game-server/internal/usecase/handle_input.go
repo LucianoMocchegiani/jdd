@@ -108,7 +108,6 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 	}
 	sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) {
 		p.InCombatUntil = now.Add(6 * time.Second)
-		p.ActionID = in.ActionID
 	})
 	ack, _ := json.Marshal(map[string]interface{}{
 		"type": "swing_queued", "seq": in.Seq, "entity_id": reservation.EntityID, "action_id": in.ActionID,
