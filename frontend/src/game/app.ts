@@ -246,7 +246,7 @@ export async function bootstrapApp(
   debugMediumEl.textContent = 'medium: —';
   const cameraController = new CameraController(camera, renderer.domElement, playerMesh);
   setCameraController(cameraController);
-  if (isMovementDebugEnabled()) console.info('[movement:debug] Flujo: [input:key] → [input:intents] → [movement:vel] → [movement:apply]. HUD arriba-izq. Off: ?debug=movement-off');
+  if (isMovementDebugEnabled()) console.info('[movement:debug] Flujo: [input:key] → [input/intents] → [movement:vel] → [movement:apply]. HUD arriba-izq. Off: ?debug=movement-off');
 
   const loop = new GameLoop((deltaTime) => {
     worldRealtime.drainInboundQueue();
