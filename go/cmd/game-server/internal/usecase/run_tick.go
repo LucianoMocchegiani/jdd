@@ -100,21 +100,21 @@ func intentsTrueOnly(m map[string]bool) map[string]bool {
 }
 
 func BuildJoinOK(bloqueID string, ecoID int, ecoLabel, playerID, wireFormat string, players []string) string {
-	payload := map[string]interface{}{"type": "join_ok", "bloque_id": bloqueID, "eco_id": ecoID, "eco_label": ecoLabel, "player_id": playerID, "players": players, "wire_format": wireFormat}
-	if ecoLabel == "" {
-		delete(payload, "eco_label")
+	payload := map[string]interface{}{"type": "join_ok", "bloque_id": bloqueID, "eco_id": ecoID, "player_id": playerID, "players": players, "wire_format": wireFormat}
+	if ecoLabel != "" {
+		payload["eco_label"] = ecoLabel
 	}
 	b, _ := json.Marshal(payload)
 	return string(b)
 }
 
 func BuildPlayerJoined(bloqueID, playerID string, x, y, z float64) string {
-	b, _ := json.Marshal(map[string]float64{"type": "player_joined", "bloque_id": bloqueID, "player_id": playerID, "x": x, "y": y, "z": z})
+	b, _ := json.Marshal(map[string]interface{}{"type": "player_joined", "bloque_id": bloqueID, "player_id": playerID, "position": map[string]float64{"x": x, "y": y, "z": z}})
 	return string(b)
 }
 
 func BuildPlayerLeft(bloqueID, playerID string) string {
-	b, _ := json.Marshal(map[string]interface{}{"type": "player_left", "bloque_id": bloqueID, "player_id": playerID})
+	b, _ := json.Marshal(map[string]string{"type": "player_left", "bloque_id": bloqueID, "player_id": playerID})
 	return string(b)
 }
 
