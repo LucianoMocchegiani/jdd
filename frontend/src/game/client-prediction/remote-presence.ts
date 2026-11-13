@@ -54,6 +54,7 @@ export class RemotePresence {
       vx: event.vx,
       vy: event.vy,
       vz: event.vz,
+      action_id: event.action_id,
       intents: event.intents,
     });
     if (Number.isFinite(event.health)) {
