@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/memory"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/usecase"
