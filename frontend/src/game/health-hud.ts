@@ -50,6 +50,7 @@ export class HealthHud {
   private readonly conditions = document.createElement('div');
   private readonly remotes = new Map<string, BarElements>();
   private readonly projected = new Vector3();
+  private renderedConditions = '';
 
   constructor() {
     const bottomHud = document.querySelector<HTMLElement>('#bottom-hud');
@@ -89,17 +90,21 @@ export class HealthHud {
     if (mana !== null && Number.isFinite(mana)) this.setValue(this.mana, mana, maxMana, 'Maná', '#38bdf8');
 
     const conditionIds = [...new Set([...activeConditions, ...(inCombat ? ['in_combat'] : [])])];
-    this.conditions.replaceChildren(...conditionIds.map((id) => {
-      const badge = document.createElement('span');
-      badge.textContent = id;
-      Object.assign(badge.style, {
-        padding: '3px 7px', borderRadius: '99px', color: '#f8fafc',
-        background: 'rgba(127, 29, 29, 0.9)', border: '1px solid rgba(251, 113, 133, 0.55)',
-        font: '11px system-ui, sans-serif',
-      });
-      return badge;
-    }));
-    this.conditions.hidden = conditionIds.length === 0;
+    const conditionKey = conditionIds.join('\0');
+    if (conditionKey !== this.renderedConditions) {
+      this.renderedConditions = conditionKey;
+      this.conditions.replaceChildren(...conditionIds.map((id) => {
+        const badge = document.createElement('span');
+        badge.textContent = id;
+        Object.assign(badge.style, {
+          padding: '3px 7px', borderRadius: '99px', color: '#f8fafc',
+          background: 'rgba(127, 29, 29, 0.9)', border: '1px solid rgba(251, 113, 133, 0.55)',
+          font: '11px system-ui, sans-serif',
+        });
+        return badge;
+      }));
+      this.conditions.hidden = conditionIds.length === 0;
+    }
 
     const visible = new Set<string>();
     camera.updateMatrixWorld();

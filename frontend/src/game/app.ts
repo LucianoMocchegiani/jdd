@@ -82,7 +82,7 @@ function registerGameplaySystems(
 ): PlayerSimulationRunner {
   let mediumLine = 'medium: —';
   let actionLine = 'acción: —';
-  const refreshContactHud = (): void => { debugMediumEl.textContent = `${mediumLine}\n${actionLine}`; };
+  const refreshContactHud = (): void => { debugMediumEl.textContent = `${mediumLine}\\n${actionLine}`; };
   const inputSystem = new InputSystem();
   const particleContext = new ParticleContextSystem(terrain, (label) => { mediumLine = label; refreshContactHud(); });
   const conditionSystem = new ConditionSystem(terrain);
@@ -246,7 +246,7 @@ export async function bootstrapApp(
   debugMediumEl.textContent = 'medium: —';
   const cameraController = new CameraController(camera, renderer.domElement, playerMesh);
   setCameraController(cameraController);
-  if (isMovementDebugEnabled()) console.info('[movement:debug] Flujo: [input:key] → [input/intents] → [movement:vel] → [movement:apply]. HUD arriba-izq. Off: ?debug=movement-off');
+  if (isMovementDebugEnabled()) console.info('[movement:debug] Flujo: [input:key] → [input:intents] → [movement:vel] → [movement:apply]. HUD arriba-izq. Off: ?debug=movement-off');
 
   const loop = new GameLoop((deltaTime) => {
     worldRealtime.drainInboundQueue();
