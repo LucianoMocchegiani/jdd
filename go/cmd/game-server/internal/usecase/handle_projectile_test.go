@@ -2,6 +2,7 @@ package usecase_test
 
 import (
 	"encoding/json"
+	"errors"
 	"testing"
 	"time"
 
@@ -14,6 +15,10 @@ import (
 type projectileSwingPublisher struct{}
 
 func (projectileSwingPublisher) PublishSwing(port.SwingCommand) error { return nil }
+
+type failingSwingPublisher struct{}
+
+func (failingSwingPublisher) PublishSwing(port.SwingCommand) error { return errors.New("queue unavailable") }
 
 func TestHandleSwingSpendsConfiguredProjectileMana(t *testing.T) {
 	store := memory.NewSessionStore()
@@ -71,5 +76,36 @@ func TestHandleSwingRejectsInsufficientManaWithoutConsumingCooldown(t *testing.T
 	player, _ := sess.GetPlayer("player")
 	if player.Mana != 0 {
 		t.Fatalf("mana after retry = %v, want 0", player.Mana)
+	}
+}
+
+func TestHandleSwingFailureRefundsManaAndCooldown(t *testing.T) {
+	store := memory.NewSessionStore()
+	sess := store.GetOrCreate("block", 1)
+	sess.AddPlayer("player", 3, 4, 5, 1.25, 0)
+	svc := &usecase.Services{
+		Sessions: store,
+		SwingPub: failingSwingPublisher{},
+		Combat: combatCatalog{"attack": {
+			Cooldown: 3 * time.Second,
+			ManaCost: 10,
+			Impact: &port.DamageProfile{Reach: 2, Damage: 15},
+		}},
+	}
+	payload := usecase.SwingPayload{BloqueID: "block", EcoID: 1, PlayerID: "player", ActionID: "attack", Seq: 1}
+	if _, failed := svc.HandleSwing(payload); !failed {
+		t.Fatal("failed publisher should reject the swing")
+	}
+	player, _ := sess.GetPlayer("player")
+	if player.Mana != 100 {
+		t.Fatalf("mana after failed queue = %v, want 100", player.Mana)
+	}
+	svc.SwingPub = projectileSwingPublisher{}
+	if _, failed := svc.HandleSwing(payload); failed {
+		t.Fatal("failed queue should not consume sequence or cooldown")
+	}
+	player, _ = sess.GetPlayer("player")
+	if player.Mana != 90 {
+		t.Fatalf("mana after accepted retry = %v, want 90", player.Mana)
 	}
 }
