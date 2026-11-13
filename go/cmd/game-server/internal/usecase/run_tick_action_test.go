@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/memory"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/usecase"
 )
