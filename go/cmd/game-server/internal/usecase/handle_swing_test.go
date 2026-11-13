@@ -53,6 +53,10 @@ func TestHandleSwingUsesAuthoritativePoseAndQueuesPlayerCandidates(t *testing.T)
 	if len(publisher.command.Targets) != 1 || publisher.command.Targets[0].PlayerID != "target" {
 		t.Fatalf("swing did not snapshot the target candidate: %+v", publisher.command.Targets)
 	}
+	player, _ := sess.GetPlayer("player")
+	if !player.InCombat(time.Now()) || time.Until(player.InCombatUntil) > 6*time.Second {
+		t.Fatalf("accepted attack did not apply six-second combat state: %+v", player.InCombatUntil)
+	}
 	target, _ := sess.GetPlayer("target")
 	if target.Health != 100 {
 		t.Fatalf("entity damage should wait for the shared resolver, got health %v", target.Health)

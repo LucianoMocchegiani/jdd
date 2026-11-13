@@ -109,6 +109,9 @@ export interface PlayerStateEvent {
   input_seq?: number;
   health?: number;
   max_health?: number;
+  mana?: number;
+  max_mana?: number;
+  in_combat?: boolean;
   receivedAtMs?: number;
 }
 export type PresenceEvent = JoinOkEvent | JoinErrorEvent | PlayerJoinedEvent | PlayerLeftEvent | PlayerStateEvent;

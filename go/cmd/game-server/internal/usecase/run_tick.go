@@ -3,6 +3,7 @@ package usecase
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
@@ -27,7 +28,9 @@ func (s *Services) RunTick(deltaSec float64) {
 			continue
 		}
 		s.MaybeRefreshTerrain(sess)
+		now := time.Now()
 		sess.ForEachPlayer(func(p *entity.Player) {
+			p.RegenerateMana(deltaSec, now)
 			systems.RunPlayerTick(p, sess.SolidGrid, s.SessionCfg, s.Medium, deltaSec)
 		})
 		projectiles := sess.AdvanceProjectiles(deltaSec)
@@ -65,12 +68,14 @@ func (s *Services) RunTick(deltaSec float64) {
 
 func BuildAllPlayerStates(sess *entity.BlockSession, tick int) []string {
 	var out []string
+	now := time.Now()
 	sess.ForEachPlayer(func(p *entity.Player) {
 		payload := map[string]interface{}{
 			"type": "player_state", "server_tick": tick, "player_id": p.ID, "bloque_id": sess.BloqueID,
 			"x": p.X, "y": p.Y, "z": p.Z, "vx": p.VX, "vy": p.VY, "vz": p.VZ,
 			"yaw": p.Yaw, "medium": p.Medium, "input_seq": p.InputSeq,
 			"intents": intentsTrueOnly(p.Intents), "health": p.Health, "max_health": p.MaxHealth,
+			"mana": p.Mana, "max_mana": p.MaxMana, "in_combat": p.InCombat(now),
 		}
 		if p.Pitch != 0 {
 			payload["pitch"] = p.Pitch
@@ -109,7 +114,7 @@ func BuildPlayerJoined(bloqueID, playerID string, x, y, z float64) string {
 }
 
 func BuildPlayerLeft(bloqueID, playerID string) string {
-	b, _ := json.Marshal(map[string]interface{}{"type": "player_left", "bloque_id": bloqueID, "player_id": playerID})
+	b, _ := json.Marshal(map[string]string{"type": "player_left", "bloque_id": bloqueID, "player_id": playerID})
 	return string(b)
 }
 

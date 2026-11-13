@@ -129,8 +129,11 @@ export function parseInboundMessage(raw: unknown): RealtimeInboundMessage | null
       entity_id: typeof msg.entity_id === 'number' ? msg.entity_id : undefined,
       intents: parsePlayerStateIntents(msg.intents),
       input_seq: typeof msg.input_seq === 'number' ? msg.input_seq : undefined,
-      health: typeof msg.health === 'number' ? msg.health : undefined,
-      max_health: typeof msg.max_health === 'number' ? msg.max_health : undefined,
+      health: typeof msg.health === 'number' && Number.isFinite(msg.health) ? msg.health : undefined,
+      max_health: typeof msg.max_health === 'number' && Number.isFinite(msg.max_health) ? msg.max_health : undefined,
+      mana: typeof msg.mana === 'number' && Number.isFinite(msg.mana) ? msg.mana : undefined,
+      max_mana: typeof msg.max_mana === 'number' && Number.isFinite(msg.max_mana) ? msg.max_mana : undefined,
+      in_combat: typeof msg.in_combat === 'boolean' ? msg.in_combat : undefined,
     };
   }
 

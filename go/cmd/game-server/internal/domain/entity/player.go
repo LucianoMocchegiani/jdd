@@ -1,7 +1,12 @@
 // Package entity — Entidades de dominio (sesión, jugador, terreno).
 package entity
 
-import "time"
+import (
+	"math"
+	"time"
+)
+
+const baseManaReserve = 100
 
 // Player — entidad jugador en una BlockSession (componentes embebidos M2).
 type Player struct {
@@ -16,6 +21,9 @@ type Player struct {
 	ActionID              string
 	Health                float64
 	MaxHealth             float64
+	Mana                  float64
+	MaxMana               float64
+	InCombatUntil         time.Time
 	GroundCellDebugLogged bool
 	lastSwingSeq          int
 	lastSwingAt           time.Time
@@ -35,5 +43,22 @@ func NewPlayer(playerID string, entityID uint32, x, y, z, yaw, pitch float64) *P
 		Intents:   make(map[string]bool),
 		Health:    100,
 		MaxHealth: 100,
+		Mana:      baseManaReserve,
+		MaxMana:   baseManaReserve,
 	}
+}
+
+func (p *Player) InCombat(now time.Time) bool {
+	return now.Before(p.InCombatUntil)
+}
+
+func (p *Player) RegenerateMana(deltaSec float64, now time.Time) {
+	if deltaSec <= 0 || p.Mana >= p.MaxMana {
+		return
+	}
+	rate := 6.0
+	if p.InCombat(now) {
+		rate = 3
+	}
+	p.Mana = math.Min(p.MaxMana, p.Mana+rate*deltaSec)
 }

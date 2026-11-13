@@ -73,7 +73,8 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 	if s.SwingPub == nil {
 		return buildError("swing_error", "not_configured"), true
 	}
-	reservation, ok := sess.BeginSwing(in.PlayerID, in.Seq, time.Now(), profile.Cooldown, profile.BlockedMediums)
+	now := time.Now()
+	reservation, ok := sess.BeginSwing(in.PlayerID, in.Seq, now, profile.Cooldown, profile.BlockedMediums)
 	if !ok {
 		return buildError("swing_error", "swing_rejected"), true
 	}
@@ -101,6 +102,7 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 			return buildError("swing_error", "enqueue_failed"), true
 		}
 	}
+	sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) { p.InCombatUntil = now.Add(6 * time.Second) })
 	ack, _ := json.Marshal(map[string]interface{}{
 		"type": "swing_queued", "seq": in.Seq, "entity_id": reservation.EntityID, "action_id": in.ActionID,
 	})
