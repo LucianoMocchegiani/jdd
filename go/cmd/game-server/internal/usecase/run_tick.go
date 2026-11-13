@@ -82,6 +82,7 @@ func BuildAllPlayerStates(sess *entity.BlockSession, tick int) []string {
 		}
 		if p.ActionID != "" {
 			payload["action_id"] = p.ActionID
+			p.ActionID = ""
 		}
 		b, _ := json.Marshal(payload)
 		out = append(out, string(b))
