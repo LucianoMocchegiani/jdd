@@ -12,8 +12,9 @@ import (
 
 type actionFile struct {
 	Actions []struct {
-		ID         string `json:"id"`
-		CooldownMs int    `json:"cooldownMs"`
+		ID         string  `json:"id"`
+		CooldownMs int     `json:"cooldownMs"`
+		ManaCost   float64 `json:"manaCost"`
 		Control    struct {
 			When struct {
 				Not struct {
@@ -50,6 +51,9 @@ func LoadCatalog(path string) (*Catalog, error) {
 		if action.ID == "" {
 			return nil, fmt.Errorf("action without id")
 		}
+		if action.ManaCost < 0 {
+			return nil, fmt.Errorf("action %q has invalid manaCost", action.ID)
+		}
 		if action.Impact != nil {
 			if action.CooldownMs <= 0 {
 				return nil, fmt.Errorf("action %q has combat impact without positive cooldownMs", action.ID)
@@ -71,6 +75,7 @@ func LoadCatalog(path string) (*Catalog, error) {
 		}
 		catalog.profiles[action.ID] = &port.CombatProfile{
 			Cooldown:       time.Duration(action.CooldownMs) * time.Millisecond,
+			ManaCost:       action.ManaCost,
 			BlockedMediums: action.Control.When.Not.Medium,
 			Impact:         action.Impact,
 			Projectile:     projectile,

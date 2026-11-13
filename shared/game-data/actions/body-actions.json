@@ -31,6 +31,7 @@
       "id": "kamehameha",
       "description": "Proyectil de energía autoritativo; se dispara tras la carga de la animación.",
       "cooldownMs": 3000,
+      "manaCost": 20,
       "control": {
         "inputIntent": "attack_projectile",
         "slot": "body_actions",

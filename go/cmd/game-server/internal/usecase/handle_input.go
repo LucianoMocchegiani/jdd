@@ -78,10 +78,14 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 	if !ok {
 		return buildError("swing_error", "swing_rejected"), true
 	}
+	if !sess.SpendSwingMana(in.PlayerID, in.Seq, profile.ManaCost) {
+		sess.CancelSwing(in.PlayerID, reservation)
+		return buildError("swing_error", "swing_rejected"), true
+	}
 	if profile.Projectile != nil {
 		p := profile.Projectile
 		if !sess.SpawnProjectile(in.PlayerID, in.ActionID, reservation, p.Speed, p.Range, p.Damage, p.Radius, p.Delay) {
-			sess.CancelSwing(in.PlayerID, reservation)
+			sess.CancelSwingAndRefundMana(in.PlayerID, reservation, profile.ManaCost)
 			return buildError("swing_error", "projectile_rejected"), true
 		}
 	} else {
@@ -98,7 +102,7 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 			PosX: reservation.X, PosY: reservation.Y, PosZ: reservation.Z, Yaw: reservation.Yaw,
 			Targets: targets,
 		}); err != nil {
-			sess.CancelSwing(in.PlayerID, reservation)
+			sess.CancelSwingAndRefundMana(in.PlayerID, reservation, profile.ManaCost)
 			return buildError("swing_error", "enqueue_failed"), true
 		}
 	}
