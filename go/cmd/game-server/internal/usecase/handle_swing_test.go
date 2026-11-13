@@ -51,7 +51,7 @@ func TestHandleSwingUsesAuthoritativePoseAndQueuesPlayerCandidates(t *testing.T)
 		t.Fatalf("swing used non-authoritative pose: %+v", publisher.command)
 	}
 	if len(publisher.command.Targets) != 1 || publisher.command.Targets[0].PlayerID != "target" {
-		t.Fatalf("swing did not snapshot the target candidate: %+v", publisher.command)
+		t.Fatalf("swing did not snapshot the target candidate: %+v", publisher.command.Targets)
 	}
 	player, _ := sess.GetPlayer("player")
 	if !player.InCombat(time.Now()) || time.Until(player.InCombatUntil) > 6*time.Second {
