@@ -1,4 +1,4 @@
-/*
+/**
  * @file Orquestador del cliente v2: ensambla API, terreno, ECS, cámara y game loop.
  */
 
