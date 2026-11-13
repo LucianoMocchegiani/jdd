@@ -56,9 +56,9 @@ func (p *Player) RegenerateMana(deltaSec float64, now time.Time) {
 	if deltaSec <= 0 || p.Mana >= p.MaxMana {
 		return
 	}
-	rate := 6.0
+	rate := 3.0
 	if p.InCombat(now) {
-		rate = 3
+		rate = 1.5
 	}
 	p.Mana = math.Min(p.MaxMana, p.Mana+rate*deltaSec)
 }
