@@ -26,6 +26,8 @@ interface RemoteEntry {
   character: PlayerCharacterVisual;
   buffer: RemoteInterpolationBuffer;
   clip: string | null;
+  actionClip: string | null;
+  actionSeq: number | null;
   health: number | null;
   maxHealth: number;
   renderPosition: { x: number; y: number; z: number } | null;
@@ -49,13 +51,16 @@ export class RemotePresence {
     if (event.player_id === this.localPlayerId || this.leftPlayerIds.has(event.player_id) || !event.bloque_id) return;
 
     const entry = this.ensureRemote(event.player_id);
-    entry.clip = selectRemoteClip({
-      medium: event.medium,
-      vx: event.vx,
-      vy: event.vy,
-      vz: event.vz,
-      intents: event.intents,
-    });
+    const animationState = {
+      medium: event.medium, vx: event.vx, vy: event.vy, vz: event.vz, intents: event.intents,
+    };
+    entry.clip = selectRemoteClip(animationState);
+    if (event.action_seq !== undefined) {
+      if (entry.actionSeq !== null && event.action_seq > entry.actionSeq) {
+        entry.actionClip = selectRemoteClip({ ...animationState, action_id: event.action_id });
+      }
+      entry.actionSeq = event.action_seq;
+    }
     if (Number.isFinite(event.health)) {
       const health = event.health!;
       if (entry.health !== null && health < entry.health) entry.character.flashDamage();
@@ -104,7 +109,8 @@ export class RemotePresence {
       const state = entry.buffer.sample(nowMs);
       if (state) {
         entry.renderPosition = { x: state.x, y: state.y, z: state.z };
-        entry.character.update(deltaTime, entry.clip, state.x, state.y, state.z, state.yaw, REMOTE_COLOR);
+        entry.character.update(deltaTime, entry.actionClip ?? entry.clip, state.x, state.y, state.z, state.yaw, REMOTE_COLOR);
+        entry.actionClip = null;
       }
     }
   }
@@ -130,6 +136,8 @@ export class RemotePresence {
       character: new PlayerCharacterVisual(this.scene, this.cellSize),
       buffer: new RemoteInterpolationBuffer(),
       clip: null,
+      actionClip: null,
+      actionSeq: null,
       health: null,
       maxHealth: 100,
       renderPosition: null,

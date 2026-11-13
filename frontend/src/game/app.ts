@@ -10,26 +10,26 @@ import { ConditionsComponent } from '@/ecs/components/conditions';
 import { FacingComponent } from '@/ecs/components/facing';
 import { InputComponent } from '@/ecs/components/input';
 import { ContactComponent } from '@/ecs/components/contact';
+import { KinematicsComponent } from '@/ecs/components/kinematics';
 import { PositionComponent } from '@/ecs/components/position';
 import { World } from '@/ecs/core';
 import { ActionOrchestratorSystem } from '@/ecs/domains/action/action-orchestrator-system';
-import { AppearanceSystem } from '@/ecs/domains/appearance/appearance-system';
 import { ConditionSystem } from '@/ecs/domains/condition/condition-system';
 import { ParticleContextSystem } from '@/ecs/domains/contact/particle-context-system';
 import { WorldDamageSystem } from '@/ecs/domains/impact/world-damage-system';
 import { InputSystem } from '@/ecs/domains/input/input-system';
-import { MovementSystem } from '@/ecs/domains/movement/movement-system';
-import { PlayerSimulationRunner } from '@/game/client-prediction/replay-runner';
 import { formatBackendOkStatus, syncParticleCatalog, verifyBackendConnectivity } from '@/game/bootstrap';
 import { CameraController, setCameraController } from '@/game/camera';
 import { GameLoop } from '@/game/game-loop';
 import { getOrCreatePlayerId, NetworkInputSender, WorldRealtimeClient } from '@/game/network';
-import { InputHistory, LocalPlayerReconciler, RemotePresence } from '@/game/client-prediction';
+import { RemoteInterpolationBuffer, RemotePresence } from '@/game/client-prediction';
 import { PresenceHandler } from '@/game/network/presence-handler';
 import { HealthHud } from '@/game/health-hud';
 import { ProjectileVisuals } from '@/game/projectile-visuals';
+import { selectRemoteClip } from '@/game/player/remote-animation';
 import type { PlayerCharacterVisual } from '@/game/player/player-character-visual';
-import type { SessionEvent } from '@/types/world-events';
+import type { PlayerStateEvent, SessionEvent } from '@/types/world-events';
+import { isMediumId } from '@/types/medium';
 import { findSpawnZ } from '@/game/player/find-spawn';
 import { resolveSpawnCell } from '@/game/player/resolve-spawn-cell';
 import { spawnPlayer, syncPlayerMesh } from '@/game/player/spawn-player';
@@ -75,29 +75,17 @@ function registerGameplaySystems(
   world: World,
   terrain: TerrainStore,
   debugMediumEl: HTMLElement,
-  playerEntityId: number,
-  playerMesh: Group,
   worldRealtime: WorldRealtimeClient,
   playerId: string,
-): PlayerSimulationRunner {
+): void {
   let mediumLine = 'medium: —';
   let actionLine = 'acción: —';
   const refreshContactHud = (): void => { debugMediumEl.textContent = `${mediumLine}\n${actionLine}`; };
-  const inputSystem = new InputSystem();
-  const particleContext = new ParticleContextSystem(terrain, (label) => { mediumLine = label; refreshContactHud(); });
-  const conditionSystem = new ConditionSystem(terrain);
-  const actionOrchestrator = new ActionOrchestratorSystem((label) => { actionLine = label; refreshContactHud(); });
-  const movementSystem = new MovementSystem(terrain);
-  world.registerSystem(inputSystem);
-  world.registerSystem(particleContext);
-  world.registerSystem(conditionSystem);
-  world.registerSystem(actionOrchestrator);
-  world.registerSystem(movementSystem);
-  const simulationRunner = new PlayerSimulationRunner(particleContext, conditionSystem, actionOrchestrator, movementSystem);
-  movementSystem.setPitchSource(simulationRunner);
+  world.registerSystem(new InputSystem());
+  world.registerSystem(new ParticleContextSystem(terrain, (label) => { mediumLine = label; refreshContactHud(); }));
+  world.registerSystem(new ConditionSystem(terrain));
+  world.registerSystem(new ActionOrchestratorSystem((label) => { actionLine = label; refreshContactHud(); }));
   world.registerSystem(new WorldDamageSystem(terrain, worldRealtime, playerId));
-  world.registerSystem(new AppearanceSystem(playerEntityId, playerMesh));
-  return simulationRunner;
 }
 
 export async function bootstrapApp(
@@ -170,17 +158,19 @@ export async function bootstrapApp(
   const worldRealtime = new WorldRealtimeClient();
   const remotePresence = new RemotePresence(scene, cellSize, playerId);
   const healthHud = new HealthHud();
-  const inputHistory = new InputHistory();
-  const networkInput = new NetworkInputSender(worldRealtime, bloqueId, playerId, inputHistory);
+  const networkInput = new NetworkInputSender(worldRealtime, bloqueId, playerId);
   const presenceHandler = new PresenceHandler(worldRealtime, remotePresence, playerId, bloqueId);
+  const localSnapshots = new RemoteInterpolationBuffer();
   let inputSendClockSec = 0;
-  let localReconciler: LocalPlayerReconciler | null = null;
   let localHealth: number | null = null;
   let localMaxHealth = 100;
   let localMana: number | null = null;
   let localMaxMana = 100;
   let localInCombat = false;
   let activeConditionIds: string[] = [];
+  let localVisualState: PlayerStateEvent | null = null;
+  let localActionSeq: number | null = null;
+  let pendingLocalActionClip: string | null = null;
   let localCharacter: PlayerCharacterVisual | null = null;
   let setPlayerVisible = (_visible: boolean): void => {};
 
@@ -198,18 +188,32 @@ export async function bootstrapApp(
     if (event.type === 'player_state') {
       ingestLocalPlayerState(event, playerId);
       recordObservedPlayerState(event);
-      if (event.player_id === playerId && Number.isFinite(event.health)) {
-        const nextHealth = event.health!;
-        if (localHealth !== null && nextHealth < localHealth) localCharacter?.flashDamage();
-        localHealth = nextHealth;
-        if (Number.isFinite(event.max_health) && event.max_health! > 0) localMaxHealth = event.max_health!;
-      }
       if (event.player_id === playerId) {
+        localVisualState = event;
+        localSnapshots.push({
+          serverTick: event.server_tick, x: event.x, y: event.y, z: event.z,
+          vx: event.vx, vy: event.vy, vz: event.vz, yaw: event.yaw,
+          receivedAtMs: event.receivedAtMs ?? performance.now(),
+        });
+        if (event.action_seq !== undefined) {
+          if (localActionSeq !== null && event.action_seq > localActionSeq) {
+            pendingLocalActionClip = selectRemoteClip({
+              medium: event.medium, vx: event.vx, vy: event.vy, vz: event.vz,
+              intents: event.intents, action_id: event.action_id,
+            });
+          }
+          localActionSeq = event.action_seq;
+        }
+        if (Number.isFinite(event.health)) {
+          const nextHealth = event.health!;
+          if (localHealth !== null && nextHealth < localHealth) localCharacter?.flashDamage();
+          localHealth = nextHealth;
+          if (Number.isFinite(event.max_health) && event.max_health! > 0) localMaxHealth = event.max_health!;
+        }
         if (Number.isFinite(event.mana)) localMana = event.mana!;
         if (Number.isFinite(event.max_mana) && event.max_mana! > 0) localMaxMana = event.max_mana!;
         localInCombat = event.in_combat === true;
       }
-      if (localReconciler && playerEntityId > 0) localReconciler.onPlayerState(world, playerEntityId, event);
     } else if (event.type === 'join_ok') {
       playerActive = true;
       setPlayerVisible(true);
@@ -241,15 +245,25 @@ export async function bootstrapApp(
     },
   });
 
-  const simulationRunner = registerGameplaySystems(world, terrain, debugMediumEl, playerEntityId, playerMesh, worldRealtime, playerId);
-  localReconciler = new LocalPlayerReconciler(playerId, inputHistory, simulationRunner);
+  registerGameplaySystems(world, terrain, debugMediumEl, worldRealtime, playerId);
   debugMediumEl.textContent = 'medium: —';
   const cameraController = new CameraController(camera, renderer.domElement, playerMesh);
   setCameraController(cameraController);
-  if (isMovementDebugEnabled()) console.info('[movement:debug] Flujo: [input:key] → [input:intents] → [movement:vel] → [movement:apply]. HUD arriba-izq. Off: ?debug=movement-off');
+  if (isMovementDebugEnabled()) console.info('[movement:debug] Flujo autoritativo: [input:key] → [input:intents] → [server:movement] → [player_state] → [render]. HUD arriba-izq. Off: ?debug=movement-off');
 
   const loop = new GameLoop((deltaTime) => {
     worldRealtime.drainInboundQueue();
+    const serverState = localSnapshots.sample(performance.now());
+    if (serverState) {
+      const pos = world.getComponent<PositionComponent>(playerEntityId, 'position');
+      const kin = world.getComponent<KinematicsComponent>(playerEntityId, 'kinematics');
+      const facing = world.getComponent<FacingComponent>(playerEntityId, 'facing');
+      const contact = world.getComponent<ContactComponent>(playerEntityId, 'contact');
+      if (pos) Object.assign(pos, { x: serverState.x, y: serverState.y, z: serverState.z });
+      if (kin) Object.assign(kin, { vx: serverState.vx, vy: serverState.vy, vz: serverState.vz });
+      if (facing) facing.yaw = serverState.yaw;
+      if (contact && localVisualState && isMediumId(localVisualState.medium)) contact.medium = localVisualState.medium;
+    }
     cameraController.tickInput(world, playerEntityId);
     if (playerActive && terrainReady && terrain.isSimulationStable) {
       world.update(deltaTime);
@@ -261,6 +275,13 @@ export async function bootstrapApp(
     const pos = world.getComponent<PositionComponent>(playerEntityId, 'position');
     if (pos) {
       syncPlayerMesh(playerMesh, pos.x, pos.y, pos.z, cellSize);
+      const facing = world.getComponent<FacingComponent>(playerEntityId, 'facing');
+      const clip = pendingLocalActionClip ?? (localVisualState ? selectRemoteClip({
+        medium: localVisualState.medium, vx: localVisualState.vx, vy: localVisualState.vy,
+        vz: localVisualState.vz, intents: localVisualState.intents,
+      }) : null);
+      localCharacter?.update(deltaTime, clip, pos.x, pos.y, pos.z, facing?.yaw ?? 0, null);
+      pendingLocalActionClip = null;
       cameraController.updateCamera(camera, world, playerEntityId, pos.x, pos.y, pos.z, cellSize);
       updateCameraHud(debugCameraEl, cameraController.yaw, cameraController.pitch, cameraController.mode);
       const conditions = world.getComponent<ConditionsComponent>(playerEntityId, 'conditions');
