@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	tickHz = 30
+	tickHz      = 30
 	maxDeltaSec = 0.1
 )
 
@@ -54,7 +54,7 @@ func (s *Services) RunTick(deltaSec float64) {
 			}
 		}
 		tick := sess.IncrementTick()
-		states := buildPlayerStates(sess, tick, true)
+		states := BuildTickPlayerStates(sess, tick)
 		if s.Hub != nil {
 			s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
 				for _, msg := range states {
@@ -68,6 +68,10 @@ func (s *Services) RunTick(deltaSec float64) {
 
 func BuildAllPlayerStates(sess *entity.BlockSession, tick int) []string {
 	return buildPlayerStates(sess, tick, false)
+}
+
+func BuildTickPlayerStates(sess *entity.BlockSession, tick int) []string {
+	return buildPlayerStates(sess, tick, true)
 }
 
 func buildPlayerStates(sess *entity.BlockSession, tick int, publishActions bool) []string {
