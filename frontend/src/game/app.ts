@@ -1,4 +1,4 @@
-/**
+/*
  * @file Orquestador del cliente v2: ensambla API, terreno, ECS, cámara y game loop.
  */
 
@@ -177,6 +177,10 @@ export async function bootstrapApp(
   let localReconciler: LocalPlayerReconciler | null = null;
   let localHealth: number | null = null;
   let localMaxHealth = 100;
+  let localMana: number | null = null;
+  let localMaxMana = 100;
+  let localInCombat = false;
+  let activeConditionIds: string[] = [];
   let localCharacter: PlayerCharacterVisual | null = null;
   let setPlayerVisible = (_visible: boolean): void => {};
 
@@ -199,6 +203,11 @@ export async function bootstrapApp(
         if (localHealth !== null && nextHealth < localHealth) localCharacter?.flashDamage();
         localHealth = nextHealth;
         if (Number.isFinite(event.max_health) && event.max_health! > 0) localMaxHealth = event.max_health!;
+      }
+      if (event.player_id === playerId) {
+        if (Number.isFinite(event.mana)) localMana = event.mana!;
+        if (Number.isFinite(event.max_mana) && event.max_mana! > 0) localMaxMana = event.max_mana!;
+        localInCombat = event.in_combat === true;
       }
       if (localReconciler && playerEntityId > 0) localReconciler.onPlayerState(world, playerEntityId, event);
     } else if (event.type === 'join_ok') {
@@ -255,6 +264,7 @@ export async function bootstrapApp(
       cameraController.updateCamera(camera, world, playerEntityId, pos.x, pos.y, pos.z, cellSize);
       updateCameraHud(debugCameraEl, cameraController.yaw, cameraController.pitch, cameraController.mode);
       const conditions = world.getComponent<ConditionsComponent>(playerEntityId, 'conditions');
+      activeConditionIds = conditions?.active.map((condition) => condition.conditionId) ?? [];
       updateConditionsHud(debugConditionsEl, conditions?.active ?? [], conditions?.debugDamageTotal ?? 0);
       if (inputStatsDebug && debugInputStatsEl) {
         inputStatsPollClockSec += deltaTime;
@@ -277,7 +287,7 @@ export async function bootstrapApp(
     }
     worldRealtime.drainInboundQueue();
     remotePresence.update();
-    healthHud.update(localHealth, localMaxHealth, remotePresence.getHealthIndicators(), camera, cellSize);
+    healthHud.update(localHealth, localMaxHealth, localMana, localMaxMana, localInCombat, activeConditionIds, remotePresence.getHealthIndicators(), camera, cellSize);
     renderer.render(scene, camera);
   });
   loop.start();
