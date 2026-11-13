@@ -6,7 +6,6 @@ import { ConditionsComponent } from '@/ecs/components/conditions';
 import { FacingComponent } from '@/ecs/components/facing';
 import { InputComponent } from '@/ecs/components/input';
 import { ContactComponent } from '@/ecs/components/contact';
-import { KinematicsComponent } from '@/ecs/components/kinematics';
 import { PositionComponent } from '@/ecs/components/position';
 import { World } from '@/ecs/core';
 import { ActionOrchestratorSystem } from '@/ecs/domains/action/action-orchestrator-system';
@@ -76,7 +75,7 @@ function registerGameplaySystems(
 ): void {
   let mediumLine = 'medium: —';
   let actionLine = 'acción: —';
-  const refreshContactHud = (): void => { debugMediumEl.textContent = `${mediumLine}\n${actionLine}`; };
+  const refreshContactHud = (): void => { debugMediumEl.textContent = `${mediumLine}\\n${actionLine}`; };
   world.registerSystem(new InputSystem());
   world.registerSystem(new ParticleContextSystem(terrain, (label) => { mediumLine = label; refreshContactHud(); }));
   world.registerSystem(new ConditionSystem(terrain));
@@ -252,11 +251,9 @@ export async function bootstrapApp(
     const serverState = localSnapshots.sample(performance.now());
     if (serverState) {
       const pos = world.getComponent<PositionComponent>(playerEntityId, 'position');
-      const kin = world.getComponent<KinematicsComponent>(playerEntityId, 'kinematics');
       const facing = world.getComponent<FacingComponent>(playerEntityId, 'facing');
       const contact = world.getComponent<ContactComponent>(playerEntityId, 'contact');
       if (pos) Object.assign(pos, { x: serverState.x, y: serverState.y, z: serverState.z });
-      if (kin) Object.assign(kin, { vx: serverState.vx, vy: serverState.vy, vz: serverState.vz });
       if (facing) facing.yaw = serverState.yaw;
       if (contact && localVisualState && isMediumId(localVisualState.medium)) contact.medium = localVisualState.medium;
     }
