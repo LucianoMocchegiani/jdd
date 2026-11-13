@@ -23,8 +23,15 @@ func TestPlayerStatesDoNotReplayOldActionsOnJoinButPublishAcceptedActionOncePerT
 	}
 	decode := func(messages []string) {
 		t.Helper()
-		if len(messages) != 1 || json.Unmarshal([]byte(messages[0]), &state) != nil {
+		if len(messages) != 1 {
 			t.Fatalf("unexpected player states: %v", messages)
+		}
+		state = struct {
+			ActionID  string `json:"action_id"`
+			ActionSeq int    `json:"action_seq"`
+		}{}
+		if err := json.Unmarshal([]byte(messages[0]), &state); err != nil {
+			t.Fatalf("invalid player state: %v", err)
 		}
 	}
 
