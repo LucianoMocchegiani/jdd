@@ -1,5 +1,4 @@
 import {
-  ActionsComponent,
   FacingComponent,
   InputComponent,
   PositionComponent,
@@ -20,7 +19,6 @@ export function spawnPlayer(
   world.addComponent(entityId, new PositionComponent(x, y, z));
   world.addComponent(entityId, new InputComponent());
   world.addComponent(entityId, new FacingComponent(0));
-  world.addComponent(entityId, new ActionsComponent());
 
   const group = new Group();
   group.userData.characterVisual = new PlayerCharacterVisual(scene, cellSize);
