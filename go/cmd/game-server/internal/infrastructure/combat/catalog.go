@@ -16,13 +16,14 @@ type actionFile struct {
 		CooldownMs int     `json:"cooldownMs"`
 		ManaCost   float64 `json:"manaCost"`
 		Control    struct {
-			When struct {
+			InputIntent string `json:"inputIntent"`
+			When        struct {
 				Not struct {
 					Medium []string `json:"medium"`
 				} `json:"not"`
 			} `json:"when"`
 		} `json:"control"`
-		Impact    *port.DamageProfile `json:"impact"`
+		Impact     *port.DamageProfile `json:"impact"`
 		Projectile *struct {
 			Speed   float64 `json:"speed"`
 			Range   float64 `json:"range"`
@@ -34,7 +35,8 @@ type actionFile struct {
 }
 
 type Catalog struct {
-	profiles map[string]*port.CombatProfile
+	profiles      map[string]*port.CombatProfile
+	byInputIntent map[string]string
 }
 
 func LoadCatalog(path string) (*Catalog, error) {
@@ -46,7 +48,7 @@ func LoadCatalog(path string) (*Catalog, error) {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, err
 	}
-	catalog := &Catalog{profiles: make(map[string]*port.CombatProfile)}
+	catalog := &Catalog{profiles: make(map[string]*port.CombatProfile), byInputIntent: make(map[string]string)}
 	for _, action := range raw.Actions {
 		if action.ID == "" {
 			return nil, fmt.Errorf("action without id")
@@ -74,11 +76,18 @@ func LoadCatalog(path string) (*Catalog, error) {
 			return nil, fmt.Errorf("duplicate action id %q", action.ID)
 		}
 		catalog.profiles[action.ID] = &port.CombatProfile{
+			InputIntent:    action.Control.InputIntent,
 			Cooldown:       time.Duration(action.CooldownMs) * time.Millisecond,
 			ManaCost:       action.ManaCost,
 			BlockedMediums: action.Control.When.Not.Medium,
 			Impact:         action.Impact,
 			Projectile:     projectile,
+		}
+		if action.Control.InputIntent != "" && (action.Impact != nil || projectile != nil) {
+			if _, exists := catalog.byInputIntent[action.Control.InputIntent]; exists {
+				return nil, fmt.Errorf("duplicate combat input intent %q", action.Control.InputIntent)
+			}
+			catalog.byInputIntent[action.Control.InputIntent] = action.ID
 		}
 	}
 	return catalog, nil
@@ -86,6 +95,11 @@ func LoadCatalog(path string) (*Catalog, error) {
 
 func (c *Catalog) Get(actionID string) *port.CombatProfile {
 	return c.profiles[actionID]
+}
+
+func (c *Catalog) GetByInputIntent(intent string) (string, *port.CombatProfile) {
+	id := c.byInputIntent[intent]
+	return id, c.profiles[id]
 }
 
 var _ port.CombatCatalog = (*Catalog)(nil)

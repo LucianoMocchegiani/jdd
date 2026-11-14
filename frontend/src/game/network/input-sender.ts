@@ -20,6 +20,7 @@ const NETWORKED_INTENTS = [
   'run_forward',
   'jump',
   'attack_light',
+  'attack_projectile',
 ] as const;
 
 type IntentWireMode = 'omit' | 'clear' | 'active';
@@ -38,6 +39,10 @@ export class NetworkInputSender {
   private seq = 0;
   private lastPayload = '';
   private jumpWasActive = false;
+  private attackWasActive: Record<'attack_light' | 'attack_projectile', boolean> = {
+    attack_light: false,
+    attack_projectile: false,
+  };
   /** Había intents activos en el último envío con clave `intents`. */
   private hadMovementIntent = false;
 
@@ -62,6 +67,12 @@ export class NetworkInputSender {
     const hasMovement = Object.keys(packed).length > 0;
     const jumpEdge = packed.jump === true && !this.jumpWasActive;
     this.jumpWasActive = packed.jump === true;
+    const attackEdge = (['attack_light', 'attack_projectile'] as const).some((intent) => {
+      const active = packed[intent] === true;
+      const edge = active && !this.attackWasActive[intent];
+      this.attackWasActive[intent] = active;
+      return edge;
+    });
 
     const releaseEdge = this.hadMovementIntent && !hasMovement;
     let wireMode: IntentWireMode;
@@ -74,12 +85,12 @@ export class NetworkInputSender {
     }
 
     const throttleElapsed = nowSec - this.lastSentAt >= INPUT_SEND_INTERVAL_SEC;
-    if (!throttleElapsed && !jumpEdge && !releaseEdge) {
+    if (!throttleElapsed && !jumpEdge && !attackEdge && !releaseEdge) {
       return;
     }
 
     const payloadKey = JSON.stringify({ wireMode, packed, yaw, pitch });
-    if (wireMode === 'omit' && payloadKey === this.lastPayload && !jumpEdge) {
+    if (wireMode === 'omit' && payloadKey === this.lastPayload && !jumpEdge && !attackEdge) {
       return;
     }
 

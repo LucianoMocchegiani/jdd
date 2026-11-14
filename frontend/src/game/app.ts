@@ -8,10 +8,8 @@ import { InputComponent } from '@/ecs/components/input';
 import { ContactComponent } from '@/ecs/components/contact';
 import { PositionComponent } from '@/ecs/components/position';
 import { World } from '@/ecs/core';
-import { ActionOrchestratorSystem } from '@/ecs/domains/action/action-orchestrator-system';
 import { ConditionSystem } from '@/ecs/domains/condition/condition-system';
 import { ParticleContextSystem } from '@/ecs/domains/contact/particle-context-system';
-import { WorldDamageSystem } from '@/ecs/domains/impact/world-damage-system';
 import { InputSystem } from '@/ecs/domains/input/input-system';
 import { formatBackendOkStatus, syncParticleCatalog, verifyBackendConnectivity } from '@/game/bootstrap';
 import { CameraController, setCameraController } from '@/game/camera';
@@ -70,17 +68,10 @@ function registerGameplaySystems(
   world: World,
   terrain: TerrainStore,
   debugMediumEl: HTMLElement,
-  worldRealtime: WorldRealtimeClient,
-  playerId: string,
 ): void {
-  let mediumLine = 'medium: —';
-  let actionLine = 'acción: —';
-  const refreshContactHud = (): void => { debugMediumEl.textContent = `${mediumLine}\n${actionLine}`; };
   world.registerSystem(new InputSystem());
-  world.registerSystem(new ParticleContextSystem(terrain, (label) => { mediumLine = label; refreshContactHud(); }));
+  world.registerSystem(new ParticleContextSystem(terrain, (label) => { debugMediumEl.textContent = label; }));
   world.registerSystem(new ConditionSystem(terrain));
-  world.registerSystem(new ActionOrchestratorSystem((label) => { actionLine = label; refreshContactHud(); }));
-  world.registerSystem(new WorldDamageSystem(terrain, worldRealtime, playerId));
 }
 
 export async function bootstrapApp(
@@ -212,7 +203,7 @@ export async function bootstrapApp(
     } else if (event.type === 'join_ok') {
       playerActive = true;
       setPlayerVisible(true);
-      statusEl.textContent = `${formatBackendOkStatus(health.status, catalog.statusSuffix)} · ${bloqueNombre} · ${terrain.getParticles().length} partículas · clic canvas · WASD · C cámara · F atacar`;
+      statusEl.textContent = `${formatBackendOkStatus(health.status, catalog.statusSuffix)} · ${bloqueNombre} · ${terrain.getParticles().length} partículas · clic canvas · WASD · C cámara · F/G ataques`;
     } else if (event.type === 'join_error') {
       playerActive = false;
       setPlayerVisible(false);
@@ -240,7 +231,7 @@ export async function bootstrapApp(
     },
   });
 
-  registerGameplaySystems(world, terrain, debugMediumEl, worldRealtime, playerId);
+  registerGameplaySystems(world, terrain, debugMediumEl);
   debugMediumEl.textContent = 'medium: —';
   const cameraController = new CameraController(camera, renderer.domElement, playerMesh);
   setCameraController(cameraController);

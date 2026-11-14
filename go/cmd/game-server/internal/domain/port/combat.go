@@ -20,6 +20,7 @@ type ProjectileProfile struct {
 
 // CombatProfile contains the combat rules configured on a shared action.
 type CombatProfile struct {
+	InputIntent    string
 	Cooldown       time.Duration
 	ManaCost       float64
 	BlockedMediums []string
