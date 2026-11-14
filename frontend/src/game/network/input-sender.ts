@@ -2,8 +2,8 @@
  * @file Envío periódico de intents y orientación al servidor.
  *
  * **Contrato intents vs cámara:** si solo cambian `yaw`/`pitch`, no se envía la clave
- * `intents` (el servidor conserva el último estado recibido). Al soltar movimiento
- * se manda `{}` para que el servidor limpie los intents activos.
+ * `intents` (el servidor conserva el último estado recibido). Cuando se liberan todos
+ * los intents activos, se manda `{}` para que el servidor los limpie.
  */
 
 import type { InputCommand } from '@/types/world-events';
