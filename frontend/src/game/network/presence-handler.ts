@@ -1,11 +1,7 @@
-/**
- * @file Handler de presencia — prepara la sesión y actualiza jugadores remotos.
- */
-
 import type { SessionEvent } from '@/types/world-events';
 import { getPreferredWireFormat } from '@/api/config';
 import type { WorldRealtimeClient } from '@/game/network/ws-client';
-import type { RemotePresence } from '@/game/client-prediction/remote-presence';
+import type { RemotePresence } from '@/game/player-replication/remote-presence';
 
 export class PresenceHandler {
   constructor(

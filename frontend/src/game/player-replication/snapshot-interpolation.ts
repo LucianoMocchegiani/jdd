@@ -1,24 +1,24 @@
 /**
- * @file Buffer e interpolación de `player_state` para jugadores remotos (Sprint D4).
+ * @file Buffer e interpolación de snapshots autoritativos de jugadores.
  *
  * El servidor emite ~{@link NETWORK_SIM_HZ} Hz; el cliente renderiza ~60 fps.
- * Retrasamos el muestreo {@link REMOTE_INTERPOLATION_DELAY_SEC} para tener dos
+ * Retrasamos el muestreo {@link PLAYER_INTERPOLATION_DELAY_SEC} para tener dos
  * snapshots entre los que interpolar; si no hay par, extrapolamos con velocidad acotada.
  */
 
 import { NETWORK_SIM_HZ } from '@/game-data/game-config';
-import type { RemoteRenderState, RemoteSnapshot } from '@/types/remote-player';
+import type { PlayerRenderState, PlayerSnapshot } from '@/types/player-snapshot';
 
 /** Retraso de render respecto al último snapshot (segundos). ~3 ticks a 30 Hz. */
-export const REMOTE_INTERPOLATION_DELAY_SEC = 1 / NETWORK_SIM_HZ + 0.04;
+export const PLAYER_INTERPOLATION_DELAY_SEC = 1 / NETWORK_SIM_HZ + 0.04;
 
 /** Tope de extrapolación cuando aún no llega el siguiente snapshot. */
-export const REMOTE_MAX_EXTRAPOLATION_SEC = 2 / NETWORK_SIM_HZ;
+export const PLAYER_MAX_EXTRAPOLATION_SEC = 2 / NETWORK_SIM_HZ;
 
-/** Snapshots guardados por jugador remoto. */
-export const REMOTE_SNAPSHOT_BUFFER_SIZE = 32;
+/** Snapshots guardados por jugador. */
+export const PLAYER_SNAPSHOT_BUFFER_SIZE = 32;
 
-/** Export `lerp` — lerp. */
+/** Interpolación lineal. */
 export function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
@@ -35,8 +35,8 @@ export function lerpAngle(from: number, to: number, t: number): number {
   return from + delta * t;
 }
 
-function extrapolate(snapshot: RemoteSnapshot, elapsedSec: number): RemoteRenderState {
-  const dt = Math.min(Math.max(elapsedSec, 0), REMOTE_MAX_EXTRAPOLATION_SEC);
+function extrapolate(snapshot: PlayerSnapshot, elapsedSec: number): PlayerRenderState {
+  const dt = Math.min(Math.max(elapsedSec, 0), PLAYER_MAX_EXTRAPOLATION_SEC);
   return {
     x: snapshot.x + snapshot.vx * dt,
     y: snapshot.y + snapshot.vy * dt,
@@ -45,20 +45,18 @@ function extrapolate(snapshot: RemoteSnapshot, elapsedSec: number): RemoteRender
   };
 }
 
-/**
- * Buffer temporal por `player_id` remoto.
- */
-export class RemoteInterpolationBuffer {
-  private snapshots: RemoteSnapshot[] = [];
+/** Buffer temporal por jugador para presentar snapshots autoritativos. */
+export class PlayerSnapshotBuffer {
+  private snapshots: PlayerSnapshot[] = [];
 
-  push(snapshot: RemoteSnapshot): void {
+  push(snapshot: PlayerSnapshot): void {
     const last = this.snapshots[this.snapshots.length - 1];
     if (last && last.serverTick === snapshot.serverTick) {
       this.snapshots[this.snapshots.length - 1] = snapshot;
       return;
     }
     if (last && snapshot.serverTick < last.serverTick) {
-      if (last.serverTick - snapshot.serverTick > REMOTE_SNAPSHOT_BUFFER_SIZE) {
+      if (last.serverTick - snapshot.serverTick > PLAYER_SNAPSHOT_BUFFER_SIZE) {
         return;
       }
       const idx = this.snapshots.findIndex((s) => s.serverTick > snapshot.serverTick);
@@ -70,7 +68,7 @@ export class RemoteInterpolationBuffer {
     } else {
       this.snapshots.push(snapshot);
     }
-    while (this.snapshots.length > REMOTE_SNAPSHOT_BUFFER_SIZE) {
+    while (this.snapshots.length > PLAYER_SNAPSHOT_BUFFER_SIZE) {
       this.snapshots.shift();
     }
   }
@@ -83,15 +81,13 @@ export class RemoteInterpolationBuffer {
     return this.snapshots.length;
   }
 
-  /**
-   * Estado de presentación en `nowMs` (epoch ms, p. ej. `performance.now()`).
-   */
-  sample(nowMs: number): RemoteRenderState | null {
+  /** Estado de presentación en `nowMs` (epoch ms, p. ej. `performance.now()`). */
+  sample(nowMs: number): PlayerRenderState | null {
     if (this.snapshots.length === 0) {
       return null;
     }
 
-    const renderTimeMs = nowMs - REMOTE_INTERPOLATION_DELAY_SEC * 1000;
+    const renderTimeMs = nowMs - PLAYER_INTERPOLATION_DELAY_SEC * 1000;
 
     if (this.snapshots.length === 1) {
       const only = this.snapshots[0]!;

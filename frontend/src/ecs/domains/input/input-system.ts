@@ -1,9 +1,9 @@
 /**
- * @file Capa de entrada: teclado/ratón → intents abstractos en {@link InputComponent}.
+ * @file Captura de teclado/ratón y traducción a intents del cliente.
  *
- * No decide acciones ni animaciones. Solo traduce hardware a nombres estables
- * (`move_forward`, `attack_light`, …) que el {@link ActionOrchestratorSystem} y
- * el {@link MovementSystem} consumen más adelante.
+ * No decide resultados de acciones ni simula movimiento. Traduce el estado de
+ * hardware a nombres estables en `InputComponent`; `NetworkInputSender` los envía
+ * al servidor, que resuelve movimiento y acciones.
  *
  * Los listeners viven en `keyboard-state.ts` (un solo attach en `main.ts`).
  * Este sistema solo **lee** el estado HELD cada frame.
@@ -28,14 +28,11 @@ const BLOCKED_IN_INSPECT = new Set([
 ]);
 
 /**
- * Mapa intent → códigos `KeyboardEvent.code` que lo activan.
+ * Mapa de intents locales a códigos `KeyboardEvent.code`.
  *
  * Regla **OR**: si **cualquiera** de la lista está pulsada, el intent queda `true`.
  * Ej.: Shift izquierdo o derecho → `run_forward`.
- *
- * Debe alinearse con `INPUT_INTENTS` en `input-registry.ts` (validación de fichas).
- * Intents derivados (`constant_displacements_move`) no van aquí: los arma `context-builder`.
- * Se exporta también para que el HUD refleje estos mismos atajos.
+ * Se exporta para que el HUD pueda reflejar estos mismos atajos.
  */
 export const INTENT_KEY_CODES: Record<string, readonly string[]> = {
   move_forward: ['KeyW', 'ArrowUp'],
@@ -49,12 +46,11 @@ export const INTENT_KEY_CODES: Record<string, readonly string[]> = {
 };
 
 /**
- * Primer sistema del frame (`priority` 0): rellena intents antes de contacto y acciones.
+ * Lee controles del jugador local y actualiza `InputComponent` antes de enviarlos.
  *
- * - **Entrada:** `getHeldKeyCodes` / `isKeyHeld` (estado global del teclado).
- * - **Salida:** `InputComponent.intents` por entidad con componente `input`.
- * - **Query:** `requiredComponents = ['input']` → solo entidades que deben leer input
- *   (hoy el jugador; enemigos no llevan este componente).
+ * - **Entrada:** estado global de teclado (`keyboard-state.ts`).
+ * - **Salida:** `InputComponent.intents` de las entidades con componente `input`.
+ * - En modo inspect bloquea locomoción y ataques; los demás controles se conservan.
  */
 export class InputSystem extends System {
   readonly priority = 0;

@@ -1,5 +1,6 @@
 /**
- * @file Logs del flujo input → intents → movimiento.
+ * @file Logs de teclas/intents y utilidades de diagnóstico de movimiento.
+ * El movimiento efectivo lo simula el servidor.
  */
 
 import { isMovementDebugEnabled } from '@/game/debug/movement-debug';
@@ -34,7 +35,7 @@ export function logInputIntents(
   console.log('[input:intents]', { entityId, active, held });
 }
 
-/** Velocidad calculada antes de integrar. */
+/** Datos de velocidad para el diagnóstico de movimiento. */
 export function logMovementVelocity(
   entityId: number,
   velocity: { vx: number; vy: number; vz: number },
@@ -51,7 +52,7 @@ export function logMovementVelocity(
   console.log('[movement:vel]', { entityId, velocity, speed, onGround, activeIntents });
 }
 
-/** Integración de un eje (éxito o bloqueo). */
+/** Registra el resultado de la integración de un eje (éxito o bloqueo). */
 export function logMovementApply(
   axis: 'x' | 'y' | 'z',
   delta: number,

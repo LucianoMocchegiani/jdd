@@ -1,12 +1,10 @@
 /**
- * @file Comparación posición local (ECS) vs autoritativa (`player_state` propio).
+ * @file Comparación de la presentación local con `player_state` del servidor.
  *
- * Activar: `?debug=pos-sync` o `?debug=pos-sync,input-stats` — HUD + personaje fantasma.
+ * Activar: `?debug=pos-sync` o `?debug=pos-sync,input-stats`.
  */
 
 import { isDebugFlagEnabled } from '@/game/debug/debug-query';
-import { formatReconciliationToggleHudLine } from '@/game-data/reconciliation';
-import { formatReconciliationDebugLines } from '@/game/debug/reconciliation-debug';
 import { PlayerCharacterVisual } from '@/game/player/player-character-visual';
 import { selectRemoteClip } from '@/game/player/remote-animation';
 import type { PlayerStateEvent } from '@/types/world-events';
@@ -194,8 +192,6 @@ export function formatPositionSyncHud(
         ].join('\n')
       : '',
     ...diag.filter(Boolean),
-    formatReconciliationToggleHudLine(),
-    ...formatReconciliationDebugLines(),
     '  fantasma magenta = rig, animación y orientación del servidor',
   ].join('\n');
 }

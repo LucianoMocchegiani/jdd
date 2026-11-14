@@ -10,10 +10,15 @@ import (
 )
 
 type Particle struct {
-	ID       string  `json:"id"`
-	X, Y, Z  float64
-	Name     string `json:"tipo_nombre"`
-	Physics  string `json:"tipo_fisico"`
+	ID      string  `json:"id"`
+	X, Y, Z float64
+	Name    string `json:"tipo_nombre"`
+	Physics string `json:"tipo_fisico"`
+}
+
+type Contact struct {
+	Medium        string
+	DominantType  string
 }
 
 type particleRule struct {
@@ -70,9 +75,16 @@ func Load(mediumRulesPath, particleRegistryPath string) (*Resolver, error) {
 }
 
 func (r *Resolver) Resolve(particles []Particle, solidUnderFeet bool, x, y, z, radius float64) string {
+	return r.ResolveContact(particles, solidUnderFeet, x, y, z, radius).Medium
+}
+
+func (r *Resolver) ResolveContact(particles []Particle, solidUnderFeet bool, x, y, z, radius float64) Contact {
 	radiusSq := radius * radius
 	feetZ, fx, fy := math.Floor(z)-1, particlecell.ColumnIndex(x), particlecell.ColumnIndex(y)
 	total, submerged, ground := 0, 0, 0
+	counts := make(map[string]int)
+	var dominant string
+	best := 0
 	for _, p := range particles {
 		dx, dy, dz := p.X-x, p.Y-y, p.Z-z
 		if math.Abs(dx) > radius || math.Abs(dy) > radius || math.Abs(dz) > radius || dx*dx+dy*dy+dz*dz > radiusSq {
@@ -89,15 +101,19 @@ func (r *Resolver) Resolve(particles []Particle, solidUnderFeet bool, x, y, z, r
 		if p.Physics == "solido" && p.X == float64(fx) && p.Y == float64(fy) && p.Z == feetZ {
 			ground++
 		}
+		counts[p.Name]++
+		if counts[p.Name] > best {
+			best, dominant = counts[p.Name], p.Name
+		}
 	}
 	if solidUnderFeet && ground < r.groundMin {
 		ground = r.groundMin
 	}
 	if total == 0 {
 		if ground >= r.groundMin {
-			return "ground"
+			return Contact{Medium: "ground"}
 		}
-		return "air"
+		return Contact{Medium: "air"}
 	}
 	checks := map[string]bool{
 		"submerged_full":    float64(submerged)/float64(total) >= r.fullRatio,
@@ -107,10 +123,10 @@ func (r *Resolver) Resolve(particles []Particle, solidUnderFeet bool, x, y, z, r
 	}
 	for _, medium := range r.order {
 		if checks[medium] {
-			return medium
+			return Contact{Medium: medium, DominantType: dominant}
 		}
 	}
-	return "air"
+	return Contact{Medium: "air", DominantType: dominant}
 }
 
 func contains(values []string, value string) bool {

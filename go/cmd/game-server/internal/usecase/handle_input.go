@@ -20,32 +20,44 @@ type InputPayload struct {
 	Pitch    *float64
 }
 
+type inputActionCatalog interface {
+	GetByInputIntent(intent string) (string, *port.CombatProfile)
+}
+
 func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 	sess, exists := s.Sessions.Get(in.BloqueID, in.EcoID)
-	if !exists {
-		return buildError("input_error", "not_in_block"), false
-	}
+	if !exists { return buildError("input_error", "not_in_block"), false }
+	var actionID string
+	stale := false
 	updated := sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) {
-		if in.Seq != 0 {
-			p.InputSeq = in.Seq
-		}
+		if in.Seq != 0 && in.Seq <= p.InputSeq { stale = true; return }
+		if in.Seq != 0 { p.InputSeq = in.Seq }
 		if in.Intents != nil {
+			if in.Seq > 0 {
+				if catalog, ok := s.Combat.(inputActionCatalog); ok {
+					for _, intent := range []string{"attack_light", "attack_projectile"} {
+						if in.Intents[intent] && !p.Intents[intent] && (s.Conditions == nil || !s.Conditions.BlocksIntent(p.Conditions, intent)) {
+							if id, profile := catalog.GetByInputIntent(intent); profile != nil && (profile.Impact != nil || profile.Projectile != nil) {
+								actionID = id
+								break
+							}
+						}
+					}
+				}
+			}
 			p.Intents = in.Intents
 		}
-		if in.Yaw != nil {
-			p.Yaw = *in.Yaw
-		}
-		if in.Pitch != nil {
-			p.Pitch = *in.Pitch
-		}
+		if in.Yaw != nil { p.Yaw = *in.Yaw }
+		if in.Pitch != nil { p.Pitch = *in.Pitch }
 	})
-	if !updated {
-		return buildError("input_error", "player_not_in_session"), false
+	if !updated { return buildError("input_error", "player_not_in_session"), false }
+	if stale { return "", true }
+	if actionID != "" {
+		_, _ = s.HandleSwing(SwingPayload{BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: actionID, Seq: in.Seq})
 	}
 	return "", true
 }
 
-// SwingPayload carries only client intent; pose, cooldown, and damage are server-resolved.
 type SwingPayload struct {
 	BloqueID string
 	EcoID    int
@@ -54,33 +66,30 @@ type SwingPayload struct {
 	Seq      int
 }
 
-// HandleSwing validates and queues a server-positioned melee strike or projectile.
 func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bool) {
-	if in.PlayerID == "" {
-		return buildError("swing_error", "missing_player_id"), true
-	}
+	if in.PlayerID == "" { return buildError("swing_error", "missing_player_id"), true }
 	sess, exists := s.Sessions.Get(in.BloqueID, in.EcoID)
-	if !exists {
-		return buildError("swing_error", "not_in_block"), true
-	}
-	if s.Combat == nil {
-		return buildError("swing_error", "not_configured"), true
-	}
+	if !exists { return buildError("swing_error", "not_in_block"), true }
+	if s.Combat == nil { return buildError("swing_error", "not_configured"), true }
 	profile := s.Combat.Get(in.ActionID)
-	if profile == nil || (profile.Impact == nil && profile.Projectile == nil) {
-		return buildError("swing_error", "unknown_action"), true
+	if profile == nil || (profile.Impact == nil && profile.Projectile == nil) { return buildError("swing_error", "unknown_action"), true }
+	blocked := false
+	if s.Conditions != nil {
+		sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) { blocked = s.Conditions.BlocksAction(p.Conditions, in.ActionID) })
 	}
-	if s.SwingPub == nil {
-		return buildError("swing_error", "not_configured"), true
-	}
-	reservation, ok := sess.BeginSwing(in.PlayerID, in.Seq, time.Now(), profile.Cooldown, profile.BlockedMediums)
-	if !ok {
+	if blocked { return buildError("swing_error", "swing_rejected"), true }
+	if s.SwingPub == nil { return buildError("swing_error", "not_configured"), true }
+	now := time.Now()
+	reservation, ok := sess.BeginSwing(in.PlayerID, in.Seq, now, profile.Cooldown, profile.BlockedMediums)
+	if !ok { return buildError("swing_error", "swing_rejected"), true }
+	if !sess.SpendSwingMana(in.PlayerID, in.Seq, profile.ManaCost) {
+		sess.CancelSwing(in.PlayerID, reservation)
 		return buildError("swing_error", "swing_rejected"), true
 	}
 	if profile.Projectile != nil {
 		p := profile.Projectile
 		if !sess.SpawnProjectile(in.PlayerID, in.ActionID, reservation, p.Speed, p.Range, p.Damage, p.Radius, p.Delay) {
-			sess.CancelSwing(in.PlayerID, reservation)
+			sess.CancelSwingAndRefundMana(in.PlayerID, reservation, profile.ManaCost)
 			return buildError("swing_error", "projectile_rejected"), true
 		}
 	} else {
@@ -91,19 +100,13 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 				targets = append(targets, port.SwingTarget{PlayerID: p.ID, EntityID: int(p.EntityID), X: p.X, Y: p.Y, Z: p.Z})
 			}
 		})
-		if err := s.SwingPub.PublishSwing(port.SwingCommand{
-			BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: in.ActionID,
-			EntityID: int(reservation.EntityID), Seq: in.Seq,
-			PosX: reservation.X, PosY: reservation.Y, PosZ: reservation.Z, Yaw: reservation.Yaw,
-			Targets: targets,
-		}); err != nil {
-			sess.CancelSwing(in.PlayerID, reservation)
+		if err := s.SwingPub.PublishSwing(port.SwingCommand{BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: in.ActionID, EntityID: int(reservation.EntityID), Seq: in.Seq, PosX: reservation.X, PosY: reservation.Y, PosZ: reservation.Z, Yaw: reservation.Yaw, Targets: targets}); err != nil {
+			sess.CancelSwingAndRefundMana(in.PlayerID, reservation, profile.ManaCost)
 			return buildError("swing_error", "enqueue_failed"), true
 		}
 	}
-	ack, _ := json.Marshal(map[string]interface{}{
-		"type": "swing_queued", "seq": in.Seq, "entity_id": reservation.EntityID, "action_id": in.ActionID,
-	})
+	sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) { p.InCombatUntil = now.Add(6 * time.Second); p.ActionID = in.ActionID; p.ActionSeq++ })
+	ack, _ := json.Marshal(map[string]interface{}{"type": "swing_queued", "seq": in.Seq, "entity_id": reservation.EntityID, "action_id": in.ActionID})
 	return string(ack), false
 }
 

@@ -15,13 +15,3 @@ export {
   getRegistryBootstrapState,
   type RegistryBootstrapState,
 } from '@/game-data/bootstrap/initialize-registries';
-export {
-  formatReconciliationToggleHudLine,
-  isReconciliationEnabled,
-  RECONCILE_BLEND_DIST_CELLS,
-  RECONCILE_FIXED_DT_SEC,
-  RECONCILE_MAX_REPLAY_TICKS,
-  RECONCILE_MEDIUM_FORCE_SNAP,
-  RECONCILE_SNAP_DIST_CELLS,
-  RECONCILIATION_ENABLED_BY_DEFAULT,
-} from '@/game-data/reconciliation';

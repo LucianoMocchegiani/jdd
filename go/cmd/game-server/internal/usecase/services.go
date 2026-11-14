@@ -4,6 +4,7 @@ package usecase
 import (
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/wshub"
+	"github.com/juego-de-dioses/jd/pkg/jd/conditions"
 	"github.com/juego-de-dioses/jd/pkg/jd/medium"
 	"github.com/juego-de-dioses/jd/pkg/jd/session"
 )
@@ -14,6 +15,7 @@ type Services struct {
 	TerrainTypes port.TerrainTypesFetcher
 	SwingPub     port.SwingPublisher
 	Combat       port.CombatCatalog
+	Conditions   *conditions.Catalog
 	Medium       *medium.Resolver
 	Registry     port.RegistryClient
 	Hub          *wshub.Hub

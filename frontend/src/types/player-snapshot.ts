@@ -1,9 +1,9 @@
 /**
- * @file Contratos de jugadores remotos (interpolación de `player_state`).
+ * @file Contratos para interpolar snapshots autoritativos de jugadores.
  */
 
 /** Snapshot mínimo para el buffer (posición autoritativa + llegada WS). */
-export interface RemoteSnapshot {
+export interface PlayerSnapshot {
   serverTick: number;
   x: number;
   y: number;
@@ -15,8 +15,8 @@ export interface RemoteSnapshot {
   receivedAtMs: number;
 }
 
-/** Export `RemoteRenderState` — remote render state. */
-export interface RemoteRenderState {
+/** Estado de presentación interpolado o extrapolado. */
+export interface PlayerRenderState {
   x: number;
   y: number;
   z: number;
