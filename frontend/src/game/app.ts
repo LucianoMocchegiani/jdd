@@ -187,6 +187,7 @@ export async function bootstrapApp(
               medium: event.medium, vx: event.vx, vy: event.vy, vz: event.vz,
               intents: event.intents, action_id: event.action_id,
             });
+            window.dispatchEvent(new CustomEvent('ability-cooldown-start', { detail: { actionId: event.action_id } }));
           }
           localActionSeq = event.action_seq;
         }
