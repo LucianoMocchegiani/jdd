@@ -1,3 +1,0 @@
-package main
-
-// Condition data is copied with the other shared game-data catalogs into the runtime image.
