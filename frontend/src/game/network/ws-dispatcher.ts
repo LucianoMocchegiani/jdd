@@ -1,14 +1,3 @@
-/**
- * @file Parseo y dispatch de mensajes WS entrantes.
- *
- * Responsabilidades:
- * - Tipos de handlers y la interfaz de callbacks (`WorldRealtimeHandlers`).
- * - `parseInboundMessage` — valida y estrecha JSON crudo a `RealtimeInboundMessage`.
- * - `dispatchMessage` — enruta un mensaje ya validado al handler correcto.
- *
- * No abre ni cierra sockets — eso es responsabilidad de `ws-client.ts`.
- */
-
 import type {
   RealtimeInboundMessage,
   SessionEvent,
@@ -34,9 +23,7 @@ interface SwingResultHit {
 function parsePlayerStateIntents(raw: unknown): Record<string, true> | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
   const out: Record<string, true> = {};
-  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
-    if (value === true) out[key] = true;
-  }
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) if (value === true) out[key] = true;
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
@@ -47,18 +34,11 @@ export function parseInboundMessage(raw: unknown): RealtimeInboundMessage | null
   if (typeof type !== 'string') return null;
 
   if (type === 'projectile_state') {
-    if (
-      typeof msg.id !== 'string' || typeof msg.owner_id !== 'string' || typeof msg.action_id !== 'string' ||
-      typeof msg.x !== 'number' || !Number.isFinite(msg.x) ||
-      typeof msg.y !== 'number' || !Number.isFinite(msg.y) ||
-      typeof msg.z !== 'number' || !Number.isFinite(msg.z) || typeof msg.active !== 'boolean'
-    ) return null;
-    return {
-      type: 'projectile_state', id: msg.id, owner_id: msg.owner_id, action_id: msg.action_id,
-      x: msg.x, y: msg.y, z: msg.z, active: msg.active,
-    };
+    if (typeof msg.id !== 'string' || typeof msg.owner_id !== 'string' || typeof msg.action_id !== 'string' ||
+      typeof msg.x !== 'number' || !Number.isFinite(msg.x) || typeof msg.y !== 'number' || !Number.isFinite(msg.y) ||
+      typeof msg.z !== 'number' || !Number.isFinite(msg.z) || typeof msg.active !== 'boolean') return null;
+    return { type: 'projectile_state', id: msg.id, owner_id: msg.owner_id, action_id: msg.action_id, x: msg.x, y: msg.y, z: msg.z, active: msg.active };
   }
-
   if (type === 'particle_destroyed') {
     const particleId = msg.particle_id;
     const bloqueId = msg.bloque_id;
@@ -67,104 +47,63 @@ export function parseInboundMessage(raw: unknown): RealtimeInboundMessage | null
     let position: { x: number; y: number; z: number } | undefined;
     if (pos && typeof pos === 'object') {
       const p = pos as Record<string, unknown>;
-      if (typeof p.x === 'number' && typeof p.y === 'number' && typeof p.z === 'number') {
-        position = { x: p.x, y: p.y, z: p.z };
-      }
+      if (typeof p.x === 'number' && Number.isFinite(p.x) && typeof p.y === 'number' && Number.isFinite(p.y) && typeof p.z === 'number' && Number.isFinite(p.z)) position = { x: p.x, y: p.y, z: p.z };
     }
     return { type: 'particle_destroyed', particle_id: particleId, bloque_id: bloqueId, position };
   }
-
   if (type === 'join_ok') {
-    const bloqueId = msg.bloque_id;
-    const playerId = msg.player_id;
-    const players = msg.players;
+    const bloqueId = msg.bloque_id, playerId = msg.player_id, players = msg.players;
     if (typeof bloqueId !== 'string' || typeof playerId !== 'string' || !Array.isArray(players)) return null;
-    return {
-      type: 'join_ok',
-      bloque_id: bloqueId,
-      player_id: playerId,
-      players: players.filter((p): p is string => typeof p === 'string'),
-    };
+    return { type: 'join_ok', bloque_id: bloqueId, player_id: playerId, players: players.filter((p): p is string => typeof p === 'string') };
   }
-
-  if (type === 'join_error') {
-    return { type: 'join_error', error: String(msg.error ?? 'unknown') };
-  }
-
+  if (type === 'join_error') return { type: 'join_error', error: String(msg.error ?? 'unknown') };
   if (type === 'player_joined' || type === 'player_left') {
-    const bloqueId = msg.bloque_id;
-    const playerId = msg.player_id;
+    const bloqueId = msg.bloque_id, playerId = msg.player_id;
     if (typeof bloqueId !== 'string' || typeof playerId !== 'string') return null;
-    if (type === 'player_left') {
-      return { type: 'player_left', bloque_id: bloqueId, player_id: playerId };
-    }
+    if (type === 'player_left') return { type: 'player_left', bloque_id: bloqueId, player_id: playerId };
     const pos = msg.position;
     if (!pos || typeof pos !== 'object') return null;
     const p = pos as Record<string, unknown>;
     if (typeof p.x !== 'number' || typeof p.y !== 'number' || typeof p.z !== 'number') return null;
     return { type: 'player_joined', bloque_id: bloqueId, player_id: playerId, position: { x: p.x, y: p.y, z: p.z } };
   }
-
   if (type === 'player_state') {
-    const bloqueId = msg.bloque_id;
-    const playerId = msg.player_id;
+    const bloqueId = msg.bloque_id, playerId = msg.player_id;
     if (typeof bloqueId !== 'string' || typeof playerId !== 'string') return null;
-    if (
-      typeof msg.x !== 'number' || typeof msg.y !== 'number' || typeof msg.z !== 'number' ||
-      typeof msg.vx !== 'number' || typeof msg.vy !== 'number' || typeof msg.vz !== 'number' ||
-      typeof msg.yaw !== 'number'
-    ) return null;
+    if (typeof msg.x !== 'number' || !Number.isFinite(msg.x) || typeof msg.y !== 'number' || !Number.isFinite(msg.y) ||
+      typeof msg.z !== 'number' || !Number.isFinite(msg.z) || typeof msg.vx !== 'number' || !Number.isFinite(msg.vx) ||
+      typeof msg.vy !== 'number' || !Number.isFinite(msg.vy) || typeof msg.vz !== 'number' || !Number.isFinite(msg.vz) ||
+      typeof msg.yaw !== 'number' || !Number.isFinite(msg.yaw)) return null;
+    const conditions = Array.isArray(msg.conditions) ? msg.conditions.filter((id): id is string => typeof id === 'string') : undefined;
     return {
-      type: 'player_state',
-      server_tick: typeof msg.server_tick === 'number' ? msg.server_tick : 0,
-      player_id: playerId,
-      bloque_id: bloqueId,
-      x: msg.x, y: msg.y, z: msg.z,
-      vx: msg.vx, vy: msg.vy, vz: msg.vz,
-      yaw: msg.yaw,
-      pitch: typeof msg.pitch === 'number' ? msg.pitch : undefined,
+      type: 'player_state', server_tick: typeof msg.server_tick === 'number' ? msg.server_tick : 0,
+      player_id: playerId, bloque_id: bloqueId,
+      x: msg.x, y: msg.y, z: msg.z, vx: msg.vx, vy: msg.vy, vz: msg.vz, yaw: msg.yaw,
+      pitch: typeof msg.pitch === 'number' && Number.isFinite(msg.pitch) ? msg.pitch : undefined,
       medium: typeof msg.medium === 'string' ? msg.medium : 'ground',
+      dominant_particle: typeof msg.dominant_particle === 'string' ? msg.dominant_particle : undefined,
+      conditions,
+      condition_damage_total: typeof msg.condition_damage_total === 'number' && Number.isFinite(msg.condition_damage_total) ? msg.condition_damage_total : undefined,
       action_id: typeof msg.action_id === 'string' ? msg.action_id : undefined,
-      action_t0_ms: typeof msg.action_t0_ms === 'number' ? msg.action_t0_ms : undefined,
-      entity_id: typeof msg.entity_id === 'number' ? msg.entity_id : undefined,
+      action_seq: typeof msg.action_seq === 'number' && Number.isFinite(msg.action_seq) ? msg.action_seq : undefined,
+      action_t0_ms: typeof msg.action_t0_ms === 'number' && Number.isFinite(msg.action_t0_ms) ? msg.action_t0_ms : undefined,
+      entity_id: typeof msg.entity_id === 'number' && Number.isFinite(msg.entity_id) ? msg.entity_id : undefined,
       intents: parsePlayerStateIntents(msg.intents),
-      input_seq: typeof msg.input_seq === 'number' ? msg.input_seq : undefined,
-      health: typeof msg.health === 'number' ? msg.health : undefined,
-      max_health: typeof msg.max_health === 'number' ? msg.max_health : undefined,
+      input_seq: typeof msg.input_seq === 'number' && Number.isFinite(msg.input_seq) ? msg.input_seq : undefined,
+      health: typeof msg.health === 'number' && Number.isFinite(msg.health) ? msg.health : undefined,
+      max_health: typeof msg.max_health === 'number' && Number.isFinite(msg.max_health) ? msg.max_health : undefined,
+      mana: typeof msg.mana === 'number' && Number.isFinite(msg.mana) ? msg.mana : undefined,
+      max_mana: typeof msg.max_mana === 'number' && Number.isFinite(msg.max_mana) ? msg.max_mana : undefined,
+      in_combat: typeof msg.in_combat === 'boolean' ? msg.in_combat : undefined,
     };
   }
-
-  if (type === 'swing_result') {
-    return {
-      type: 'swing_result',
-      seq: Number(msg.seq ?? 0),
-      entity_id: Number(msg.entity_id ?? 0),
-      action_id: String(msg.action_id ?? ''),
-      hits: Array.isArray(msg.hits) ? (msg.hits as SwingResultHit[]) : [],
-    };
-  }
-
-  if (type === 'swing_error') {
-    return {
-      type: 'swing_error',
-      error: String(msg.error ?? 'unknown'),
-      action_id: typeof msg.action_id === 'string' ? msg.action_id : undefined,
-      seq: typeof msg.seq === 'number' ? msg.seq : undefined,
-    };
-  }
-
-  const terrain = parseTerrainWsMessage(msg);
-  if (terrain) return terrain;
-  return null;
+  if (type === 'swing_result') return { type: 'swing_result', seq: Number(msg.seq ?? 0), entity_id: Number(msg.entity_id ?? 0), action_id: String(msg.action_id ?? ''), hits: Array.isArray(msg.hits) ? msg.hits as SwingResultHit[] : [] };
+  if (type === 'swing_error') return { type: 'swing_error', error: String(msg.error ?? 'unknown'), action_id: typeof msg.action_id === 'string' ? msg.action_id : undefined, seq: typeof msg.seq === 'number' ? msg.seq : undefined };
+  return parseTerrainWsMessage(msg);
 }
 
 export function dispatchMessage(msg: RealtimeInboundMessage, handlers: WorldRealtimeHandlers): void {
-  if (
-    msg.type === 'particle_destroyed' ||
-    msg.type === 'terrain_types' ||
-    msg.type === 'terrain_chunk' ||
-    msg.type === 'terrain_chunk_done'
-  ) {
+  if (msg.type === 'particle_destroyed' || msg.type === 'terrain_types' || msg.type === 'terrain_chunk' || msg.type === 'terrain_chunk_done') {
     handlers.onWorldEvent(msg);
     return;
   }

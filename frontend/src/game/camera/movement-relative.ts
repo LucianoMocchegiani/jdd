@@ -1,11 +1,9 @@
 /**
- * @file Traslación WASD en espacio de cámara (fase 7).
+ * @file Convenciones de cámara: direcciones relativas a yaw/pitch y rotación del mesh.
  *
- * Convierte flags de {@link InputComponent} + orientación de {@link CameraController}
- * en velocidad en **celdas/s** (`vx`, `vy`, `vz` del mundo ECS).
- *
- * Consumido por {@link computeMovementFromAction}; no integra posición ni colisión.
- * Convención de ejes: X/Y = planta; Z = altura (igual que {@link MovementSystem}).
+ * Incluye helpers para calcular direcciones y velocidades desde input, pero no integra
+ * posición ni resuelve colisiones. La simulación de movimiento es autoritativa en el servidor.
+ * Convención de ejes: X/Y = planta; Z = altura.
  *
  * **Alineación con la órbita:** la cámara orbita en offset `(sin(yaw), cos(yaw))`; la vista
  * hacia el jugador es `cameraPlanarForwardUnit` = `(-sin, -cos)`. **W** usa esa vista en planta.

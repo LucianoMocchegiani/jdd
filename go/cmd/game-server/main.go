@@ -21,6 +21,7 @@ import (
 	redisinfra "github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/redis"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/wshub"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/usecase"
+	"github.com/juego-de-dioses/jd/pkg/jd/conditions"
 	"github.com/juego-de-dioses/jd/pkg/jd/medium"
 	"github.com/juego-de-dioses/jd/pkg/jd/session"
 )
@@ -35,6 +36,8 @@ func main() {
 	if err != nil { log.Fatalf("action catalog: %v", err) }
 	mediumResolver, err := medium.Load(resolveDataPath(cfg.MediumRulesPath), resolveDataPath(cfg.ParticleRegistryPath))
 	if err != nil { log.Fatalf("medium rules: %v", err) }
+	conditionCatalog, err := conditions.Load(resolveDataPath(cfg.ConditionStatusPath), resolveDataPath(cfg.ConditionElementalPath), resolveDataPath(cfg.ParticleRegistryPath))
+	if err != nil { log.Fatalf("condition catalog: %v", err) }
 
 	opt, err := goredis.ParseURL(cfg.RedisURL)
 	if err != nil { log.Fatalf("redis url: %v", err) }
@@ -51,7 +54,7 @@ func main() {
 	if cfg.UseRegistry() { registry = httpclient.NewRegistryClient(cfg.RegistryURL) } else { registry = httpclient.NewNoopRegistry() }
 	svc := &usecase.Services{
 		Sessions: store, TerrainPub: terrainPub, TerrainTypes: terrainTypes, SwingPub: swingPub,
-		Combat: combatCatalog, Medium: mediumResolver, Registry: registry, Hub: hub, SessionCfg: sessionCfg,
+		Combat: combatCatalog, Conditions: conditionCatalog, Medium: mediumResolver, Registry: registry, Hub: hub, SessionCfg: sessionCfg,
 		InstanceID: cfg.GameInstanceID, ServerWire: cfg.WireFormat, TerrainPush: usecase.NewTerrainPushManager(),
 	}
 	if cfg.UseRegistry() {

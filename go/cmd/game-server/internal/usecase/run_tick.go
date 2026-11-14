@@ -3,15 +3,17 @@ package usecase
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/sim/systems"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/wshub"
+	jdconditions "github.com/juego-de-dioses/jd/pkg/jd/conditions"
 )
 
 const (
-	tickHz = 30
+	tickHz      = 30
 	maxDeltaSec = 0.1
 )
 
@@ -27,8 +29,19 @@ func (s *Services) RunTick(deltaSec float64) {
 			continue
 		}
 		s.MaybeRefreshTerrain(sess)
+		now := time.Now()
 		sess.ForEachPlayer(func(p *entity.Player) {
-			systems.RunPlayerTick(p, sess.SolidGrid, s.SessionCfg, s.Medium, deltaSec)
+			p.RegenerateMana(deltaSec, now)
+			systems.ResolvePlayerContact(p, sess.SolidGrid, s.SessionCfg, s.Medium)
+			if s.Conditions != nil {
+				p.ConditionDamageTotal += s.Conditions.Update(&p.Conditions, &p.LastContactParticle, &p.ConditionLastTickAt, p.DominantParticleName, now)
+			}
+			intents, speed := p.Intents, 1.0
+			if s.Conditions != nil {
+				intents = s.Conditions.FilterIntents(p.Conditions, intents)
+				speed = s.Conditions.MovementSpeedMultiplier(p.Conditions)
+			}
+			systems.RunPlayerTickWithEffects(p, sess.SolidGrid, s.SessionCfg, s.Medium, deltaSec, intents, speed)
 		})
 		projectiles := sess.AdvanceProjectiles(deltaSec)
 		for _, projectile := range projectiles {
@@ -51,7 +64,7 @@ func (s *Services) RunTick(deltaSec float64) {
 			}
 		}
 		tick := sess.IncrementTick()
-		states := BuildAllPlayerStates(sess, tick)
+		states := BuildTickPlayerStates(sess, tick)
 		if s.Hub != nil {
 			s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
 				for _, msg := range states {
@@ -64,19 +77,32 @@ func (s *Services) RunTick(deltaSec float64) {
 }
 
 func BuildAllPlayerStates(sess *entity.BlockSession, tick int) []string {
+	return buildPlayerStates(sess, tick, false)
+}
+
+func BuildTickPlayerStates(sess *entity.BlockSession, tick int) []string {
+	return buildPlayerStates(sess, tick, true)
+}
+
+func buildPlayerStates(sess *entity.BlockSession, tick int, publishActions bool) []string {
 	var out []string
+	now := time.Now()
 	sess.ForEachPlayer(func(p *entity.Player) {
 		payload := map[string]interface{}{
 			"type": "player_state", "server_tick": tick, "player_id": p.ID, "bloque_id": sess.BloqueID,
 			"x": p.X, "y": p.Y, "z": p.Z, "vx": p.VX, "vy": p.VY, "vz": p.VZ,
-			"yaw": p.Yaw, "medium": p.Medium, "input_seq": p.InputSeq,
-			"intents": intentsTrueOnly(p.Intents), "health": p.Health, "max_health": p.MaxHealth,
+			"yaw": p.Yaw, "medium": p.Medium, "dominant_particle": p.DominantParticleName,
+			"input_seq": p.InputSeq, "intents": intentsTrueOnly(p.Intents),
+			"health": p.Health, "max_health": p.MaxHealth, "mana": p.Mana, "max_mana": p.MaxMana,
+			"in_combat": p.InCombat(now), "conditions": jdconditions.IDs(p.Conditions),
+			"condition_damage_total": p.ConditionDamageTotal,
 		}
 		if p.Pitch != 0 {
 			payload["pitch"] = p.Pitch
 		}
-		if p.ActionID != "" {
-			payload["action_id"] = p.ActionID
+		if publishActions && p.ActionID != "" {
+			payload["action_id"], payload["action_seq"] = p.ActionID, p.ActionSeq
+			p.ActionID = ""
 		}
 		b, _ := json.Marshal(payload)
 		out = append(out, string(b))
@@ -109,7 +135,7 @@ func BuildPlayerJoined(bloqueID, playerID string, x, y, z float64) string {
 }
 
 func BuildPlayerLeft(bloqueID, playerID string) string {
-	b, _ := json.Marshal(map[string]interface{}{"type": "player_left", "bloque_id": bloqueID, "player_id": playerID})
+	b, _ := json.Marshal(map[string]string{"type": "player_left", "bloque_id": bloqueID, "player_id": playerID})
 	return string(b)
 }
 

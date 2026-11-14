@@ -1,5 +1,5 @@
 /**
- * @file Elige el clip remoto a partir del estado que ya publica el servidor.
+ * @file Elige clips de presentación a partir del estado autoritativo del servidor.
  */
 
 export interface RemoteAnimationState {
@@ -8,26 +8,31 @@ export interface RemoteAnimationState {
   vy: number;
   vz: number;
   intents?: Record<string, boolean>;
+  action_id?: string;
 }
 
 const MOVE_INTENTS = ['move_forward', 'move_backward', 'move_left', 'move_right'] as const;
 
+export function isNewActionSequence(previous: number | null, next: number): boolean {
+  return next > (previous ?? 0);
+}
+
+/** Selecciona el clip visual del jugador local o remoto desde el estado recibido. */
 export function selectRemoteClip(state: RemoteAnimationState): string | null {
+  if (state.action_id === 'attack') return 'attack';
+  if (state.action_id === 'kamehameha') return 'kamehameha';
   const moving =
     MOVE_INTENTS.some((intent) => state.intents?.[intent]) || Math.hypot(state.vx, state.vy) > 0.05;
 
-  // shortcut: infer attacks from the held input intent; send timed action events if taps are missed or exact timing matters.
-  if (state.intents?.attack_light && state.medium !== 'air' && state.medium !== 'submerged_full') {
-    return 'attack';
-  }
   if (state.medium === 'submerged_partial' || state.medium === 'submerged_full') {
     return moving ? 'swim' : null;
   }
   if (state.medium === 'air') {
-    return moving ? 'fly' : state.vz > 0.1 ? 'jump' : null;
+    if (moving) return 'fly';
+    return state.vz > 0.05 ? 'jump' : null;
   }
-  if (state.medium === 'ground' && moving) {
-    return state.intents?.run_forward ? 'run' : 'walk';
+  if (moving) {
+    return state.intents?.run_forward || state.intents?.run_backward ? 'run' : 'walk';
   }
   return null;
 }
