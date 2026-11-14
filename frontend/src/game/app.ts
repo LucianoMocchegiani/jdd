@@ -2,14 +2,10 @@ import type { HealthResponse } from '@/api/client';
 import { BloquesApi } from '@/api/bloques-api';
 import { getWebSocketUrl, API_BASE_URL } from '@/api/config';
 import { resolveActiveBloque } from '@/game/bootstrap/resolve-active-bloque';
-import { ConditionsComponent } from '@/ecs/components/conditions';
 import { FacingComponent } from '@/ecs/components/facing';
 import { InputComponent } from '@/ecs/components/input';
-import { ContactComponent } from '@/ecs/components/contact';
 import { PositionComponent } from '@/ecs/components/position';
 import { World } from '@/ecs/core';
-import { ConditionSystem } from '@/ecs/domains/condition/condition-system';
-import { ParticleContextSystem } from '@/ecs/domains/contact/particle-context-system';
 import { InputSystem } from '@/ecs/domains/input/input-system';
 import { formatBackendOkStatus, syncParticleCatalog, verifyBackendConnectivity } from '@/game/bootstrap';
 import { CameraController, setCameraController } from '@/game/camera';
@@ -22,7 +18,6 @@ import { ProjectileVisuals } from '@/game/projectile-visuals';
 import { isNewActionSequence, selectRemoteClip } from '@/game/player/remote-animation';
 import type { PlayerCharacterVisual } from '@/game/player/player-character-visual';
 import type { PlayerStateEvent, SessionEvent } from '@/types/world-events';
-import { isMediumId } from '@/types/medium';
 import { findSpawnZ } from '@/game/player/find-spawn';
 import { resolveSpawnCell } from '@/game/player/resolve-spawn-cell';
 import { spawnPlayer, syncPlayerMesh } from '@/game/player/spawn-player';
@@ -63,16 +58,6 @@ export interface AppContext {
 }
 
 export interface BootstrapResult { app: AppContext; health: HealthResponse; }
-
-function registerGameplaySystems(
-  world: World,
-  terrain: TerrainStore,
-  debugMediumEl: HTMLElement,
-): void {
-  world.registerSystem(new InputSystem());
-  world.registerSystem(new ParticleContextSystem(terrain, (label) => { debugMediumEl.textContent = label; }));
-  world.registerSystem(new ConditionSystem(terrain));
-}
 
 export async function bootstrapApp(
   scene: Scene,
@@ -154,6 +139,7 @@ export async function bootstrapApp(
   let localMaxMana = 100;
   let localInCombat = false;
   let activeConditionIds: string[] = [];
+  let conditionDamageTotal = 0;
   let localVisualState: PlayerStateEvent | null = null;
   let localActionSeq: number | null = null;
   let pendingLocalActionClip: string | null = null;
@@ -176,6 +162,11 @@ export async function bootstrapApp(
       recordObservedPlayerState(event);
       if (event.player_id === playerId) {
         localVisualState = event;
+        debugMediumEl.textContent = event.dominant_particle
+          ? `medium: ${event.medium} · ${event.dominant_particle}`
+          : `medium: ${event.medium}`;
+        activeConditionIds = event.conditions ?? [];
+        conditionDamageTotal = event.condition_damage_total ?? 0;
         localSnapshots.push({
           serverTick: event.server_tick, x: event.x, y: event.y, z: event.z,
           vx: event.vx, vy: event.vy, vz: event.vz, yaw: event.yaw,
@@ -232,7 +223,7 @@ export async function bootstrapApp(
     },
   });
 
-  registerGameplaySystems(world, terrain, debugMediumEl);
+  world.registerSystem(new InputSystem());
   debugMediumEl.textContent = 'medium: —';
   const cameraController = new CameraController(camera, renderer.domElement, playerMesh);
   setCameraController(cameraController);
@@ -244,10 +235,8 @@ export async function bootstrapApp(
     if (serverState) {
       const pos = world.getComponent<PositionComponent>(playerEntityId, 'position');
       const facing = world.getComponent<FacingComponent>(playerEntityId, 'facing');
-      const contact = world.getComponent<ContactComponent>(playerEntityId, 'contact');
       if (pos) Object.assign(pos, { x: serverState.x, y: serverState.y, z: serverState.z });
       if (facing) facing.yaw = serverState.yaw;
-      if (contact && localVisualState && isMediumId(localVisualState.medium)) contact.medium = localVisualState.medium;
     }
     cameraController.tickInput(world, playerEntityId);
     if (playerActive && terrainReady && terrain.isSimulationStable) {
@@ -269,9 +258,7 @@ export async function bootstrapApp(
       pendingLocalActionClip = null;
       cameraController.updateCamera(camera, world, playerEntityId, pos.x, pos.y, pos.z, cellSize);
       updateCameraHud(debugCameraEl, cameraController.yaw, cameraController.pitch, cameraController.mode);
-      const conditions = world.getComponent<ConditionsComponent>(playerEntityId, 'conditions');
-      activeConditionIds = conditions?.active.map((condition) => condition.conditionId) ?? [];
-      updateConditionsHud(debugConditionsEl, conditions?.active ?? [], conditions?.debugDamageTotal ?? 0);
+      updateConditionsHud(debugConditionsEl, activeConditionIds, conditionDamageTotal);
       if (inputStatsDebug && debugInputStatsEl) {
         inputStatsPollClockSec += deltaTime;
         if (inputStatsPollClockSec >= 1 && !inputStatsPollInFlight) {
@@ -283,11 +270,10 @@ export async function bootstrapApp(
       }
       if (posSyncDebug && debugPosSyncEl) {
         const ws = worldRealtime.getWsDebugStats();
-        const contactComp = world.getComponent<ContactComponent>(playerEntityId, 'contact');
         debugPosSyncEl.textContent = formatPositionSyncHud(pos.x, pos.y, pos.z, {
           lastRxAgeSec: ws.lastRxAgeSec, lastAppliedAgeSec: ws.lastAppliedAgeSec, maxRxGapMs: ws.maxRxGapMs,
           rxPerSec: ws.rxPerSec, terrainRebuilding: particleRenderer.isRebuilding || terrain.isRebuildingIndexes,
-          localMedium: contactComp?.medium ?? null,
+          localMedium: localVisualState?.medium ?? null,
         });
       }
     }
