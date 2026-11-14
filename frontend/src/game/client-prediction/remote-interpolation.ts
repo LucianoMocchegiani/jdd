@@ -1,5 +1,5 @@
 /**
- * @file Buffer e interpolación de `player_state` para jugadores remotos (Sprint D4).
+ * @file Buffer e interpolación de snapshots autoritativos de jugadores locales y remotos.
  *
  * El servidor emite ~{@link NETWORK_SIM_HZ} Hz; el cliente renderiza ~60 fps.
  * Retrasamos el muestreo {@link REMOTE_INTERPOLATION_DELAY_SEC} para tener dos
@@ -45,9 +45,7 @@ function extrapolate(snapshot: RemoteSnapshot, elapsedSec: number): RemoteRender
   };
 }
 
-/**
- * Buffer temporal por `player_id` remoto.
- */
+/** Buffer temporal por jugador para presentar snapshots autoritativos. */
 export class RemoteInterpolationBuffer {
   private snapshots: RemoteSnapshot[] = [];
 
