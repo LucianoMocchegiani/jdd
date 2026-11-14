@@ -1,10 +1,9 @@
-﻿/**
- * @file Envío throttled de intents de locomoción al servidor (Sprint C).
- *
- * Espejo de `handle_input` en `backend/src/game/network/input_handler.py` (~30 Hz).
+/**
+ * @file Envío periódico de intents y orientación al servidor.
  *
  * **Contrato intents vs cámara:** si solo cambian `yaw`/`pitch`, no se envía la clave
- * `intents` (el servidor conserva el último WASD). Al soltar movimiento se manda `{}`.
+ * `intents` (el servidor conserva el último estado recibido). Al soltar movimiento
+ * se manda `{}` para que el servidor limpie los intents activos.
  */
 
 import type { InputCommand } from '@/types/world-events';
@@ -33,7 +32,7 @@ function packActiveIntents(intents: Record<string, boolean>): Record<string, tru
   return out;
 }
 
-/** Envía `input` al servidor a intervalo fijo mientras el WS está abierto. */
+/** Envía los intents al servidor con el intervalo configurado y al detectar flancos. */
 export class NetworkInputSender {
   private lastSentAt = 0;
   private seq = 0;
