@@ -18,6 +18,7 @@ type Player struct {
 	Yaw, Pitch            float64
 	Medium                string
 	DominantParticleName  string
+	LastContactParticle   string
 	InputSeq              int
 	Intents               map[string]bool
 	ActionID              string

@@ -29,8 +29,8 @@ type Definition struct {
 		Movement struct {
 			SpeedMultiplier float64 `json:"speedMultiplier"`
 		} `json:"movement"`
-		BlockIntents   []string   `json:"blockIntents"`
-		BlockActionIDs []string   `json:"blockActionIds"`
+		BlockIntents   []string    `json:"blockIntents"`
+		BlockActionIDs []string    `json:"blockActionIds"`
 		Tick           *TickEffect `json:"tick"`
 	} `json:"effects"`
 }
@@ -71,13 +71,10 @@ func Load(statusPath, elementalPath, particleRegistryPath string) (*Catalog, err
 			return nil, err
 		}
 		for _, def := range file.Conditions {
-			if def.ID == "" {
+			if def.ID == "" || (def.Effects.Tick != nil && def.Effects.Tick.IntervalMS <= 0) {
 				return nil, os.ErrInvalid
 			}
 			if _, exists := c.definitions[def.ID]; exists {
-				return nil, os.ErrInvalid
-			}
-			if def.Effects.Tick != nil && def.Effects.Tick.IntervalMS <= 0 {
 				return nil, os.ErrInvalid
 			}
 			c.definitions[def.ID] = def
@@ -152,11 +149,13 @@ func (c *Catalog) apply(active *[]Instance, refs []ApplyRef, now time.Time) {
 		if stacks <= 0 {
 			stacks = 1
 		}
+		found := false
 		for i := range *active {
 			instance := &(*active)[i]
 			if instance.ConditionID != ref.ConditionID {
 				continue
 			}
+			found = true
 			if def.Lifecycle.Stackable {
 				max := def.Lifecycle.MaxStacks
 				if max <= 0 {
@@ -170,16 +169,17 @@ func (c *Catalog) apply(active *[]Instance, refs []ApplyRef, now time.Time) {
 			if expires != nil {
 				instance.ExpiresAt = expires
 			}
-			goto next
+			break
+		}
+		if found {
+			continue
 		}
 		if !def.Lifecycle.Stackable {
 			stacks = 1
-		}
-		if max := def.Lifecycle.MaxStacks; def.Lifecycle.Stackable && max > 0 && stacks > max {
+		} else if max := def.Lifecycle.MaxStacks; max > 0 && stacks > max {
 			stacks = max
 		}
 		*active = append(*active, Instance{ConditionID: ref.ConditionID, Stacks: stacks, ExpiresAt: expires})
-	next:
 	}
 }
 
