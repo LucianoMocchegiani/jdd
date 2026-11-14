@@ -9,6 +9,7 @@ import (
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/sim/systems"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/wshub"
+	jdconditions "github.com/juego-de-dioses/jd/pkg/jd/conditions"
 )
 
 const (
@@ -75,7 +76,7 @@ func buildPlayerStates(sess *entity.BlockSession, tick int, publishActions bool)
 			"yaw": p.Yaw, "medium": p.Medium, "dominant_particle": p.DominantParticleName,
 			"input_seq": p.InputSeq, "intents": intentsTrueOnly(p.Intents),
 			"health": p.Health, "max_health": p.MaxHealth, "mana": p.Mana, "max_mana": p.MaxMana,
-			"in_combat": p.InCombat(now), "conditions": conditions.IDs(p.Conditions),
+			"in_combat": p.InCombat(now), "conditions": jdconditions.IDs(p.Conditions),
 			"condition_damage_total": p.ConditionDamageTotal,
 		}
 		if p.Pitch != 0 { payload["pitch"] = p.Pitch }
