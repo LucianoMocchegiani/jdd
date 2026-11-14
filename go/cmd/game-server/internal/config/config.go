@@ -20,6 +20,8 @@ type Config struct {
 	CombatCatalogPath string
 	MediumRulesPath string
 	ParticleRegistryPath string
+	ConditionStatusPath string
+	ConditionElementalPath string
 	WireFormat string
 }
 
@@ -35,6 +37,8 @@ func Load() (Config, error) {
 		CombatCatalogPath: getenv("COMBAT_CATALOG_PATH", "shared/game-data/actions/body-actions.json"),
 		MediumRulesPath: getenv("MEDIUM_RULES_PATH", "shared/game-data/medium/rules.json"),
 		ParticleRegistryPath: getenv("PARTICLE_REGISTRY_PATH", "shared/game-data/particles/registry.json"),
+		ConditionStatusPath: getenv("CONDITION_STATUS_PATH", "shared/game-data/conditions/status-effects.json"),
+		ConditionElementalPath: getenv("CONDITION_ELEMENTAL_PATH", "shared/game-data/conditions/elemental.json"),
 		WireFormat: getenv("WIRE_FORMAT", "json"),
 	}, nil
 }

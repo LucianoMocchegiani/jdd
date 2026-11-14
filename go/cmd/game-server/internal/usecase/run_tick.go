@@ -12,26 +12,28 @@ import (
 )
 
 const (
-	tickHz      = 30
+	tickHz = 30
 	maxDeltaSec = 0.1
 )
 
 func (s *Services) RunTick(deltaSec float64) {
-	if deltaSec <= 0 {
-		deltaSec = 1.0 / tickHz
-	}
-	if deltaSec > maxDeltaSec {
-		deltaSec = maxDeltaSec
-	}
+	if deltaSec <= 0 { deltaSec = 1.0 / tickHz }
+	if deltaSec > maxDeltaSec { deltaSec = maxDeltaSec }
 	for _, sess := range s.Sessions.AllSessions() {
-		if sess.PlayerCount() == 0 {
-			continue
-		}
+		if sess.PlayerCount() == 0 { continue }
 		s.MaybeRefreshTerrain(sess)
 		now := time.Now()
 		sess.ForEachPlayer(func(p *entity.Player) {
 			p.RegenerateMana(deltaSec, now)
-			systems.RunPlayerTick(p, sess.SolidGrid, s.SessionCfg, s.Medium, deltaSec)
+			intents, speed := p.Intents, 1.0
+			if s.Conditions != nil {
+				intents = s.Conditions.FilterIntents(p.Conditions, intents)
+				speed = s.Conditions.MovementSpeedMultiplier(p.Conditions)
+			}
+			systems.RunPlayerTickWithEffects(p, sess.SolidGrid, s.SessionCfg, s.Medium, deltaSec, intents, speed)
+			if s.Conditions != nil {
+				p.ConditionDamageTotal += s.Conditions.Update(&p.Conditions, &p.LastContactParticle, &p.ConditionLastTickAt, p.DominantParticleName, now)
+			}
 		})
 		projectiles := sess.AdvanceProjectiles(deltaSec)
 		for _, projectile := range projectiles {
@@ -42,37 +44,26 @@ func (s *Services) RunTick(deltaSec float64) {
 					ParticleID: projectile.ParticleID, ParticleX: projectile.ParticleX,
 					ParticleY: projectile.ParticleY, ParticleZ: projectile.ParticleZ,
 				})
-				if err == nil {
-					sess.AcknowledgeProjectileParticleHit(projectile.ID)
-				}
+				if err == nil { sess.AcknowledgeProjectileParticleHit(projectile.ID) }
 			}
 			if s.Hub != nil {
 				payload, _ := json.Marshal(projectile)
-				s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
-					wshub.SafeWrite(c, string(payload))
-				})
+				s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) { wshub.SafeWrite(c, string(payload)) })
 			}
 		}
 		tick := sess.IncrementTick()
 		states := BuildTickPlayerStates(sess, tick)
 		if s.Hub != nil {
 			s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
-				for _, msg := range states {
-					wshub.WritePlayerState(c, msg)
-				}
+				for _, msg := range states { wshub.WritePlayerState(c, msg) }
 			})
 		}
 	}
 	s.DrainTerrainFanout()
 }
 
-func BuildAllPlayerStates(sess *entity.BlockSession, tick int) []string {
-	return buildPlayerStates(sess, tick, false)
-}
-
-func BuildTickPlayerStates(sess *entity.BlockSession, tick int) []string {
-	return buildPlayerStates(sess, tick, true)
-}
+func BuildAllPlayerStates(sess *entity.BlockSession, tick int) []string { return buildPlayerStates(sess, tick, false) }
+func BuildTickPlayerStates(sess *entity.BlockSession, tick int) []string { return buildPlayerStates(sess, tick, true) }
 
 func buildPlayerStates(sess *entity.BlockSession, tick int, publishActions bool) []string {
 	var out []string
@@ -81,16 +72,15 @@ func buildPlayerStates(sess *entity.BlockSession, tick int, publishActions bool)
 		payload := map[string]interface{}{
 			"type": "player_state", "server_tick": tick, "player_id": p.ID, "bloque_id": sess.BloqueID,
 			"x": p.X, "y": p.Y, "z": p.Z, "vx": p.VX, "vy": p.VY, "vz": p.VZ,
-			"yaw": p.Yaw, "medium": p.Medium, "input_seq": p.InputSeq,
-			"intents": intentsTrueOnly(p.Intents), "health": p.Health, "max_health": p.MaxHealth,
-			"mana": p.Mana, "max_mana": p.MaxMana, "in_combat": p.InCombat(now),
+			"yaw": p.Yaw, "medium": p.Medium, "dominant_particle": p.DominantParticleName,
+			"input_seq": p.InputSeq, "intents": intentsTrueOnly(p.Intents),
+			"health": p.Health, "max_health": p.MaxHealth, "mana": p.Mana, "max_mana": p.MaxMana,
+			"in_combat": p.InCombat(now), "conditions": conditions.IDs(p.Conditions),
+			"condition_damage_total": p.ConditionDamageTotal,
 		}
-		if p.Pitch != 0 {
-			payload["pitch"] = p.Pitch
-		}
+		if p.Pitch != 0 { payload["pitch"] = p.Pitch }
 		if publishActions && p.ActionID != "" {
-			payload["action_id"] = p.ActionID
-			payload["action_seq"] = p.ActionSeq
+			payload["action_id"], payload["action_seq"] = p.ActionID, p.ActionSeq
 			p.ActionID = ""
 		}
 		b, _ := json.Marshal(payload)
@@ -101,38 +91,28 @@ func buildPlayerStates(sess *entity.BlockSession, tick int, publishActions bool)
 
 func intentsTrueOnly(m map[string]bool) map[string]bool {
 	out := make(map[string]bool)
-	for k, v := range m {
-		if v {
-			out[k] = true
-		}
-	}
+	for k, v := range m { if v { out[k] = true } }
 	return out
 }
 
 func BuildJoinOK(bloqueID string, ecoID int, ecoLabel, playerID, wireFormat string, players []string) string {
 	payload := map[string]interface{}{"type": "join_ok", "bloque_id": bloqueID, "eco_id": ecoID, "player_id": playerID, "players": players, "wire_format": wireFormat}
-	if ecoLabel != "" {
-		payload["eco_label"] = ecoLabel
-	}
+	if ecoLabel != "" { payload["eco_label"] = ecoLabel }
 	b, _ := json.Marshal(payload)
 	return string(b)
 }
-
 func BuildPlayerJoined(bloqueID, playerID string, x, y, z float64) string {
 	b, _ := json.Marshal(map[string]interface{}{"type": "player_joined", "bloque_id": bloqueID, "player_id": playerID, "position": map[string]float64{"x": x, "y": y, "z": z}})
 	return string(b)
 }
-
 func BuildPlayerLeft(bloqueID, playerID string) string {
 	b, _ := json.Marshal(map[string]string{"type": "player_left", "bloque_id": bloqueID, "player_id": playerID})
 	return string(b)
 }
-
 func BuildJoinError(code string) string {
 	b, _ := json.Marshal(map[string]string{"type": "join_error", "error": code})
 	return string(b)
 }
-
 func BuildJoinErrorRedirect(wsURL string) string {
 	b, _ := json.Marshal(map[string]string{"type": "join_error", "error": "wrong_game_server", "ws_url": wsURL})
 	return string(b)

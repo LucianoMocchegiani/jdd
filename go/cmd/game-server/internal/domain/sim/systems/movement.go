@@ -1,4 +1,3 @@
-// Package systems — Sistemas de simulación autoritativa.
 package systems
 
 import (
@@ -13,22 +12,25 @@ import (
 )
 
 func RunPlayerTick(p *entity.Player, grid *collision.SolidGridCache, cfg *session.Config, mediumRules *jdmedium.Resolver, dt float64) {
-	medium := resolveMedium(p, grid, cfg, mediumRules)
-	p.Medium = medium
-	speed := cfg.PlayerMoveSpeedCells
-	if medium == "ground" && p.Intents["run_forward"] && p.Intents["move_forward"] {
+	RunPlayerTickWithEffects(p, grid, cfg, mediumRules, dt, p.Intents, 1)
+}
+
+func RunPlayerTickWithEffects(p *entity.Player, grid *collision.SolidGridCache, cfg *session.Config, mediumRules *jdmedium.Resolver, dt float64, intents map[string]bool, speedMultiplier float64) {
+	updateContact(p, grid, cfg, mediumRules)
+	speed := cfg.PlayerMoveSpeedCells * speedMultiplier
+	if p.Medium == "ground" && intents["run_forward"] && intents["move_forward"] {
 		speed *= runSpeedMultiplier
 	}
-	forward, backward := p.Intents["move_forward"], p.Intents["move_backward"]
-	if medium == "ground" {
-		p.VX, p.VY = computePlanarVelocityFromIntents(p.Intents, speed, p.Yaw)
-		if p.Intents["jump"] {
+	forward, backward := intents["move_forward"], intents["move_backward"]
+	if p.Medium == "ground" {
+		p.VX, p.VY = computePlanarVelocityFromIntents(intents, speed, p.Yaw)
+		if intents["jump"] {
 			p.VZ = jumpImpulseZ
 		} else if p.VZ <= 0 {
 			p.VZ = 0
 		}
 	} else {
-		vx, vy, vz := computeVelocity3DFromIntents(p.Intents, speed, p.Yaw, p.Pitch, cfg.CameraDefaultPitch)
+		vx, vy, vz := computeVelocity3DFromIntents(intents, speed, p.Yaw, p.Pitch, cfg.CameraDefaultPitch)
 		p.VX, p.VY = vx, vy
 		if forward || backward {
 			p.VZ = vz
@@ -42,18 +44,22 @@ func RunPlayerTick(p *entity.Player, grid *collision.SolidGridCache, cfg *sessio
 		p.VZ = 0
 		p.Z = math.Floor(p.Z)
 	}
-	p.Medium = resolveMedium(p, grid, cfg, mediumRules)
+	updateContact(p, grid, cfg, mediumRules)
 }
 
-func resolveMedium(p *entity.Player, grid *collision.SolidGridCache, cfg *session.Config, rules *jdmedium.Resolver) string {
+func updateContact(p *entity.Player, grid *collision.SolidGridCache, cfg *session.Config, rules *jdmedium.Resolver) {
 	if rules == nil {
+		p.DominantParticleName = ""
 		if cellBelowSolid(p, grid) {
-			return "ground"
+			p.Medium = "ground"
+		} else {
+			p.Medium = "air"
 		}
-		return "air"
+		return
 	}
 	radius := float64(cfg.ContactSampleRadiusCells)
-	return rules.Resolve(grid.ContactParticlesNear(p.X, p.Y, p.Z, radius), cellBelowSolid(p, grid), p.X, p.Y, p.Z, radius)
+	contact := rules.ResolveContact(grid.ContactParticlesNear(p.X, p.Y, p.Z, radius), cellBelowSolid(p, grid), p.X, p.Y, p.Z, radius)
+	p.Medium, p.DominantParticleName = contact.Medium, contact.DominantType
 }
 
 func cellBelowSolid(p *entity.Player, grid *collision.SolidGridCache) bool {

@@ -1,41 +1,15 @@
-/**
- * @file Línea de HUD para {@link ConditionsComponent}.
- */
+import type { ActiveConditionState } from '@/types/condition-state';
 
-import type { ActiveConditionInstance } from '@/ecs/components/conditions';
-
-function formatInstance(c: ActiveConditionInstance, nowMs: number): string {
-  const stacks = c.stacks > 1 ? ` x${c.stacks}` : '';
-  if (c.expiresAtMs == null) {
-    return `${c.conditionId}${stacks}`;
-  }
-  const secLeft = Math.max(0, (c.expiresAtMs - nowMs) / 1000);
-  return `${c.conditionId}${stacks} (${secLeft.toFixed(1)}s)`;
+export function formatConditionsHudLine(active: readonly ActiveConditionState[], debugDamageTotal: number): string {
+  const conditions = active.map((condition) => {
+    const stacks = condition.stacks > 1 ? ` x${condition.stacks}` : '';
+    const remaining = condition.remaining_ms == null ? '' : ` (${(condition.remaining_ms / 1000).toFixed(1)}s)`;
+    return `${condition.condition_id}${stacks}${remaining}`;
+  }).join(', ');
+  const damage = debugDamageTotal > 0 ? ` · dmg ${debugDamageTotal}` : '';
+  return `conditions: ${conditions || '—'}${damage}`;
 }
 
-/** Export `formatConditionsHudLine` — format conditions hud line. */
-export function formatConditionsHudLine(
-  active: readonly ActiveConditionInstance[],
-  debugDamageTotal: number,
-): string {
-  if (active.length === 0) {
-    return debugDamageTotal > 0 ? `conditions: — · dmg ${debugDamageTotal}` : 'conditions: —';
-  }
-  const nowMs = performance.now();
-  const list = active.map((c) => formatInstance(c, nowMs)).join(', ');
-  const dmg =
-    debugDamageTotal > 0 ? ` · dmg ${debugDamageTotal}` : '';
-  return `conditions: ${list}${dmg}`;
-}
-
-/** Export `updateConditionsHud` — update conditions hud. */
-export function updateConditionsHud(
-  el: HTMLElement | null,
-  active: readonly ActiveConditionInstance[],
-  debugDamageTotal: number,
-): void {
-  if (!el) {
-    return;
-  }
-  el.textContent = formatConditionsHudLine(active, debugDamageTotal);
+export function updateConditionsHud(el: HTMLElement | null, active: readonly ActiveConditionState[], debugDamageTotal: number): void {
+  if (el) el.textContent = formatConditionsHudLine(active, debugDamageTotal);
 }
