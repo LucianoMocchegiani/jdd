@@ -12,11 +12,11 @@ import (
 )
 
 func RunPlayerTick(p *entity.Player, grid *collision.SolidGridCache, cfg *session.Config, mediumRules *jdmedium.Resolver, dt float64) {
+	ResolvePlayerContact(p, grid, cfg, mediumRules)
 	RunPlayerTickWithEffects(p, grid, cfg, mediumRules, dt, p.Intents, 1)
 }
 
 func RunPlayerTickWithEffects(p *entity.Player, grid *collision.SolidGridCache, cfg *session.Config, mediumRules *jdmedium.Resolver, dt float64, intents map[string]bool, speedMultiplier float64) {
-	updateContact(p, grid, cfg, mediumRules)
 	speed := cfg.PlayerMoveSpeedCells * speedMultiplier
 	if p.Medium == "ground" && intents["run_forward"] && intents["move_forward"] {
 		speed *= runSpeedMultiplier
@@ -44,17 +44,13 @@ func RunPlayerTickWithEffects(p *entity.Player, grid *collision.SolidGridCache, 
 		p.VZ = 0
 		p.Z = math.Floor(p.Z)
 	}
-	updateContact(p, grid, cfg, mediumRules)
+	ResolvePlayerContact(p, grid, cfg, mediumRules)
 }
 
-func updateContact(p *entity.Player, grid *collision.SolidGridCache, cfg *session.Config, rules *jdmedium.Resolver) {
+func ResolvePlayerContact(p *entity.Player, grid *collision.SolidGridCache, cfg *session.Config, rules *jdmedium.Resolver) {
 	if rules == nil {
 		p.DominantParticleName = ""
-		if cellBelowSolid(p, grid) {
-			p.Medium = "ground"
-		} else {
-			p.Medium = "air"
-		}
+		if cellBelowSolid(p, grid) { p.Medium = "ground" } else { p.Medium = "air" }
 		return
 	}
 	radius := float64(cfg.ContactSampleRadiusCells)
@@ -73,28 +69,12 @@ func cellBelowSolid(p *entity.Player, grid *collision.SolidGridCache) bool {
 }
 
 func tryMoveAxis(p *entity.Player, grid *collision.SolidGridCache, axis string, delta float64) {
-	if math.Abs(delta) < 1e-9 {
-		return
-	}
+	if math.Abs(delta) < 1e-9 { return }
 	nx, ny, nz := p.X, p.Y, p.Z
-	switch axis {
-	case "x":
-		nx += delta
-	case "y":
-		ny += delta
-	case "z":
-		nz += delta
-	}
+	switch axis { case "x": nx += delta; case "y": ny += delta; case "z": nz += delta }
 	fx, fy, fz := particlecell.ColumnIndex(nx), particlecell.ColumnIndex(ny), int(math.Floor(nz))
 	if grid.IsBodyBlocked(fx, fy, fz) {
-		switch axis {
-		case "x":
-			p.VX = 0
-		case "y":
-			p.VY = 0
-		case "z":
-			p.VZ = 0
-		}
+		switch axis { case "x": p.VX = 0; case "y": p.VY = 0; case "z": p.VZ = 0 }
 		return
 	}
 	p.X, p.Y, p.Z = nx, ny, nz
