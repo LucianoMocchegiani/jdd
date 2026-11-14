@@ -1,5 +1,5 @@
 /**
- * @file Elige el clip remoto a partir del estado autoritativo publicado por el servidor.
+ * @file Elige clips de presentación a partir del estado autoritativo del servidor.
  */
 
 export interface RemoteAnimationState {
@@ -17,6 +17,7 @@ export function isNewActionSequence(previous: number | null, next: number): bool
   return next > (previous ?? 0);
 }
 
+/** Selecciona el clip visual del jugador local o remoto desde el estado recibido. */
 export function selectRemoteClip(state: RemoteAnimationState): string | null {
   if (state.action_id === 'attack') return 'attack';
   if (state.action_id === 'kamehameha') return 'kamehameha';
