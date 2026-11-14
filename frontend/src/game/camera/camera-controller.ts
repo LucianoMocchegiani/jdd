@@ -1,17 +1,20 @@
 /**
- * @file Cámara del jugador local: órbita 3ª persona, modo inspect y acoplamiento a {@link FacingComponent} (fase 7).
+ * @file Cámara del jugador local: órbita en tercera persona y modo inspect.
  *
- * Vive **fuera del ECS** (una instancia por sesión). {@link bootstrapApp} crea el controlador,
- * lo registra con {@link setCameraController} y lo invoca cada frame:
+ * Vive **fuera del ECS** (una instancia por sesión). `bootstrapApp` crea el controlador
+ * y coordina por frame la captura de cámara, los intents, los snapshots autoritativos
+ * y la presentación:
  *
  * ```text
- * tickInput(world)     → ratón, toggle C, facing.yaw (si third_person)
- * world.update()       → movimiento lee facing + pitch vía camera-access
- * updateCamera(...)    → posición Three.js + rotación mesh
+ * tickInput(world)              → ratón, toggle C y orientación local
+ * world.update()                → InputSystem traduce controles a intents
+ * NetworkInputSender.tick(...)  → envía intents y orientación al servidor
+ * player_state                  → posición autoritativa interpolada
+ * updateCamera(...)             → cámara y rotación del mesh
  * renderer.render()
  * ```
  *
- * Entrada de ratón: {@link CameraInputBinding}. Locomoción relativa: {@link movement-relative}.
+ * Entrada de ratón: {@link CameraInputBinding}. Convención de orientación: {@link movement-relative}.
  * Spec: `Ideas/habilidades/frontend-v2-camara.md`.
  */
 
@@ -44,11 +47,12 @@ import { Vector3 } from 'three';
  * Control de vista del jugador local.
  *
  * **Modos (`CameraMode`)**
- * - `third_person` — ratón gira cámara **y** personaje (`couplesFacingToCamera`); WASD vía {@link FacingComponent}.
- * - `inspect` — ratón solo orbita; `facing.yaw` congelado; {@link InputSystem} bloquea movimiento/ataque.
+ * - `third_person` — ratón gira cámara y personaje; la orientación se envía al servidor.
+ * - `inspect` — ratón solo orbita; la orientación del personaje queda congelada e
+ *   {@link InputSystem} bloquea intents de movimiento y ataque.
  * - `first_person` — reservado; {@link updateCamera} sale sin posicionar (stub).
  *
- * **Estado público** expuesto a {@link getCameraController} (`mode`, `pitch`) para movimiento 3D en agua/aire.
+ * `yaw` y `pitch` se incluyen en el comando de input enviado al servidor.
  */
 export class CameraController {
   /** Modo activo; por defecto `third_person` al spawn. */
@@ -108,7 +112,7 @@ export class CameraController {
   }
 
   /**
-   * Fase de **entrada** de cámara: debe ejecutarse **antes** de `world.update`.
+   * Fase de **entrada** de cámara: debe ejecutarse antes de `world.update`.
    *
    * - Toggle **C** entre `third_person` ↔ `inspect` (flanco de tecla).
    * - {@link CameraInputBinding.drain} → actualiza `yaw` / `pitch` (solo movimiento del ratón con lock).
@@ -137,7 +141,8 @@ export class CameraController {
   }
 
   /**
-   * Fase de **presentación**: posiciona la cámara Three.js tras {@link MovementSystem}.
+   * Fase de **presentación**: posiciona la cámara y el mesh usando la posición interpolada
+   * de los snapshots del servidor.
    *
    * Mapeo ECS → Three (igual que {@link syncPlayerMesh}):
    * - celda `x` → `X`, celda `y` → `Z`, celda `z` (altura) → `Y`.
@@ -150,9 +155,9 @@ export class CameraController {
    * @param camera - `PerspectiveCamera` de la escena.
    * @param world - Para leer `facing` en modo inspect.
    * @param playerEntityId - Jugador local.
-   * @param cellX - `PositionComponent.x`
-   * @param cellY - `PositionComponent.y`
-   * @param cellZ - `PositionComponent.z` (altura)
+   * @param cellX - `PositionComponent.x` interpolado.
+   * @param cellY - `PositionComponent.y` interpolado.
+   * @param cellZ - `PositionComponent.z` interpolado (altura).
    * @param cellSize - `bloque.tamano_celda` / escala del mundo.
    */
   updateCamera(
