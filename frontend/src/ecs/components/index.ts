@@ -10,8 +10,6 @@ export { FacingComponent } from '@/ecs/components/facing';
 /** Re-export de símbolos del módulo. */
 export { InputComponent } from '@/ecs/components/input';
 /** Re-export de símbolos del módulo. */
-export { KinematicsComponent } from '@/ecs/components/kinematics';
-/** Re-export de símbolos del módulo. */
 export { ContactComponent } from '@/ecs/components/contact';
 /** Re-export de símbolos del módulo. */
 export { PositionComponent } from '@/ecs/components/position';

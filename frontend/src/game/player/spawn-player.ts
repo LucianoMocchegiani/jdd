@@ -7,7 +7,6 @@ import {
   ConditionsComponent,
   FacingComponent,
   InputComponent,
-  KinematicsComponent,
   ContactComponent,
   PositionComponent,
 } from '@/ecs/components';
@@ -30,7 +29,6 @@ export function spawnPlayer(
 ): { entityId: number; mesh: Group } {
   const entityId = world.createEntity();
   world.addComponent(entityId, new PositionComponent(x, y, z));
-  world.addComponent(entityId, new KinematicsComponent());
   world.addComponent(entityId, new InputComponent());
   world.addComponent(entityId, new ContactComponent());
   world.addComponent(entityId, new ConditionsComponent());
