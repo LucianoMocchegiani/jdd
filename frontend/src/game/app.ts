@@ -11,7 +11,7 @@ import { formatBackendOkStatus, syncParticleCatalog, verifyBackendConnectivity }
 import { CameraController, setCameraController } from '@/game/camera';
 import { GameLoop } from '@/game/game-loop';
 import { getOrCreatePlayerId, NetworkInputSender, WorldRealtimeClient } from '@/game/network';
-import { RemoteInterpolationBuffer, RemotePresence } from '@/game/client-prediction';
+import { PlayerSnapshotBuffer, RemotePresence } from '@/game/player-replication';
 import { PresenceHandler } from '@/game/network/presence-handler';
 import { HealthHud } from '@/game/health-hud';
 import { ProjectileVisuals } from '@/game/projectile-visuals';
@@ -131,7 +131,7 @@ export async function bootstrapApp(
   const healthHud = new HealthHud();
   const networkInput = new NetworkInputSender(worldRealtime, bloqueId, playerId);
   const presenceHandler = new PresenceHandler(worldRealtime, remotePresence, playerId, bloqueId);
-  const localSnapshots = new RemoteInterpolationBuffer();
+  const localSnapshots = new PlayerSnapshotBuffer();
   let inputSendClockSec = 0;
   let localHealth: number | null = null;
   let localMaxHealth = 100;

@@ -15,9 +15,3 @@ export { NetworkInputSender } from '@/game/network/input-sender';
 
 /** Re-export de símbolos del módulo. */
 export { getOrCreatePlayerId } from '@/game/player/player-id';
-export {
-  RemotePresence,
-  RemoteInterpolationBuffer,
-  REMOTE_INTERPOLATION_DELAY_SEC,
-  lerpAngle,
-} from '@/game/client-prediction';
