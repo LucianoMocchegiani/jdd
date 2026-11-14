@@ -121,7 +121,10 @@ func intentsTrueOnly(m map[string]bool) map[string]bool {
 }
 
 func BuildJoinOK(bloqueID string, ecoID int, ecoLabel, playerID, wireFormat string, players []string) string {
-	payload := map[string]interface{}{"type": "join_ok", "bloque_id": bloqueID, "eco_id": ecoID, "eco_label": ecoLabel, "player_id": playerID, "players": players, "wire_format": wireFormat}
+	payload := map[string]interface{}{"type": "join_ok", "bloque_id": bloqueID, "eco_id": ecoID, "player_id": playerID, "players": players, "wire_format": wireFormat}
+	if ecoLabel != "" {
+		payload["eco_label"] = ecoLabel
+	}
 	b, _ := json.Marshal(payload)
 	return string(b)
 }
