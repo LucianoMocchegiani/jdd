@@ -37,11 +37,22 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 				if catalog, ok := s.Combat.(inputActionCatalog); ok {
 					for _, intent := range []string{"attack_light", "attack_projectile"} {
 						if in.Intents[intent] && !p.Intents[intent] && (s.Conditions == nil || !s.Conditions.BlocksIntent(p.Conditions, intent)) {
-							if id, profile := catalog.GetByInputIntent(intent); profile != nil && (profile.Impact != nil || profile.Projectile != nil) {
+							if id, profile := catalog.GetByInputIntent(intent); profile != nil && profile.ControlType != "sustained" && (profile.Impact != nil || profile.Projectile != nil) {
 								actionID = id
 								break
 							}
 						}
+					}
+					if in.Intents["continuous_attack"] && !p.Intents["continuous_attack"] {
+						if id, profile := catalog.GetByInputIntent("continuous_attack"); profile != nil && profile.ControlType == "sustained" && profile.Impact != nil && profile.ManaCostPerSecond > 0 && profile.DamageInterval > 0 && p.Health > 0 && p.Mana > 0 && s.SwingPub != nil && !mediumBlocked(p.Medium, profile.BlockedMediums) && (s.Conditions == nil || (!s.Conditions.BlocksIntent(p.Conditions, "continuous_attack") && !s.Conditions.BlocksAction(p.Conditions, id))) {
+							p.ContinuousAttackID = id
+							p.ContinuousAttackElapsed = 0
+							p.ActionID, p.ActionSeq = id, p.ActionSeq+1
+							p.InCombatUntil = time.Now().Add(6 * time.Second)
+						}
+					} else if !in.Intents["continuous_attack"] {
+						p.ContinuousAttackID = ""
+						p.ContinuousAttackElapsed = 0
 					}
 				}
 			}
@@ -72,7 +83,7 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 	if !exists { return buildError("swing_error", "not_in_block"), true }
 	if s.Combat == nil { return buildError("swing_error", "not_configured"), true }
 	profile := s.Combat.Get(in.ActionID)
-	if profile == nil || (profile.Impact == nil && profile.Projectile == nil) { return buildError("swing_error", "unknown_action"), true }
+	if profile == nil || (profile.Impact == nil && profile.Projectile == nil) || profile.ControlType == "sustained" { return buildError("swing_error", "unknown_action"), true }
 	blocked := false
 	if s.Conditions != nil {
 		sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) { blocked = s.Conditions.BlocksAction(p.Conditions, in.ActionID) })
@@ -96,7 +107,7 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 		origin := jdcombat.Point{X: reservation.X, Y: reservation.Y, Z: reservation.Z}
 		targets := make([]port.SwingTarget, 0)
 		sess.ForEachPlayer(func(p *entity.Player) {
-			if p.ID != in.PlayerID && p.Health > 0 && jdcombat.HitsPlayer(origin, reservation.Yaw, jdcombat.Point{X: p.X, Y: p.Y, Z: p.Z}, profile.Impact.Reach) {
+			if p.ID != in.PlayerID && p.Health > 0 && jdcombat.HitsPlayerWithWidth(origin, reservation.Yaw, jdcombat.Point{X: p.X, Y: p.Y, Z: p.Z}, profile.Impact.Reach, profile.Impact.Width) {
 				targets = append(targets, port.SwingTarget{PlayerID: p.ID, EntityID: int(p.EntityID), X: p.X, Y: p.Y, Z: p.Z})
 			}
 		})
@@ -108,6 +119,13 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 	sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) { p.InCombatUntil = now.Add(6 * time.Second); p.ActionID = in.ActionID; p.ActionSeq++ })
 	ack, _ := json.Marshal(map[string]interface{}{"type": "swing_queued", "seq": in.Seq, "entity_id": reservation.EntityID, "action_id": in.ActionID})
 	return string(ack), false
+}
+
+func mediumBlocked(medium string, blocked []string) bool {
+	for _, blockedMedium := range blocked {
+		if medium == blockedMedium { return true }
+	}
+	return false
 }
 
 func buildError(msgType, code string) string {
