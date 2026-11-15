@@ -8,6 +8,7 @@ export interface RemoteAnimationState {
   vy: number;
   vz: number;
   intents?: Record<string, boolean>;
+  continuous_attack_active?: boolean;
   action_id?: string;
 }
 
@@ -19,6 +20,7 @@ export function isNewActionSequence(previous: number | null, next: number): bool
 
 /** Selecciona el clip visual del jugador local o remoto desde el estado recibido. */
 export function selectRemoteClip(state: RemoteAnimationState): string | null {
+  if (state.continuous_attack_active) return 'rayo_de_ki';
   if (state.action_id === 'attack') return 'attack';
   if (state.action_id === 'kamehameha') return 'kamehameha';
   const moving =

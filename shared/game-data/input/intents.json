@@ -8,7 +8,8 @@
     "run_forward",
     "jump",
     "attack_light",
-    "attack_projectile"
+    "attack_projectile",
+    "continuous_attack"
   ],
   "derivedIntents": ["constant_displacements_move"]
 }

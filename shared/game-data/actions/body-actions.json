@@ -51,6 +51,31 @@
         "radius": 0.55,
         "delayMs": 1033
       }
+    },
+    {
+      "id": "rayo_de_ki",
+      "description": "Rayo canalizado sostenido que daña partículas y objetivos en secuencia.",
+      "manaCostPerSecond": 5,
+      "damageIntervalMs": 1000,
+      "control": {
+        "inputIntent": "continuous_attack",
+        "slot": "body_actions",
+        "type": "sustained",
+        "when": {
+          "not": {
+            "medium": ["air", "submerged_full"]
+          }
+        }
+      },
+      "appearance": {
+        "state": "attack",
+        "clip": "rayo_de_ki"
+      },
+      "impact": {
+        "reach": 28,
+        "width": 0.55,
+        "damage": 5
+      }
     }
   ]
 }

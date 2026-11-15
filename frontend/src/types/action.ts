@@ -16,6 +16,7 @@ export interface ActionAppearance { state?: string; clip?: string; }
 export interface ActionDamage { reach: number; damage: number; }
 export interface ActionImpact {
   reach?: number;
+  width?: number;
   damage?: number;
   entityDamage?: ActionDamage;
   applyConditions?: readonly ConditionApplyRef[];
@@ -27,6 +28,9 @@ export interface ActionDefinition {
   id: string;
   description?: string;
   cooldownMs?: number;
+  manaCost?: number;
+  manaCostPerSecond?: number;
+  damageIntervalMs?: number;
   control: ActionControl;
   movement?: ActionMovement;
   appearance?: ActionAppearance;

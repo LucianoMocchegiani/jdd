@@ -24,14 +24,14 @@ export interface JoinBlockCommand { type: 'join_block'; bloque_id: string; playe
 export interface JoinOkEvent { type: 'join_ok'; bloque_id: string; player_id: string; players: string[]; eco_id?: number; eco_label?: string; wire_format?: 'json' | 'msgpack'; }
 export interface JoinErrorEvent { type: 'join_error'; error: string; }
 export interface PlayerJoinedEvent { type: 'player_joined'; bloque_id: string; player_id: string; position: CellPosition; }
-export interface PlayerLeftEvent { type: 'player_left'; bloque_id: string; player_id: string; }
+export interface PlayerLeftEvent { type: 'player_left'; bloque_id: string; }
 export interface PlayerStateEvent {
   type: 'player_state'; server_tick: number; player_id: string; bloque_id: string;
   x: number; y: number; z: number; vx: number; vy: number; vz: number; yaw: number;
   pitch?: number; medium: string; dominant_particle?: string; conditions?: string[]; condition_damage_total?: number;
   action_id?: string; action_seq?: number; action_t0_ms?: number; entity_id?: number;
   intents?: Record<string, true>; input_seq?: number; health?: number; max_health?: number;
-  mana?: number; max_mana?: number; in_combat?: boolean; receivedAtMs?: number;
+  mana?: number; max_mana?: number; in_combat?: boolean; continuous_attack_active?: boolean; receivedAtMs?: number;
 }
 export type PresenceEvent = JoinOkEvent | JoinErrorEvent | PlayerJoinedEvent | PlayerLeftEvent | PlayerStateEvent;
 
