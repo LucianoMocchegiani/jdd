@@ -157,6 +157,10 @@ export async function bootstrapApp(
       projectileVisuals.apply(event);
       return;
     }
+    if (event.type === 'swing_result' && event.action_id === 'rayo_de_ki' && event.player_id && event.beam_length !== undefined) {
+      if (event.player_id === playerId) localCharacter?.setBeamLength(event.beam_length, event.seq);
+      else remotePresence.setBeamLength(event.player_id, event.beam_length, event.seq);
+    }
     if (event.type === 'player_state') {
       ingestLocalPlayerState(event, playerId);
       recordObservedPlayerState(event);
