@@ -9,7 +9,7 @@ import { StudioRenderer } from '@/poc/character-studio/studio-renderer';
 import type { StudioAnimationClip, StudioDocument } from '@/poc/character-studio/types';
 import { DEFAULT_PALETTE } from '@/poc/shared';
 import { PARTICLE_SIZE_RATIO } from '@/game/terrain/particle-geometry';
-import { Box3, CylinderGeometry, Mesh, MeshBasicMaterial, Vector3, type Scene } from 'three';
+import { Box3, CylinderGeometry, Mesh, MeshBasicMaterial, MeshStandardMaterial, Vector3, type Scene } from 'three';
 
 const UNIT_ELEMENT_BOUNDS = new Box3(new Vector3(-0.5, -0.5, -0.5), new Vector3(0.5, 0.5, 0.5));
 
