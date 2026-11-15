@@ -3,12 +3,13 @@
  */
 
 import { buildRig, SkeletonPose } from '@/poc/character-studio/rig-math';
-import { createDefaultClipLibrary, sampleClip } from '@/poc/character-studio/studio-clip';
+import { clipFromJson, createDefaultClipLibrary, sampleClip } from '@/poc/character-studio/studio-clip';
 import { defaultBipedDocument } from '@/poc/character-studio/studio-document';
 import { StudioRenderer } from '@/poc/character-studio/studio-renderer';
 import type { StudioAnimationClip, StudioDocument } from '@/poc/character-studio/types';
 import { DEFAULT_PALETTE } from '@/poc/shared';
 import { PARTICLE_SIZE_RATIO } from '@/game/terrain/particle-geometry';
+import rayoDeKiClipRaw from '@/poc/rayo_de_ki.json?raw';
 import { Box3, CylinderGeometry, Mesh, MeshBasicMaterial, MeshStandardMaterial, Vector3, type Scene } from 'three';
 
 const UNIT_ELEMENT_BOUNDS = new Box3(new Vector3(-0.5, -0.5, -0.5), new Vector3(0.5, 0.5, 0.5));
@@ -44,11 +45,7 @@ export class PlayerCharacterVisual {
 
   constructor(scene: Scene, private readonly cellSize: number) {
     this.renderer = new StudioRenderer(scene, cellSize);
-    const chargeClip = this.clips.get('kamehameha');
-    if (chargeClip) {
-      // shortcut: reuse Kamehameha motion for the first beam clip, replace when a dedicated Rayo de Ki animation is authored.
-      this.clips.set('rayo_de_ki', { ...chargeClip, id: 'rayo_de_ki', label: 'Rayo de Ki', loop: true });
-    }
+    this.clips.set('rayo_de_ki', clipFromJson(rayoDeKiClipRaw));
     this.beam.visible = false;
     scene.add(this.beam);
   }
