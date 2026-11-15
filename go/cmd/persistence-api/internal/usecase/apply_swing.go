@@ -53,6 +53,7 @@ type SwingOutcome struct {
 	TargetPlayerID string
 	TargetEntityID int
 	EntityDamage   float64
+	BeamLength     float64
 	Truncated      bool
 }
 
@@ -163,9 +164,13 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 	var targetPlayerID string
 	var targetEntityID int
 	var entityDamage float64
+	beamLength, hasImpact := impact.Reach, false
 	for _, hit := range impacts {
 		if remaining <= 0 {
 			break
+		}
+		if !hasImpact {
+			beamLength, hasImpact = hit.forward, true
 		}
 		if hit.player != nil {
 			targetPlayerID, targetEntityID, entityDamage = hit.player.PlayerID, hit.player.EntityID, remaining
@@ -202,7 +207,7 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 			destroyed++
 		}
 	}
-	return s.publishSwingOutcome(ctx, cmd, SwingOutcome{OK: true, ActionID: cmd.ActionID, Hits: hits, DestroyedCount: destroyed, TargetPlayerID: targetPlayerID, TargetEntityID: targetEntityID, EntityDamage: entityDamage, Truncated: truncated})
+	return s.publishSwingOutcome(ctx, cmd, SwingOutcome{OK: true, ActionID: cmd.ActionID, Hits: hits, DestroyedCount: destroyed, TargetPlayerID: targetPlayerID, TargetEntityID: targetEntityID, EntityDamage: entityDamage, BeamLength: beamLength, Truncated: truncated})
 }
 
 func (s *SwingService) applyProjectileParticleHit(ctx context.Context, cmd SwingCommand, profile *domain.CombatProfile) (SwingOutcome, error) {
@@ -265,7 +270,7 @@ func buildSwingResultJSON(cmd SwingCommand, out SwingOutcome) (string, error) {
 		"type": "swing_result", "seq": cmd.Seq, "entity_id": cmd.EntityID, "player_id": cmd.PlayerID, "eco_id": cmd.EcoID,
 		"action_id": cmd.ActionID, "bloque_id": cmd.BloqueID, "hits": hitPayload,
 		"target_player_id": out.TargetPlayerID, "target_entity_id": out.TargetEntityID,
-		"entity_damage": out.EntityDamage, "truncated": out.Truncated,
+		"entity_damage": out.EntityDamage, "beam_length": out.BeamLength, "truncated": out.Truncated,
 	}
 	b, err := json.Marshal(payload)
 	return string(b), err
