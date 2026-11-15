@@ -9,7 +9,7 @@ import { StudioRenderer } from '@/poc/character-studio/studio-renderer';
 import type { StudioAnimationClip, StudioDocument } from '@/poc/character-studio/types';
 import { DEFAULT_PALETTE } from '@/poc/shared';
 import { PARTICLE_SIZE_RATIO } from '@/game/terrain/particle-geometry';
-import { Box3, MeshStandardMaterial, Vector3, type Scene } from 'three';
+import { Box3, CylinderGeometry, Mesh, MeshBasicMaterial, Vector3, type Scene } from 'three';
 
 const UNIT_ELEMENT_BOUNDS = new Box3(new Vector3(-0.5, -0.5, -0.5), new Vector3(0.5, 0.5, 0.5));
 
@@ -37,14 +37,20 @@ export class PlayerCharacterVisual {
   private clipId = 'idle';
   private time = 0;
   private damageFlashUntilMs = 0;
+  private readonly beam = new Mesh(
+    new CylinderGeometry(0.18, 0.3, 1, 10),
+    new MeshBasicMaterial({ color: 0x55ddff, transparent: true, opacity: 0.88, depthWrite: false }),
+  );
 
-  constructor(scene: Scene, cellSize: number) {
+  constructor(scene: Scene, private readonly cellSize: number) {
     this.renderer = new StudioRenderer(scene, cellSize);
     const chargeClip = this.clips.get('kamehameha');
     if (chargeClip) {
       // shortcut: reuse Kamehameha motion for the first beam clip, replace when a dedicated Rayo de Ki animation is authored.
       this.clips.set('rayo_de_ki', { ...chargeClip, id: 'rayo_de_ki', label: 'Rayo de Ki', loop: true });
     }
+    this.beam.visible = false;
+    scene.add(this.beam);
   }
 
   update(
@@ -84,6 +90,16 @@ export class PlayerCharacterVisual {
       yaw: visualYaw,
       showBones: false,
     });
+    this.beam.visible = requested === 'rayo_de_ki';
+    if (this.beam.visible) {
+      const direction = new Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+      const length = 28 * this.cellSize;
+      this.beam.position.set(x * this.cellSize, (z + 1.1) * this.cellSize, y * this.cellSize)
+        .addScaledVector(direction, length / 2);
+      this.beam.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), direction);
+      const radius = (0.2 + 0.04 * Math.sin(this.time * 18)) * this.cellSize;
+      this.beam.scale.set(radius, length, radius);
+    }
     const color = this.damageFlashUntilMs > performance.now() ? 0xff5555 : tint;
     for (const mesh of this.renderer.getPickMeshes()) {
       const layer = String(mesh.userData.bucketKey).split(':')[0]! as keyof typeof DEFAULT_PALETTE;
@@ -112,5 +128,8 @@ export class PlayerCharacterVisual {
   /** Libera el renderer al desaparecer una réplica remota. */
   dispose(): void {
     this.renderer.dispose();
+    this.beam.parent?.remove(this.beam);
+    this.beam.geometry.dispose();
+    (this.beam.material as MeshBasicMaterial).dispose();
   }
 }
