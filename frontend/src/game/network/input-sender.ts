@@ -96,6 +96,7 @@ export class NetworkInputSender {
 
     this.lastSentAt = nowSec;
     this.lastPayload = payloadKey;
+    this.seq += 1;
     if (wireMode === 'active' || wireMode === 'clear') {
       this.hadMovementIntent = hasMovement;
     }
@@ -104,7 +105,7 @@ export class NetworkInputSender {
       type: 'input',
       bloque_id: this.bloqueId,
       player_id: this.playerId,
-      seq: this.seq += 1,
+      seq: this.seq,
       yaw,
     };
     if (pitch !== undefined) {
