@@ -70,15 +70,15 @@ func NewSwingService(repo port.ParticleRepository, cat port.CombatCatalog, ev po
 	return &SwingService{Repo: repo, Catalog: cat, Events: ev, RateLimit: rl, processed: make(map[string]struct{})}
 }
 
-func swingDedupKey(playerID string, entityID, seq int) string {
+func swingDedupKey(playerID, actionID string, entityID, seq int) string {
 	if playerID != "" {
-		return fmt.Sprintf("p:%s:%d", playerID, seq)
+		return fmt.Sprintf("p:%s:%s:%d", playerID, actionID, seq)
 	}
-	return fmt.Sprintf("e:%d:%d", entityID, seq)
+	return fmt.Sprintf("e:%d:%s:%d", entityID, actionID, seq)
 }
 
-func (s *SwingService) rememberSwing(playerID string, entityID, seq int) bool {
-	key := swingDedupKey(playerID, entityID, seq)
+func (s *SwingService) rememberSwing(playerID, actionID string, entityID, seq int) bool {
+	key := swingDedupKey(playerID, actionID, entityID, seq)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.processed[key]; ok {
@@ -112,7 +112,7 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 	if profile == nil {
 		return SwingOutcome{Error: "unknown_action", ActionID: cmd.ActionID}, nil
 	}
-	if !s.rememberSwing(cmd.PlayerID, cmd.EntityID, cmd.Seq) {
+	if !s.rememberSwing(cmd.PlayerID, cmd.ActionID, cmd.EntityID, cmd.Seq) {
 		return SwingOutcome{OK: true, Duplicate: true, ActionID: cmd.ActionID}, nil
 	}
 	if cmd.ParticleID != "" {
