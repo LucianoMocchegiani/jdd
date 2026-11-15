@@ -5,10 +5,13 @@ import (
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
+	jdcombat "github.com/juego-de-dioses/jd/pkg/jd/combat"
 )
 
 func (s *Services) advanceContinuousAttack(sess *entity.BlockSession, p *entity.Player, deltaSec float64, now time.Time) (port.SwingCommand, bool) {
-	if p.ContinuousAttackID == "" { return port.SwingCommand{}, false }
+	if p.ContinuousAttackID == "" {
+		return port.SwingCommand{}, false
+	}
 	profile := s.Combat.Get(p.ContinuousAttackID)
 	if profile == nil || profile.ControlType != "sustained" || profile.Impact == nil || profile.DamageInterval <= 0 || profile.ManaCostPerSecond <= 0 || s.SwingPub == nil || p.Health <= 0 || !p.Intents[profile.InputIntent] || mediumBlocked(p.Medium, profile.BlockedMediums) || (s.Conditions != nil && (s.Conditions.BlocksIntent(p.Conditions, profile.InputIntent) || s.Conditions.BlocksAction(p.Conditions, p.ContinuousAttackID))) {
 		p.ContinuousAttackID, p.ContinuousAttackElapsed = "", 0
@@ -23,10 +26,25 @@ func (s *Services) advanceContinuousAttack(sess *entity.BlockSession, p *entity.
 	p.InCombatUntil = now.Add(6 * time.Second)
 	p.ContinuousAttackElapsed += deltaSec
 	interval := profile.DamageInterval.Seconds()
-	if p.ContinuousAttackElapsed < interval { return port.SwingCommand{}, false }
+	if p.ContinuousAttackElapsed < interval {
+		return port.SwingCommand{}, false
+	}
 	p.ContinuousAttackElapsed -= interval
 	seq := sess.ServerTick + 1
-	if seq <= p.ContinuousAttackSeq { seq = p.ContinuousAttackSeq + 1 }
+	if seq <= p.ContinuousAttackSeq {
+		seq = p.ContinuousAttackSeq + 1
+	}
 	p.ContinuousAttackSeq = seq
 	return port.SwingCommand{BloqueID: sess.BloqueID, EcoID: sess.EcoID, PlayerID: p.ID, ActionID: p.ContinuousAttackID, EntityID: int(p.EntityID), Seq: seq, PosX: p.X, PosY: p.Y, PosZ: p.Z, Yaw: p.Yaw}, true
+}
+
+func snapshotContinuousAttackTargets(sess *entity.BlockSession, cmd port.SwingCommand, profile *port.CombatProfile) []port.SwingTarget {
+	origin := jdcombat.Point{X: cmd.PosX, Y: cmd.PosY, Z: cmd.PosZ}
+	targets := make([]port.SwingTarget, 0)
+	sess.ForEachPlayer(func(p *entity.Player) {
+		if p.ID != cmd.PlayerID && p.Health > 0 && jdcombat.HitsPlayerWithWidth(origin, cmd.Yaw, jdcombat.Point{X: p.X, Y: p.Y, Z: p.Z}, profile.Impact.Reach, profile.Impact.Width) {
+			targets = append(targets, port.SwingTarget{PlayerID: p.ID, EntityID: int(p.EntityID), X: p.X, Y: p.Y, Z: p.Z})
+		}
+	})
+	return targets
 }

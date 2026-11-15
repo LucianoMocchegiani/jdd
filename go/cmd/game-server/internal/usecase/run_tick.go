@@ -49,8 +49,11 @@ func (s *Services) RunTick(deltaSec float64) {
 			}
 		})
 		for _, cmd := range continuousCommands {
+			profile := s.Combat.Get(cmd.ActionID)
+			if profile != nil && profile.Impact != nil {
+				cmd.Targets = snapshotContinuousAttackTargets(sess, cmd, profile)
+			}
 			if err := s.SwingPub.PublishSwing(cmd); err != nil {
-				profile := s.Combat.Get(cmd.ActionID)
 				if profile != nil {
 					sess.UpdatePlayer(cmd.PlayerID, func(p *entity.Player) {
 						p.Mana = math.Min(p.MaxMana, p.Mana+profile.ManaCostPerSecond*profile.DamageInterval.Seconds())
