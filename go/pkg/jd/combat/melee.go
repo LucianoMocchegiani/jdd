@@ -10,12 +10,19 @@ type Point struct {
 const (
 	playerHitboxRadius = 0.45
 	playerHitboxHeight = 1.8
+	defaultImpactWidth = 0.65
 )
 
 // shortcut: fixed unobstructed sector/capsule; replace with swept per-part collision and occlusion when available.
 func HitsPlayer(origin Point, yaw float64, target Point, reach float64) bool {
+	return HitsPlayerWithWidth(origin, yaw, target, reach, defaultImpactWidth)
+}
+
+func HitsPlayerWithWidth(origin Point, yaw float64, target Point, reach, width float64) bool {
+	if width < 0 { return false }
+	if width == 0 { width = defaultImpactWidth }
 	forward, lateral := planarHit(origin, yaw, target.X, target.Y)
-	if forward <= 0 || forward > reach+playerHitboxRadius || lateral > 0.65+playerHitboxRadius {
+	if forward <= 0 || forward > reach+playerHitboxRadius || lateral > width+playerHitboxRadius {
 		return false
 	}
 	strikeZ := origin.Z + 1
@@ -24,9 +31,15 @@ func HitsPlayer(origin Point, yaw float64, target Point, reach float64) bool {
 
 // HitsWorldCell approximates contact with one particle cell in front of the player.
 func HitsWorldCell(origin Point, yaw float64, x, y, z int, reach float64) bool {
+	return HitsWorldCellWithWidth(origin, yaw, x, y, z, reach, defaultImpactWidth)
+}
+
+func HitsWorldCellWithWidth(origin Point, yaw float64, x, y, z int, reach, width float64) bool {
+	if width < 0 { return false }
+	if width == 0 { width = defaultImpactWidth }
 	cell := Point{float64(x), float64(y), float64(z)}
 	forward, lateral := planarHit(origin, yaw, cell.X, cell.Y)
-	return forward > 0 && forward <= reach+0.5 && lateral <= 0.65 && math.Abs(cell.Z-(origin.Z+1)) <= 1
+	return forward > 0 && forward <= reach+0.5 && lateral <= width && math.Abs(cell.Z-(origin.Z+1)) <= 1
 }
 
 // ForwardDistance projects a point onto the attack direction for impact ordering.

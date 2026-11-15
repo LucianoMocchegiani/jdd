@@ -40,7 +40,7 @@ func LoadCatalog(path string) (*Catalog, error) {
 		if action.ID == "" {
 			return nil, fmt.Errorf("action without id")
 		}
-		if action.Impact != nil && (action.Impact.Reach <= 0 || action.Impact.Damage <= 0) {
+		if action.Impact != nil && (action.Impact.Reach <= 0 || action.Impact.Damage <= 0 || action.Impact.Width < 0 || action.Impact.Width > 5) {
 			return nil, fmt.Errorf("action %q has invalid impact", action.ID)
 		}
 		var projectileDamage float64
