@@ -3,6 +3,7 @@ package usecase
 
 import (
 	"encoding/json"
+	"math"
 	"time"
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
@@ -48,7 +49,14 @@ func (s *Services) RunTick(deltaSec float64) {
 			}
 		})
 		for _, cmd := range continuousCommands {
-			_ = s.SwingPub.PublishSwing(cmd)
+			if err := s.SwingPub.PublishSwing(cmd); err != nil {
+				profile := s.Combat.Get(cmd.ActionID)
+				if profile != nil {
+					sess.UpdatePlayer(cmd.PlayerID, func(p *entity.Player) {
+						p.Mana = math.Min(p.MaxMana, p.Mana+profile.ManaCostPerSecond*profile.DamageInterval.Seconds())
+					})
+				}
+			}
 		}
 		projectiles := sess.AdvanceProjectiles(deltaSec)
 		for _, projectile := range projectiles {
