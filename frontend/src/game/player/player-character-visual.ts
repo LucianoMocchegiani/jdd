@@ -40,6 +40,11 @@ export class PlayerCharacterVisual {
 
   constructor(scene: Scene, cellSize: number) {
     this.renderer = new StudioRenderer(scene, cellSize);
+    const chargeClip = this.clips.get('kamehameha');
+    if (chargeClip) {
+      // shortcut: reuse Kamehameha motion for the first beam clip, replace when a dedicated Rayo de Ki animation is authored.
+      this.clips.set('rayo_de_ki', { ...chargeClip, id: 'rayo_de_ki', label: 'Rayo de Ki', loop: true });
+    }
   }
 
   update(
