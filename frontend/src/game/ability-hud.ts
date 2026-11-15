@@ -26,19 +26,34 @@ export function mountAbilityHud(root: HTMLElement): void {
       .join(' / ') || '—';
     const cooldownMs = action.cooldownMs ?? 0;
     const cooldownText = `${(cooldownMs / 1000).toFixed(1)} s`;
-    const nameText = action.id === 'attack' ? 'Ataque' : action.id === 'kamehameha' ? 'Kamehameha' : action.id.replaceAll('_', ' ');
+    const nameText = action.id === 'attack' ? 'Ataque' : action.id === 'kamehameha' ? 'Kamehameha' : action.id === 'rayo_de_ki' ? 'Rayo de Ki' : action.id.replaceAll('_', ' ');
     const item = document.createElement('button');
     item.type = 'button';
     item.className = 'ability-hud__item';
     item.setAttribute('aria-label', `${nameText}, ${keyText}, cooldown configurado ${cooldownText}; activar`);
-    const activate = (event: Event): void => {
-      if (event instanceof PointerEvent) event.preventDefault();
-      pulseAction(action.control.inputIntent);
-    };
-    item.addEventListener('pointerdown', activate);
-    item.addEventListener('click', (event) => {
-      if (event.detail === 0) activate(event);
-    });
+    const code = INTENT_KEY_CODES[action.control.inputIntent]?.[0];
+    if (action.control.type === 'sustained' && code) {
+      item.setAttribute('aria-pressed', 'false');
+      const release = (): void => { setVirtualKeyHeld(code, false); item.setAttribute('aria-pressed', 'false'); };
+      item.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        setVirtualKeyHeld(code, true);
+        item.setAttribute('aria-pressed', 'true');
+      });
+      item.addEventListener('pointerup', release);
+      item.addEventListener('pointercancel', release);
+      item.addEventListener('pointerleave', release);
+      item.addEventListener('click', (event) => { if (event.detail === 0) pulseAction(action.control.inputIntent); });
+    } else {
+      const activate = (event: Event): void => {
+        if (event instanceof PointerEvent) event.preventDefault();
+        pulseAction(action.control.inputIntent);
+      };
+      item.addEventListener('pointerdown', activate);
+      item.addEventListener('click', (event) => {
+        if (event.detail === 0) activate(event);
+      });
+    }
 
     const icon = document.createElement('span');
     icon.className = 'ability-hud__icon';
