@@ -44,10 +44,11 @@ export class RemotePresence {
   applyPlayerState(event: PlayerStateEvent): void {
     if (event.player_id === this.localPlayerId || this.leftPlayerIds.has(event.player_id) || !event.bloque_id) return;
 
-    const entry = this.ensureRemote(event.player_id);
     const animationState = {
       medium: event.medium, vx: event.vx, vy: event.vy, vz: event.vz, intents: event.intents,
+      continuous_attack_active: event.continuous_attack_active,
     };
+    const entry = this.ensureRemote(event.player_id);
     entry.clip = selectRemoteClip(animationState);
     if (event.action_seq !== undefined) {
       if (event.action_id && isNewActionSequence(entry.actionSeq, event.action_seq)) {
