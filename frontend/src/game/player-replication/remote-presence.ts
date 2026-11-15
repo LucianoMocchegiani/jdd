@@ -65,6 +65,10 @@ export class RemotePresence {
     entry.buffer.push(this.toSnapshot(event));
   }
 
+  setBeamLength(playerId: string, length: number, seq: number): void {
+    this.remotes.get(playerId)?.character.setBeamLength(length, seq);
+  }
+
   /** Crea réplica inicial si hace falta (join de otro jugador). */
   onPlayerJoined(event: PlayerJoinedEvent): void {
     if (event.player_id === this.localPlayerId) return;

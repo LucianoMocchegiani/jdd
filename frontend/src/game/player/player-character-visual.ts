@@ -38,6 +38,9 @@ export class PlayerCharacterVisual {
   private clipId = 'idle';
   private time = 0;
   private damageFlashUntilMs = 0;
+  private beamActive = false;
+  private beamLength = 28;
+  private beamSeq = 0;
   private readonly beam = new Mesh(
     new CylinderGeometry(0.18, 0.3, 1, 10),
     new MeshBasicMaterial({ color: 0x55ddff, transparent: true, opacity: 0.88, depthWrite: false }),
@@ -87,14 +90,19 @@ export class PlayerCharacterVisual {
       yaw: visualYaw,
       showBones: false,
     });
-    this.beam.visible = requested === 'rayo_de_ki';
-    if (this.beam.visible) {
+    const beamActive = requested === 'rayo_de_ki';
+    if (beamActive && !this.beamActive) this.beamLength = 28;
+    this.beamActive = beamActive;
+    this.beam.visible = beamActive;
+    if (beamActive) {
       const direction = new Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
-      const length = 28 * this.cellSize;
       const rightHand = this.renderer.getBoneWorldPosition(this.pose, 'muneca-derecha');
       const leftHand = this.renderer.getBoneWorldPosition(this.pose, 'muneca-izquierda');
-      this.beam.position.copy(rightHand.add(leftHand).multiplyScalar(0.5));
-      this.beam.position.addScaledVector(direction, length / 2);
+      const handCenter = rightHand.add(leftHand).multiplyScalar(0.5);
+      const bodyOrigin = new Vector3(x * this.cellSize, z * this.cellSize, y * this.cellSize);
+      const handOffset = handCenter.clone().sub(bodyOrigin).dot(direction);
+      const length = Math.max(0, this.beamLength * this.cellSize - handOffset);
+      this.beam.position.copy(handCenter).addScaledVector(direction, length / 2);
       this.beam.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), direction);
       const radius = (0.2 + 0.04 * Math.sin(this.time * 18)) * this.cellSize;
       this.beam.scale.set(radius, length, radius);
@@ -106,6 +114,13 @@ export class PlayerCharacterVisual {
         color ?? DEFAULT_PALETTE[layer] ?? DEFAULT_PALETTE.flesh,
       );
     }
+  }
+
+  /** Actualiza el alcance del rayo con el resultado autoritativo de un pulso. */
+  setBeamLength(length: number, seq: number): void {
+    if (!Number.isFinite(length) || length < 0 || !Number.isSafeInteger(seq) || seq <= this.beamSeq) return;
+    this.beamSeq = seq;
+    this.beamLength = Math.min(length, 28);
   }
 
   /** Mantiene un destello breve cuando el servidor confirma daño recibido. */
