@@ -1,5 +1,3 @@
-// Package domain — Modelos de dominio persistence-api.
-
 package domain
 
 // ParticleNear representa particle near.
@@ -47,6 +45,7 @@ type CellPos struct {
 // ImpactProfile representa el daño total y el alcance de un impacto.
 type ImpactProfile struct {
 	Reach  float64 `json:"reach"`
+	Width  float64 `json:"width"`
 	Damage float64 `json:"damage"`
 }
 

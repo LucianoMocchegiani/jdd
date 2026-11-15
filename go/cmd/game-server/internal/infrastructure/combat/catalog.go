@@ -12,11 +12,14 @@ import (
 
 type actionFile struct {
 	Actions []struct {
-		ID         string  `json:"id"`
-		CooldownMs int     `json:"cooldownMs"`
-		ManaCost   float64 `json:"manaCost"`
-		Control    struct {
+		ID                string  `json:"id"`
+		CooldownMs        int     `json:"cooldownMs"`
+		ManaCost          float64 `json:"manaCost"`
+		ManaCostPerSecond float64 `json:"manaCostPerSecond"`
+		DamageIntervalMs  int     `json:"damageIntervalMs"`
+		Control           struct {
 			InputIntent string `json:"inputIntent"`
+			Type        string `json:"type"`
 			When        struct {
 				Not struct {
 					Medium []string `json:"medium"`
@@ -53,16 +56,19 @@ func LoadCatalog(path string) (*Catalog, error) {
 		if action.ID == "" {
 			return nil, fmt.Errorf("action without id")
 		}
-		if action.ManaCost < 0 {
-			return nil, fmt.Errorf("action %q has invalid manaCost", action.ID)
+		if action.ManaCost < 0 || action.ManaCostPerSecond < 0 {
+			return nil, fmt.Errorf("action %q has invalid mana cost", action.ID)
 		}
 		if action.Impact != nil {
-			if action.CooldownMs <= 0 {
+			if action.Control.Type != "sustained" && action.CooldownMs <= 0 {
 				return nil, fmt.Errorf("action %q has combat impact without positive cooldownMs", action.ID)
 			}
-			if action.Impact.Reach <= 0 || action.Impact.Damage <= 0 {
+			if action.Impact.Reach <= 0 || action.Impact.Damage <= 0 || action.Impact.Width < 0 || action.Impact.Width > 5 {
 				return nil, fmt.Errorf("action %q has invalid impact", action.ID)
 			}
+		}
+		if action.Control.Type == "sustained" && (action.ManaCostPerSecond <= 0 || action.DamageIntervalMs <= 0 || action.Impact == nil || action.Projectile != nil) {
+			return nil, fmt.Errorf("action %q has invalid sustained profile", action.ID)
 		}
 		var projectile *port.ProjectileProfile
 		if action.Projectile != nil {
@@ -76,12 +82,11 @@ func LoadCatalog(path string) (*Catalog, error) {
 			return nil, fmt.Errorf("duplicate action id %q", action.ID)
 		}
 		catalog.profiles[action.ID] = &port.CombatProfile{
-			InputIntent:    action.Control.InputIntent,
-			Cooldown:       time.Duration(action.CooldownMs) * time.Millisecond,
-			ManaCost:       action.ManaCost,
-			BlockedMediums: action.Control.When.Not.Medium,
-			Impact:         action.Impact,
-			Projectile:     projectile,
+			InputIntent: action.Control.InputIntent, ControlType: action.Control.Type,
+			Cooldown: time.Duration(action.CooldownMs) * time.Millisecond,
+			ManaCost: action.ManaCost, ManaCostPerSecond: action.ManaCostPerSecond,
+			DamageInterval: time.Duration(action.DamageIntervalMs) * time.Millisecond,
+			BlockedMediums: action.Control.When.Not.Medium, Impact: action.Impact, Projectile: projectile,
 		}
 		if action.Control.InputIntent != "" && (action.Impact != nil || projectile != nil) {
 			if _, exists := catalog.byInputIntent[action.Control.InputIntent]; exists {
