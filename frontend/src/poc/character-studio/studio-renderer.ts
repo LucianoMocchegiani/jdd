@@ -177,13 +177,9 @@ export class StudioRenderer {
     }
   }
 
-  /** Coloca una esfera pequeña en el pivote mundo del hueso. @internal */
-  private drawBoneGizmo(bone: StudioBone, pose: SkeletonPose, base: number): void {
-    const world = pose.boneWorldMatrix(bone.id).clone().premultiply(this.charWorld);
-    world.decompose(this.pos, this.quat, this.scl);
-    const s = base * 0.12;
-    this.scl.set(s, s, s);
-    this.matrix.compose(this.pos, this.quat, this.scl);
+  /** Posición mundial del pivote de un hueso en la última pose sincronizada. */
+  getBoneWorldPosition(pose: SkeletonPose, boneId: string): Vector3 {
+    return new Vector3().setFromMatrixPosition(pose.boneWorldMatrix(boneId).premultiply(this.charWorld));
   }
 
   /** Meshes instanciados de elementos (raycast). */

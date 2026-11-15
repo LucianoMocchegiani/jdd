@@ -91,8 +91,10 @@ export class PlayerCharacterVisual {
     if (this.beam.visible) {
       const direction = new Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
       const length = 28 * this.cellSize;
-      this.beam.position.set(x * this.cellSize, (z + 1.1) * this.cellSize, y * this.cellSize)
-        .addScaledVector(direction, length / 2);
+      const rightHand = this.renderer.getBoneWorldPosition(this.pose, 'muneca-derecha');
+      const leftHand = this.renderer.getBoneWorldPosition(this.pose, 'muneca-izquierda');
+      this.beam.position.copy(rightHand.add(leftHand).multiplyScalar(0.5));
+      this.beam.position.addScaledVector(direction, length / 2);
       this.beam.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), direction);
       const radius = (0.2 + 0.04 * Math.sin(this.time * 18)) * this.cellSize;
       this.beam.scale.set(radius, length, radius);
