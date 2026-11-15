@@ -97,7 +97,10 @@ export function parseInboundMessage(raw: unknown): RealtimeInboundMessage | null
       in_combat: typeof msg.in_combat === 'boolean' ? msg.in_combat : undefined,
     };
   }
-  if (type === 'swing_result') return { type: 'swing_result', seq: Number(msg.seq ?? 0), entity_id: Number(msg.entity_id ?? 0), action_id: String(msg.action_id ?? ''), hits: Array.isArray(msg.hits) ? msg.hits as SwingResultHit[] : [] };
+  if (type === 'swing_result') {
+    if (msg.beam_length !== undefined && (typeof msg.beam_length !== 'number' || !Number.isFinite(msg.beam_length) || msg.beam_length < 0)) return null;
+    return { type: 'swing_result', seq: Number(msg.seq ?? 0), entity_id: Number(msg.entity_id ?? 0), action_id: String(msg.action_id ?? ''), player_id: typeof msg.player_id === 'string' ? msg.player_id : undefined, beam_length: typeof msg.beam_length === 'number' ? msg.beam_length : undefined, hits: Array.isArray(msg.hits) ? msg.hits as SwingResultHit[] : [] };
+  }
   if (type === 'swing_error') return { type: 'swing_error', error: String(msg.error ?? 'unknown'), action_id: typeof msg.action_id === 'string' ? msg.action_id : undefined, seq: typeof msg.seq === 'number' ? msg.seq : undefined };
   return parseTerrainWsMessage(msg);
 }

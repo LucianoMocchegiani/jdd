@@ -38,7 +38,7 @@ export type PresenceEvent = JoinOkEvent | JoinErrorEvent | PlayerJoinedEvent | P
 export interface InputCommand { type: 'input'; bloque_id: string; player_id: string; seq: number; intents?: Record<string, true>; yaw: number; pitch?: number; }
 export interface InputErrorEvent { type: 'input_error'; error: string; }
 export interface SwingCommand { type: 'swing'; seq: number; action_id: string; entity_id: number; player_id: string; bloque_id: string; position: CellPosition; yaw?: number; }
-export interface SwingResultEvent { type: 'swing_result'; seq: number; entity_id: number; action_id: string; hits: Array<{ particle_id: string; destroyed: boolean; integridad?: number }>; }
+export interface SwingResultEvent { type: 'swing_result'; seq: number; entity_id: number; action_id: string; player_id?: string; beam_length?: number; hits: Array<{ particle_id: string; destroyed: boolean; integridad?: number }>; }
 export interface SwingErrorEvent { type: 'swing_error'; error: string; action_id?: string; seq?: number; }
 export interface ProjectileStateEvent { type: 'projectile_state'; id: string; owner_id: string; action_id: string; x: number; y: number; z: number; active: boolean; }
 export type CombatServerEvent = SwingResultEvent | SwingErrorEvent | ProjectileStateEvent;
