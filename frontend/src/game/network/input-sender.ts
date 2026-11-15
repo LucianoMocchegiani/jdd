@@ -20,6 +20,7 @@ const NETWORKED_INTENTS = [
   'jump',
   'attack_light',
   'attack_projectile',
+  'continuous_attack',
 ] as const;
 
 type IntentWireMode = 'omit' | 'clear' | 'active';
@@ -95,7 +96,6 @@ export class NetworkInputSender {
 
     this.lastSentAt = nowSec;
     this.lastPayload = payloadKey;
-    this.seq += 1;
     if (wireMode === 'active' || wireMode === 'clear') {
       this.hadMovementIntent = hasMovement;
     }
@@ -104,7 +104,7 @@ export class NetworkInputSender {
       type: 'input',
       bloque_id: this.bloqueId,
       player_id: this.playerId,
-      seq: this.seq,
+      seq: this.seq += 1,
       yaw,
     };
     if (pitch !== undefined) {
