@@ -38,7 +38,7 @@ func TestContinuousAttackChargesAndPublishesOncePerDamageInterval(t *testing.T) 
 		})
 	}
 	player, _ := sess.GetPlayer("player")
-	if player.Mana != 95 || len(publisher.commands) != 1 || publisher.commands[0].ActionID != "rayo_de_ki" || publisher.commands[0].Seq <= 0 {
+	if player.Mana != 95 || len(publisher.commands) != 1 || publisher.commands[0].ActionID != "rayo_de_ki" || publisher.commands[0].Seq <= 0 || len(publisher.commands[0].Targets) != 0 {
 		t.Fatalf("mana=%v commands=%+v", player.Mana, publisher.commands)
 	}
 	sess.UpdatePlayer("player", func(p *entity.Player) { delete(p.Intents, "continuous_attack") })
