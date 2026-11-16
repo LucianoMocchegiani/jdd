@@ -1,6 +1,7 @@
 package usecase_test
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -35,8 +36,17 @@ func TestHandleInputStartsCombatOnlyOnNewAttackIntent(t *testing.T) {
 	}
 
 	input := usecase.InputPayload{BloqueID: "block", EcoID: 1, PlayerID: "player", Seq: 1, Intents: map[string]bool{"attack_light": true}}
-	if _, ok := svc.HandleInput(input); !ok || publisher.calls != 1 {
+	response, ok := svc.HandleInput(input)
+	if !ok || publisher.calls != 1 {
 		t.Fatalf("first attack input was not accepted: ok=%t calls=%d", ok, publisher.calls)
+	}
+	var ack struct {
+		Type string `json:"type"`
+		ActionID string `json:"action_id"`
+		ActionSeq int `json:"action_seq"`
+	}
+	if err := json.Unmarshal([]byte(response), &ack); err != nil || ack.Type != "swing_queued" || ack.ActionID != "attack" || ack.ActionSeq != 1 {
+		t.Fatalf("accepted attack ack=%q, err=%v", response, err)
 	}
 	input.Seq = 2
 	if _, ok := svc.HandleInput(input); !ok || publisher.calls != 1 {
