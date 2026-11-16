@@ -11,59 +11,36 @@ type SessionStore interface {
 	AllSessions() []*entity.BlockSession
 }
 
-type ChunkRequest struct {
-	BloqueID    string
-	ChunkCX     int
-	ChunkCY     int
-	Priority    int
-	RequesterID string
-	PlayerID    string
-}
-
-type ChunkReady struct {
-	BloqueID    string
-	ChunkCX     int
-	ChunkCY     int
-	WireJSON    string
-	SolidCells  []string
-	Version     uint64
-	RequesterID string
-}
+type ChunkRequest struct { BloqueID string; ChunkCX, ChunkCY int; Priority int; RequesterID, PlayerID string }
+type ChunkReady struct { BloqueID string; ChunkCX, ChunkCY int; WireJSON string; SolidCells []string; Version uint64; RequesterID string }
 
 type SwingTarget struct {
-	PlayerID string  `json:"player_id"`
-	EntityID int     `json:"entity_id"`
-	X        float64 `json:"x"`
-	Y        float64 `json:"y"`
-	Z        float64 `json:"z"`
-}
-
-type AreaTarget struct {
+	PlayerID string `json:"player_id"`
+	EntityID int `json:"entity_id"`
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
 	Z float64 `json:"z"`
 }
-
+type AreaTarget struct { X float64 `json:"x"`; Y float64 `json:"y"`; Z float64 `json:"z"` }
 type SwingCommand struct {
-	BloqueID   string
-	EcoID      int
-	PlayerID   string
-	ActionID   string
-	EntityID   int
-	Seq        int
-	PosX       float64
-	PosY       float64
-	PosZ       float64
-	Yaw        float64
-	IsNPC      bool
-	Targets    []SwingTarget
+	BloqueID string
+	EcoID int
+	PlayerID string
+	ActionID string
+	EntityID int
+	Seq int
+	PosX float64
+	PosY float64
+	PosZ float64
+	Yaw float64
+	IsNPC bool
+	Targets []SwingTarget
 	AreaTarget *AreaTarget `json:"area_target,omitempty"`
 	ParticleID string
-	ParticleX  int
-	ParticleY  int
-	ParticleZ  int
+	ParticleX int
+	ParticleY int
+	ParticleZ int
 }
-
 type SwingPublisher interface { PublishSwing(cmd SwingCommand) error }
 type TerrainPublisher interface { PublishChunkRequest(req ChunkRequest) error }
 type TerrainSubscriber interface { Run(readyCh chan<- ChunkReady) error }

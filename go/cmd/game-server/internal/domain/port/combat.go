@@ -3,6 +3,7 @@ package port
 
 import "time"
 
+// DamageProfile is the shared reach and damage budget for a line attack.
 type DamageProfile struct {
 	Reach  float64 `json:"reach"`
 	Width  float64 `json:"width"`
@@ -37,6 +38,5 @@ type CombatProfile struct {
 	Projectile        *ProjectileProfile
 }
 
-type CombatCatalog interface {
-	Get(actionID string) *CombatProfile
-}
+// CombatCatalog resolves trusted combat rules from the shared action registry.
+type CombatCatalog interface { Get(actionID string) *CombatProfile }
