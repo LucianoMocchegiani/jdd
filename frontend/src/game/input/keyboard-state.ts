@@ -1,8 +1,44 @@
 import { logInputKey } from '@/game/debug/input-flow-debug';
-const HELD=new Set<string>();const VIRTUAL_HELD=new Set<string>();let attached=false;
-export function isTextInputFocused():boolean{const el=document.activeElement;if(!el||!(el instanceof HTMLElement))return false;if(el.isContentEditable)return true;return ['INPUT','TEXTAREA','SELECT'].includes(el.tagName)}
-const GAME_KEY_CODES=new Set(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight','KeyF','KeyG','KeyC','KeyR','KeyT','Mouse0']);
-export function attachKeyboardInput():void{if(attached||typeof document==='undefined')return;attached=true;document.addEventListener('keydown',(e)=>{if(isTextInputFocused())return;if(GAME_KEY_CODES.has(e.code))e.preventDefault();const wasNew=!HELD.has(e.code);HELD.add(e.code);if(wasNew)logInputKey('down',e.code,getHeldKeyCodes())},{capture:true});document.addEventListener('keyup',(e)=>{if(isTextInputFocused())return;const had=HELD.delete(e.code);if(had)logInputKey('up',e.code,getHeldKeyCodes())},{capture:true});document.addEventListener('focusin',(e)=>{const t=e.target;if(t instanceof HTMLInputElement||t instanceof HTMLTextAreaElement||t instanceof HTMLSelectElement){HELD.clear();VIRTUAL_HELD.clear()}},{capture:true});window.addEventListener('blur',()=>{if(HELD.size>0||VIRTUAL_HELD.size>0){HELD.clear();VIRTUAL_HELD.clear();logInputKey('blur','(cleared)',[])}})}
-export function setVirtualKeyHeld(code:string,held:boolean):void{if(held)VIRTUAL_HELD.add(code);else VIRTUAL_HELD.delete(code)}
-export function isKeyHeld(code:string):boolean{return HELD.has(code)||VIRTUAL_HELD.has(code)}
-export function getHeldKeyCodes():string[]{return[...new Set([...HELD,...VIRTUAL_HELD])]}
+
+const HELD = new Set<string>();
+const VIRTUAL_HELD = new Set<string>();
+let attached = false;
+export function isTextInputFocused(): boolean {
+  const el = document.activeElement;
+  if (!el || !(el instanceof HTMLElement)) return false;
+  if (el.isContentEditable) return true;
+  return ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName);
+}
+const GAME_KEY_CODES = new Set(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight','KeyF','KeyG','KeyC','KeyR','KeyT','Mouse0']);
+export function attachKeyboardInput(): void {
+  if (attached || typeof document === 'undefined') return;
+  attached = true;
+  document.addEventListener('keydown', (event) => {
+    if (isTextInputFocused()) return;
+    if (GAME_KEY_CODES.has(event.code)) event.preventDefault();
+    const wasNew = !HELD.has(event.code);
+    HELD.add(event.code);
+    if (wasNew) logInputKey('down', event.code, getHeldKeyCodes());
+  }, { capture: true });
+  document.addEventListener('keyup', (event) => {
+    if (isTextInputFocused()) return;
+    const had = HELD.delete(event.code);
+    if (had) logInputKey('up', event.code, getHeldKeyCodes());
+  }, { capture: true });
+  document.addEventListener('focusin', (event) => {
+    const target = event.target;
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
+      HELD.clear();
+      VIRTUAL_HELD.clear();
+    }
+  }, { capture: true });
+  window.addEventListener('blur', () => {
+    if (HELD.size === 0 && VIRTUAL_HELD.size === 0) return;
+    HELD.clear();
+    VIRTUAL_HELD.clear();
+    logInputKey('blur', '(cleared)', []);
+  });
+}
+export function setVirtualKeyHeld(code: string, held: boolean): void { if (held) VIRTUAL_HELD.add(code); else VIRTUAL_HELD.delete(code); }
+export function isKeyHeld(code: string): boolean { return HELD.has(code) || VIRTUAL_HELD.has(code); }
+export function getHeldKeyCodes(): string[] { return [...new Set([...HELD, ...VIRTUAL_HELD])]; }
