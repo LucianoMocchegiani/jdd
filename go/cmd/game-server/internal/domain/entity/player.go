@@ -14,7 +14,7 @@ type Player struct {
 	ID                    string
 	EntityID              uint32
 	X, Y, Z               float64
-	VX, VY, VZ             float64
+	VX, VY, VZ            float64
 	Yaw, Pitch             float64
 	Medium                 string
 	DominantParticleName   string
@@ -37,6 +37,7 @@ type Player struct {
 	GroundCellDebugLogged  bool
 	lastSwingSeq           int
 	lastSwingAt            time.Time
+	lastSwingAtByAction    map[string]time.Time
 }
 
 func NewPlayer(playerID string, entityID uint32, x, y, z, yaw, pitch float64) *Player {
@@ -44,6 +45,7 @@ func NewPlayer(playerID string, entityID uint32, x, y, z, yaw, pitch float64) *P
 		ID: playerID, EntityID: entityID, X: x, Y: y, Z: z, Yaw: yaw, Pitch: pitch,
 		Medium: "ground", Intents: make(map[string]bool), Health: 100, MaxHealth: 100,
 		Mana: baseManaReserve, MaxMana: baseManaReserve, ConditionLastTickAt: make(map[string]time.Time),
+		lastSwingAtByAction: make(map[string]time.Time),
 	}
 }
 
