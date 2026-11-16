@@ -90,7 +90,7 @@ class AreaAbilityTargeting {
   private pointerY = 0;
 
   constructor(
-    private readonly scene: Scene,
+    scene: Scene,
     private readonly camera: Camera,
     private readonly canvas: HTMLCanvasElement,
     private readonly terrain: TerrainStore,
