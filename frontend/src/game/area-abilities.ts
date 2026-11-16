@@ -135,7 +135,6 @@ class AreaAbilityTargeting {
       if (!this.terrain.isCellSolid(cellX, cellY, cellZ)) continue;
       const surfaceY = (cellZ + 0.46) * this.cellSize;
       const surfaceDistance = (surfaceY - ray.origin.y) / ray.direction.y;
-      if (surfaceDistance < distance - step || surfaceDistance > distance) return;
       const worldX = ray.origin.x + ray.direction.x * surfaceDistance;
       const worldZ = ray.origin.z + ray.direction.z * surfaceDistance;
       if (Math.abs(worldX / this.cellSize - cellX) > 0.46 || Math.abs(worldZ / this.cellSize - cellY) > 0.46) return;
