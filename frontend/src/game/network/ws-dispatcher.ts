@@ -20,6 +20,10 @@ export function parseInboundMessage(raw: unknown): RealtimeInboundMessage | null
   const type = msg.type;
   if (typeof type !== 'string') return null;
 
+  if (type === 'swing_queued') {
+    if (!finiteNumber(msg.seq) || !finiteNumber(msg.action_seq) || !finiteNumber(msg.entity_id) || typeof msg.action_id !== 'string' || !msg.action_id) return null;
+    return { type: 'swing_queued', seq: msg.seq, action_seq: msg.action_seq, entity_id: msg.entity_id, action_id: msg.action_id };
+  }
   if (type === 'area_spell') {
     if (typeof msg.action_id !== 'string' || typeof msg.player_id !== 'string' || (msg.effect !== 'orb' && msg.effect !== 'thunder') ||
       !finiteNumber(msg.x) || !finiteNumber(msg.y) || !finiteNumber(msg.z) || !finiteNumber(msg.radius) || msg.radius <= 0 || msg.radius > 10) return null;
