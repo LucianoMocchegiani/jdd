@@ -1,0 +1,3 @@
+package combat
+import("os";"path/filepath";"testing";"time")
+func TestLoadAreaAction(t *testing.T){path:=filepath.Join(t.TempDir(),"actions.json");data:=`{"actions":[{"id":"orbe_explosivo","cooldownMs":3000,"manaCost":20,"control":{"inputIntent":"target_orbe","type":"one_shot"},"area":{"range":18,"radius":3,"damage":20,"effect":"orb"}}]}`;if err:=os.WriteFile(path,[]byte(data),0600);err!=nil{t.Fatal(err)};catalog,err:=LoadCatalog(path);if err!=nil{t.Fatal(err)};p:=catalog.Get("orbe_explosivo");if p==nil||p.Area==nil||p.Area.Range!=18||p.Area.Radius!=3||p.Area.Damage!=20||p.Area.Effect!="orb"{t.Fatalf("unexpected area profile: %+v",p)};if id,_:=catalog.GetByInputIntent("target_orbe");id!="orbe_explosivo"{t.Fatalf("area input mapped to %q",id)}}
