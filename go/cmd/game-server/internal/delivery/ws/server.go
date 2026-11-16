@@ -120,7 +120,8 @@ func (s *Server) handleInput(c *wshub.Conn, msg map[string]interface{}) {
 	if intents, ok := msg["intents"].(map[string]interface{}); ok { in.Intents = parseIntents(intents) }
 	if v, ok := msg["yaw"].(float64); ok { in.Yaw = &v }
 	if v, ok := msg["pitch"].(float64); ok { in.Pitch = &v }
-	if errJSON, ok := s.svc.HandleInput(in); !ok { wshub.SafeWrite(c, errJSON) }
+	response, ok := s.svc.HandleInput(in)
+	if response != "" || !ok { wshub.SafeWrite(c, response) }
 }
 
 func (s *Server) handleSwing(c *wshub.Conn, msg map[string]interface{}) {
