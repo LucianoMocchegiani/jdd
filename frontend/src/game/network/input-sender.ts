@@ -8,11 +8,25 @@ const NETWORKED_INTENTS = [
   'attack_light', 'attack_projectile', 'continuous_attack',
 ] as const;
 type IntentWireMode = 'omit' | 'clear' | 'active';
+type AttackIntent = 'attack_light' | 'attack_projectile';
 
 function packActiveIntents(intents: Record<string, boolean>): Record<string, true> {
   const out: Record<string, true> = {};
   for (const key of NETWORKED_INTENTS) if (intents[key] === true) out[key] = true;
   return out;
+}
+
+export function hasNewAttackIntent(
+  packed: Record<string, true>,
+  wasActive: Record<AttackIntent, boolean>,
+): boolean {
+  let edge = false;
+  for (const intent of ['attack_light', 'attack_projectile'] as const) {
+    const active = packed[intent] === true;
+    edge = edge || (active && !wasActive[intent]);
+    wasActive[intent] = active;
+  }
+  return edge;
 }
 
 /** Envía los intents al servidor con el intervalo configurado y al detectar flancos. */
@@ -21,7 +35,7 @@ export class NetworkInputSender {
   private seq = 0;
   private lastPayload = '';
   private jumpWasActive = false;
-  private attackWasActive: Record<'attack_light' | 'attack_projectile', boolean> = {
+  private attackWasActive: Record<AttackIntent, boolean> = {
     attack_light: false,
     attack_projectile: false,
   };
@@ -43,12 +57,7 @@ export class NetworkInputSender {
     const hasMovement = Object.keys(packed).length > 0;
     const jumpEdge = packed.jump === true && !this.jumpWasActive;
     this.jumpWasActive = packed.jump === true;
-    const attackEdge = (['attack_light', 'attack_projectile'] as const).some((intent) => {
-      const active = packed[intent] === true;
-      const edge = active && !this.attackWasActive[intent];
-      this.attackWasActive[intent] = active;
-      return edge;
-    });
+    const attackEdge = hasNewAttackIntent(packed, this.attackWasActive);
     const releaseEdge = this.hadMovementIntent && !hasMovement;
     const wireMode: IntentWireMode = hasMovement ? 'active' : releaseEdge ? 'clear' : 'omit';
     const throttleElapsed = nowSec - this.lastSentAt >= INPUT_SEND_INTERVAL_SEC;
