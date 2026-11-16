@@ -14,9 +14,23 @@ export function isTextInputFocused(): boolean {
 }
 
 const GAME_KEY_CODES = new Set([
-  'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
-  'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight',
-  'KeyF', 'KeyG', 'KeyC', 'KeyR', 'KeyT', 'Mouse0',
+  'Space',
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'KeyW',
+  'KeyA',
+  'KeyS',
+  'KeyD',
+  'ShiftLeft',
+  'ShiftRight',
+  'KeyF',
+  'KeyG',
+  'KeyC',
+  'KeyR',
+  'KeyT',
+  'Mouse0',
 ]);
 
 /** Registra listeners una sola vez (llamar desde `main.ts` al arranque). */
@@ -37,16 +51,21 @@ export function attachKeyboardInput(): void {
   }, { capture: true });
   document.addEventListener('focusin', (event) => {
     const target = event.target;
-    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
+    if (
+      target instanceof HTMLInputElement
+      || target instanceof HTMLTextAreaElement
+      || target instanceof HTMLSelectElement
+    ) {
       HELD.clear();
       VIRTUAL_HELD.clear();
     }
   }, { capture: true });
   window.addEventListener('blur', () => {
-    if (HELD.size === 0 && VIRTUAL_HELD.size === 0) return;
-    HELD.clear();
-    VIRTUAL_HELD.clear();
-    logInputKey('blur', '(cleared)', []);
+    if (HELD.size > 0 || VIRTUAL_HELD.size > 0) {
+      HELD.clear();
+      VIRTUAL_HELD.clear();
+      logInputKey('blur', '(cleared)', []);
+    }
   });
 }
 
