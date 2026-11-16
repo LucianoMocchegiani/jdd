@@ -64,7 +64,8 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 	if !updated { return buildError("input_error", "player_not_in_session"), false }
 	if stale { return "", true }
 	if actionID != "" {
-		_, _ = s.HandleSwing(SwingPayload{BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: actionID, Seq: in.Seq})
+		response, _ := s.HandleSwing(SwingPayload{BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: actionID, Seq: in.Seq})
+		return response, true
 	}
 	return "", true
 }
@@ -116,8 +117,14 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 			return buildError("swing_error", "enqueue_failed"), true
 		}
 	}
-	sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) { p.InCombatUntil = now.Add(6 * time.Second); p.ActionID = in.ActionID; p.ActionSeq++ })
-	ack, _ := json.Marshal(map[string]interface{}{"type": "swing_queued", "seq": in.Seq, "entity_id": reservation.EntityID, "action_id": in.ActionID})
+	var actionSeq int
+	sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) {
+		p.InCombatUntil = now.Add(6 * time.Second)
+		p.ActionID = in.ActionID
+		p.ActionSeq++
+		actionSeq = p.ActionSeq
+	})
+	ack, _ := json.Marshal(map[string]interface{}{"type": "swing_queued", "seq": in.Seq, "entity_id": reservation.EntityID, "action_id": in.ActionID, "action_seq": actionSeq})
 	return string(ack), false
 }
 
