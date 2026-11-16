@@ -5,7 +5,13 @@
       "id": "attack",
       "description": "Ataque ligero a corto alcance en suelo o agua parcial; bloquea locomoción mientras dura.",
       "cooldownMs": 500,
-      "control": { "inputIntent": "attack_light", "slot": "body_actions", "type": "one_shot", "when": { "not": { "medium": ["air", "submerged_full"] } }, "interrupt": { "blocks": ["run", "walk", "swim", "jump"] } },
+      "control": {
+        "inputIntent": "attack_light",
+        "slot": "body_actions",
+        "type": "one_shot",
+        "when": { "not": { "medium": ["air", "submerged_full"] } },
+        "interrupt": { "blocks": ["run", "walk", "swim", "jump"] }
+      },
       "appearance": { "state": "attack", "clip": "attack" },
       "impact": { "reach": 2, "damage": 15 }
     },
@@ -14,7 +20,12 @@
       "description": "Proyectil de energía autoritativo; se dispara tras la carga de la animación.",
       "cooldownMs": 3000,
       "manaCost": 20,
-      "control": { "inputIntent": "attack_projectile", "slot": "body_actions", "type": "one_shot", "interrupt": { "blocks": ["run", "walk", "swim", "jump"] } },
+      "control": {
+        "inputIntent": "attack_projectile",
+        "slot": "body_actions",
+        "type": "one_shot",
+        "interrupt": { "blocks": ["run", "walk", "swim", "jump"] }
+      },
       "appearance": { "state": "attack", "clip": "kamehameha" },
       "projectile": { "speed": 18, "range": 28, "damage": 30, "radius": 0.55, "delayMs": 1033 }
     },
@@ -23,7 +34,12 @@
       "description": "Rayo canalizado sostenido que daña partículas y objetivos en secuencia.",
       "manaCostPerSecond": 5,
       "damageIntervalMs": 1000,
-      "control": { "inputIntent": "continuous_attack", "slot": "body_actions", "type": "sustained", "when": { "not": { "medium": ["air", "submerged_full"] } } },
+      "control": {
+        "inputIntent": "continuous_attack",
+        "slot": "body_actions",
+        "type": "sustained",
+        "when": { "not": { "medium": ["air", "submerged_full"] } }
+      },
       "appearance": { "state": "attack", "clip": "rayo_de_ki" },
       "impact": { "reach": 28, "width": 0.55, "damage": 5 }
     },
