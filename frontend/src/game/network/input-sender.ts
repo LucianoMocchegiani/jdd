@@ -5,7 +5,7 @@ import { recordInputSent } from '@/game/debug/input-stats-debug';
 
 const NETWORKED_INTENTS = [
   'move_forward', 'move_backward', 'move_left', 'move_right', 'run_forward', 'jump',
-  'attack_light', 'attack_projectile', 'continuous_attack',
+  'attack_light', 'attack_projectile', 'continuous_attack', 'target_orbe', 'target_trueno',
 ] as const;
 type IntentWireMode = 'omit' | 'clear' | 'active';
 
@@ -21,9 +21,11 @@ export class NetworkInputSender {
   private seq = 0;
   private lastPayload = '';
   private jumpWasActive = false;
-  private attackWasActive: Record<'attack_light' | 'attack_projectile', boolean> = {
+  private attackWasActive: Record<'attack_light' | 'attack_projectile' | 'target_orbe' | 'target_trueno', boolean> = {
     attack_light: false,
     attack_projectile: false,
+    target_orbe: false,
+    target_trueno: false,
   };
   private hadMovementIntent = false;
 
@@ -36,15 +38,12 @@ export class NetworkInputSender {
   /** Último `seq` enviado por WS (0 si aún no hubo envíos). */
   get currentSeq(): number { return this.seq; }
 
-  /** Reserva un `seq` para un comando de una acción dirigida. */
-  reserveSequence(): number { this.seq += 1; return this.seq; }
-
   tick(nowSec: number, intents: Record<string, boolean>, yaw: number, pitch?: number): void {
     const packed = packActiveIntents(intents);
     const hasMovement = Object.keys(packed).length > 0;
     const jumpEdge = packed.jump === true && !this.jumpWasActive;
     this.jumpWasActive = packed.jump === true;
-    const attackEdge = (['attack_light', 'attack_projectile'] as const).some((intent) => {
+    const attackEdge = (['attack_light', 'attack_projectile', 'target_orbe', 'target_trueno'] as const).some((intent) => {
       const active = packed[intent] === true;
       const edge = active && !this.attackWasActive[intent];
       this.attackWasActive[intent] = active;

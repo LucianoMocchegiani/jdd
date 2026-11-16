@@ -15,7 +15,7 @@ import { PlayerSnapshotBuffer, RemotePresence } from '@/game/player-replication'
 import { PresenceHandler } from '@/game/network/presence-handler';
 import { HealthHud } from '@/game/health-hud';
 import { ProjectileVisuals } from '@/game/projectile-visuals';
-import { AreaAbilityTargeting, AreaSpellVisuals } from '@/game/area-abilities';
+import { AreaSpellVisuals } from '@/game/area-abilities';
 import { isNewActionSequence, selectRemoteClip } from '@/game/player/remote-animation';
 import type { PlayerCharacterVisual } from '@/game/player/player-character-visual';
 import type { PlayerStateEvent, SessionEvent } from '@/types/world-events';
@@ -240,17 +240,6 @@ export async function bootstrapApp(
   debugMediumEl.textContent = 'medium: —';
   const cameraController = new CameraController(camera, renderer.domElement, playerMesh);
   setCameraController(cameraController);
-  const areaTargeting = new AreaAbilityTargeting(
-    scene, camera, renderer.domElement, terrain, cellSize,
-    (action, target) => {
-      worldRealtime.send({
-        type: 'area_spell_cast',
-        seq: networkInput.reserveSequence(),
-        action_id: action.id,
-        target_position: target,
-      });
-    },
-  );
   if (isMovementDebugEnabled()) console.info('[movement:debug] Flujo autoritativo: [input:key] → [input:intents] → [server:movement] → [player_state] → [render]. HUD arriba-izq. Off: ?debug=movement-off');
 
   const loop = new GameLoop((deltaTime) => {
@@ -282,7 +271,6 @@ export async function bootstrapApp(
       localCharacter?.update(deltaTime, clip, pos.x, pos.y, pos.z, facing?.yaw ?? 0, null);
       pendingLocalActionClip = null;
       cameraController.updateCamera(camera, world, playerEntityId, pos.x, pos.y, pos.z, cellSize);
-      areaTargeting.update(pos.x, pos.y, pos.z);
       updateCameraHud(debugCameraEl, cameraController.yaw, cameraController.pitch, cameraController.mode);
       updateConditionsHud(debugConditionsEl, activeConditionIds, conditionDamageTotal);
       if (inputStatsDebug && debugInputStatsEl) {
