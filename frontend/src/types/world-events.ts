@@ -28,11 +28,12 @@ export interface InputCommand { type: 'input'; bloque_id: string; player_id: str
 export interface InputErrorEvent { type: 'input_error'; error: string; }
 export interface SwingCommand { type: 'swing'; seq: number; action_id: string; entity_id: number; player_id: string; bloque_id: string; position: CellPosition; yaw?: number; }
 export interface AreaSpellCommand { type: 'area_spell_cast'; seq: number; action_id: string; target_position: CellPosition; }
+export interface SwingQueuedEvent { type: 'swing_queued'; seq: number; action_seq: number; entity_id: number; action_id: string; }
 export interface SwingResultEvent { type: 'swing_result'; seq: number; entity_id: number; action_id: string; player_id?: string; beam_length?: number; hits: Array<{ particle_id: string; destroyed: boolean; integridad?: number }>; }
 export interface SwingErrorEvent { type: 'swing_error'; error: string; action_id?: string; seq?: number; }
 export interface AreaSpellEvent { type: 'area_spell'; action_id: string; player_id: string; effect: 'orb' | 'thunder'; x: number; y: number; z: number; radius: number; }
 export interface ProjectileStateEvent { type: 'projectile_state'; id: string; owner_id: string; action_id: string; x: number; y: number; z: number; active: boolean; }
-export type CombatServerEvent = SwingResultEvent | SwingErrorEvent | AreaSpellEvent | ProjectileStateEvent;
+export type CombatServerEvent = SwingQueuedEvent | SwingResultEvent | SwingErrorEvent | AreaSpellEvent | ProjectileStateEvent;
 export type WorldEvent = ParticleDestroyedEvent | TerrainWsEvent;
 export type SessionEvent = PresenceEvent | CombatServerEvent | InputErrorEvent;
 export type RealtimeInboundMessage = WorldEvent | SessionEvent;
