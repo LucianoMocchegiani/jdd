@@ -32,13 +32,6 @@ func (s *Services) HandleAreaSpell(in AreaSpellPayload) (string, bool) {
 	if !exists {
 		return buildError("swing_error", "not_in_block"), true
 	}
-	cellX := int(math.Floor(in.Target.X + 0.5))
-	cellY := int(math.Floor(in.Target.Y + 0.5))
-	cellZ := int(math.Floor(in.Target.Z))
-	if sess.SolidGrid == nil || !sess.SolidGrid.IsCellSolid(cellX, cellY, cellZ) ||
-		in.Target.Z-float64(cellZ) < 0.35 || in.Target.Z-float64(cellZ) > 0.55 {
-		return buildError("swing_error", "invalid_area_target"), true
-	}
 	player, exists := sess.GetPlayer(in.PlayerID)
 	if !exists {
 		return buildError("swing_error", "player_not_in_session"), true
@@ -46,6 +39,13 @@ func (s *Services) HandleAreaSpell(in AreaSpellPayload) (string, bool) {
 	dx, dy, dz := in.Target.X-player.X, in.Target.Y-player.Y, in.Target.Z-player.Z
 	if math.Sqrt(dx*dx+dy*dy+dz*dz) > profile.Area.Range {
 		return buildError("swing_error", "area_target_out_of_range"), true
+	}
+	cellX := int(math.Floor(in.Target.X + 0.5))
+	cellY := int(math.Floor(in.Target.Y + 0.5))
+	cellZ := int(math.Floor(in.Target.Z))
+	if sess.SolidGrid == nil || !sess.SolidGrid.IsCellSolid(cellX, cellY, cellZ) ||
+		in.Target.Z-float64(cellZ) < 0.35 || in.Target.Z-float64(cellZ) > 0.55 {
+		return buildError("swing_error", "invalid_area_target"), true
 	}
 	if s.Conditions != nil && (s.Conditions.BlocksIntent(player.Conditions, profile.InputIntent) || s.Conditions.BlocksAction(player.Conditions, in.ActionID)) {
 		return buildError("swing_error", "swing_rejected"), true
