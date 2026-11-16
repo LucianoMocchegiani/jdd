@@ -166,6 +166,17 @@ export async function bootstrapApp(
   };
 
   const handleSessionEvent = (event: SessionEvent): void => {
+    if (event.type === 'swing_queued') {
+      if (isNewActionSequence(localActionSeq, event.action_seq)) {
+        localActionSeq = event.action_seq;
+        pendingLocalActionClip = selectRemoteClip({
+          medium: localVisualState?.medium ?? 'ground',
+          vx: localVisualState?.vx ?? 0, vy: localVisualState?.vy ?? 0, vz: localVisualState?.vz ?? 0,
+          action_id: event.action_id,
+        });
+        window.dispatchEvent(new CustomEvent('ability-cooldown-start', { detail: { actionId: event.action_id } }));
+      }
+    }
     if (event.type === 'projectile_state') {
       projectileVisuals.apply(event);
       return;
