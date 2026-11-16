@@ -6,7 +6,7 @@ import { isCameraInspectMode } from '@/game/camera/camera-access';
 import { isTextInputFocused } from '@/game/input/keyboard-state';
 import {
   CylinderGeometry, DoubleSide, Group, Mesh, MeshBasicMaterial, Raycaster,
-  RingGeometry, Scene, SphereGeometry, Vector2, type Camera,
+  RingGeometry, Scene, SphereGeometry, Vector2, Vector3, type Camera,
 } from 'three';
 import type { TerrainStore } from '@/game/terrain/terrain-store';
 import { isAreaTargetWithinRange } from './area-target-range';
@@ -17,6 +17,7 @@ type Cast = (action: ActionDefinition, target: CellPosition) => void;
 export class AreaAbilityTargeting {
   private readonly raycaster = new Raycaster();
   private readonly pointer = new Vector2();
+  private readonly rayPoint = new Vector3();
   private readonly marker = new Mesh(
     new RingGeometry(0.82, 1, 40),
     new MeshBasicMaterial({ color: 0x55ddff, transparent: true, opacity: 0.85, side: DoubleSide, depthWrite: false }),
@@ -68,19 +69,28 @@ export class AreaAbilityTargeting {
     else this.pointer.set((this.pointerX / rect.width) * 2 - 1, -(this.pointerY / rect.height) * 2 + 1);
     this.camera.updateMatrixWorld();
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    this.scene.updateMatrixWorld(true);
+    const ray = this.raycaster.ray;
+    if (ray.direction.y >= 0) return;
+    const playerPosition = new Vector3(playerX * this.cellSize, playerZ * this.cellSize, playerY * this.cellSize);
+    const maxDistance = this.camera.position.distanceTo(playerPosition) + action.area.range * this.cellSize;
+    const step = this.cellSize * 0.1;
 
-    for (const hit of this.raycaster.intersectObjects(this.scene.children, true)) {
-      if (!hit.face) continue;
-      const x = hit.point.x / this.cellSize;
-      const y = hit.point.z / this.cellSize;
-      const z = hit.point.y / this.cellSize;
-      if (!this.terrain.isCellSolid(Math.floor(x + 0.5), Math.floor(y + 0.5), Math.floor(z))) continue;
-      if (hit.face.normal.y < 0.7) return;
-      const target = { x, y, z };
+    for (let distance = 0; distance <= maxDistance; distance += step) {
+      ray.at(distance, this.rayPoint);
+      const cellX = Math.floor(this.rayPoint.x / this.cellSize + 0.5);
+      const cellY = Math.floor(this.rayPoint.z / this.cellSize + 0.5);
+      const cellZ = Math.floor(this.rayPoint.y / this.cellSize);
+      if (!this.terrain.isCellSolid(cellX, cellY, cellZ)) continue;
+      const surfaceY = (cellZ + 0.46) * this.cellSize;
+      const surfaceDistance = (surfaceY - ray.origin.y) / ray.direction.y;
+      if (surfaceDistance < distance - step || surfaceDistance > distance) return;
+      const worldX = ray.origin.x + ray.direction.x * surfaceDistance;
+      const worldZ = ray.origin.z + ray.direction.z * surfaceDistance;
+      if (Math.abs(worldX / this.cellSize - cellX) > 0.46 || Math.abs(worldZ / this.cellSize - cellY) > 0.46) return;
+      const target = { x: worldX / this.cellSize, y: worldZ / this.cellSize, z: surfaceY / this.cellSize };
       if (!isAreaTargetWithinRange(target, { x: playerX, y: playerY, z: playerZ }, action.area.range)) return;
       this.target = target;
-      this.marker.position.set(hit.point.x, hit.point.y + 0.025 * this.cellSize, hit.point.z);
+      this.marker.position.set(worldX, surfaceY + 0.025 * this.cellSize, worldZ);
       this.marker.scale.setScalar(action.area.radius * this.cellSize);
       (this.marker.material as MeshBasicMaterial).color.set(action.area.effect === 'thunder' ? 0xa78bfa : 0x55ddff);
       this.marker.visible = true;
