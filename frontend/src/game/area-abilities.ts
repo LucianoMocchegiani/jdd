@@ -131,13 +131,13 @@ class AreaAbilityTargeting {
       ray.at(distance, this.rayPoint);
       const cellX = Math.floor(this.rayPoint.x / this.cellSize + 0.5);
       const cellY = Math.floor(this.rayPoint.z / this.cellSize + 0.5);
-      const cellZ = Math.floor(this.rayPoint.y / this.cellSize);
+      const cellZ = Math.floor(this.rayPoint.y / this.cellSize + 0.5);
       if (!this.terrain.isCellSolid(cellX, cellY, cellZ)) continue;
       const surfaceY = (cellZ + 0.46) * this.cellSize;
       const surfaceDistance = (surfaceY - ray.origin.y) / ray.direction.y;
       const worldX = ray.origin.x + ray.direction.x * surfaceDistance;
       const worldZ = ray.origin.z + ray.direction.z * surfaceDistance;
-      if (Math.abs(worldX / this.cellSize - cellX) > 0.46 || Math.abs(worldZ / this.cellSize - cellY) > 0.46) return;
+      if (Math.abs(worldX / this.cellSize - cellX) > 0.46 || Math.abs(worldZ / this.cellSize - cellY) > 0.46) continue;
       const target = { x: worldX / this.cellSize, y: worldZ / this.cellSize, z: surfaceY / this.cellSize };
       if (Math.hypot(target.x - player.x, target.y - player.y, target.z - player.z) > this.action.area.range) return;
       this.target = target;
