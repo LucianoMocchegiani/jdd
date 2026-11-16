@@ -1,11 +1,14 @@
 package entity
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 type ActionSwingReservation struct {
 	SwingReservation
-	actionID           string
-	previousActionAt   time.Time
+	actionID            string
+	previousActionAt    time.Time
 	hadPreviousActionAt bool
 }
 
