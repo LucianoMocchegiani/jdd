@@ -52,12 +52,12 @@ func (s *Services) HandleAreaSpell(in AreaSpellPayload) (string, bool) {
 	}
 
 	now := time.Now()
-	reservation, ok := sess.BeginSwing(in.PlayerID, in.Seq, now, profile.Cooldown, profile.BlockedMediums)
+	reservation, ok := sess.BeginActionSwing(in.PlayerID, in.ActionID, in.Seq, now, profile.Cooldown, profile.BlockedMediums)
 	if !ok {
 		return buildError("swing_error", "swing_rejected"), true
 	}
 	if !sess.SpendSwingMana(in.PlayerID, in.Seq, profile.ManaCost) {
-		sess.CancelSwing(in.PlayerID, reservation)
+		sess.CancelActionSwing(in.PlayerID, reservation)
 		return buildError("swing_error", "swing_rejected"), true
 	}
 	cmd := port.SwingCommand{
@@ -66,7 +66,7 @@ func (s *Services) HandleAreaSpell(in AreaSpellPayload) (string, bool) {
 		AreaTarget: &in.Target,
 	}
 	if err := s.SwingPub.PublishSwing(cmd); err != nil {
-		sess.CancelSwingAndRefundMana(in.PlayerID, reservation, profile.ManaCost)
+		sess.CancelActionSwingAndRefundMana(in.PlayerID, reservation, profile.ManaCost)
 		return buildError("swing_error", "enqueue_failed"), true
 	}
 
