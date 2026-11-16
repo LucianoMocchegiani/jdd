@@ -84,7 +84,7 @@ export function mountAbilityHud(root: HTMLElement): void {
     void row.clock.offsetWidth;
     row.clock.classList.add('is-spinning');
   });
-  for (const { item, clock, cooldown, cooldownMs, label } of rows.values()) {
+  for (const { item, clock, cooldown, label } of rows.values()) {
     clock.addEventListener('animationend', () => {
       item.classList.remove('is-cooling-down');
       clock.classList.remove('is-spinning');
