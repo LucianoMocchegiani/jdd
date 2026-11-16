@@ -7,7 +7,6 @@ import (
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/memory"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/usecase"
-	"github.com/juego-de-dioses/jd/pkg/jd/cellkey"
 )
 
 type inputAttackCatalog map[string]*port.CombatProfile
@@ -49,11 +48,10 @@ func TestHandleInputStartsCombatOnlyOnNewAttackIntent(t *testing.T) {
 	}
 }
 
-func TestHandleInputStartsAreaAbilityOnNewIntent(t *testing.T) {
+func TestHandleInputDoesNotCastAreaAbilityWithoutTarget(t *testing.T) {
 	store := memory.NewSessionStore()
 	sess := store.GetOrCreate("block", 1)
 	sess.AddPlayer("player", 3, 4, 1, 1.25, 0)
-	sess.SolidGrid.MergeSolidCells([]string{cellkey.Format(3, 4, 0)})
 	publisher := &swingPublisher{}
 	svc := &usecase.Services{
 		Sessions: store,
@@ -63,14 +61,11 @@ func TestHandleInputStartsAreaAbilityOnNewIntent(t *testing.T) {
 		},
 	}
 	input := usecase.InputPayload{BloqueID: "block", EcoID: 1, PlayerID: "player", Seq: 1, Intents: map[string]bool{"target_orbe": true}}
-	if _, ok := svc.HandleInput(input); !ok || publisher.calls != 1 || publisher.command.AreaTarget == nil {
-		t.Fatalf("area ability intent did not cast: ok=%t calls=%d command=%+v", ok, publisher.calls, publisher.command)
+	if _, ok := svc.HandleInput(input); !ok || publisher.calls != 0 {
+		t.Fatalf("area intent without an explicit target was cast: ok=%t calls=%d", ok, publisher.calls)
 	}
-	if got := publisher.command.AreaTarget.Z; got != 0.45 {
-		t.Fatalf("area cast should use the caster's ground position, got z=%v", got)
-	}
-	input.Seq = 2
-	if _, ok := svc.HandleInput(input); !ok || publisher.calls != 1 {
-		t.Fatalf("held area ability repeated: ok=%t calls=%d", ok, publisher.calls)
+	player, _ := sess.GetPlayer("player")
+	if player.Mana != 100 || player.ActionSeq != 0 {
+		t.Fatalf("untargeted area intent changed player state: mana=%v actionSeq=%d", player.Mana, player.ActionSeq)
 	}
 }

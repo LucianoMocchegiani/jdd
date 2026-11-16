@@ -150,6 +150,15 @@ export async function bootstrapApp(
   let localCharacter: PlayerCharacterVisual | null = null;
   let setPlayerVisible = (_visible: boolean): void => {};
 
+  areaSpellVisuals.enableTargeting(camera, renderer.domElement, terrain, (action, target) => {
+    worldRealtime.send({
+      type: 'area_spell_cast',
+      seq: networkInput.reserveSequence(),
+      action_id: action.id,
+      target_position: target,
+    });
+  });
+
   requestActivation = (): void => {
     if (socketReady && terrainReady && !activationSent) {
       activationSent = worldRealtime.send({ type: 'activate_player', position: { x: spawnX, y: spawnY, z: spawnZ } });
@@ -291,7 +300,7 @@ export async function bootstrapApp(
         });
       }
     }
-    areaSpellVisuals.update(deltaTime);
+    areaSpellVisuals.update(deltaTime, pos ? { x: pos.x, y: pos.y, z: pos.z } : undefined);
     worldRealtime.drainInboundQueue();
     remotePresence.update();
     healthHud.update(localHealth, localMaxHealth, localMana, localMaxMana, localInCombat, activeConditionIds, remotePresence.getHealthIndicators(), camera, cellSize);

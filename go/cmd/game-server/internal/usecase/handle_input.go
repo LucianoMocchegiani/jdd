@@ -3,7 +3,6 @@ package usecase
 
 import (
 	"encoding/json"
-	"math"
 	"time"
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
@@ -29,7 +28,6 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 	sess, exists := s.Sessions.Get(in.BloqueID, in.EcoID)
 	if !exists { return buildError("input_error", "not_in_block"), false }
 	var actionID string
-	var areaTarget *port.AreaTarget
 	stale := false
 	updated := sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) {
 		if in.Seq != 0 && in.Seq <= p.InputSeq { stale = true; return }
@@ -37,11 +35,10 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 		if in.Intents != nil {
 			if in.Seq > 0 {
 				if catalog, ok := s.Combat.(inputActionCatalog); ok {
-					for _, intent := range []string{"attack_light", "attack_projectile", "target_orbe", "target_trueno"} {
+					for _, intent := range []string{"attack_light", "attack_projectile"} {
 						if in.Intents[intent] && !p.Intents[intent] && (s.Conditions == nil || !s.Conditions.BlocksIntent(p.Conditions, intent)) {
-							if id, profile := catalog.GetByInputIntent(intent); profile != nil && profile.ControlType != "sustained" && (profile.Impact != nil || profile.Projectile != nil || profile.Area != nil) {
+							if id, profile := catalog.GetByInputIntent(intent); profile != nil && profile.ControlType != "sustained" && (profile.Impact != nil || profile.Projectile != nil) {
 								actionID = id
-								if profile.Area != nil { areaTarget = &port.AreaTarget{X: p.X, Y: p.Y, Z: math.Floor(p.Z) - 0.55} }
 								break
 							}
 						}
@@ -66,9 +63,7 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 	})
 	if !updated { return buildError("input_error", "player_not_in_session"), false }
 	if stale { return "", true }
-	if areaTarget != nil {
-		_, _ = s.HandleAreaSpell(AreaSpellPayload{BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: actionID, Seq: in.Seq, Target: *areaTarget})
-	} else if actionID != "" {
+	if actionID != "" {
 		_, _ = s.HandleSwing(SwingPayload{BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: actionID, Seq: in.Seq})
 	}
 	return "", true

@@ -3,6 +3,7 @@ import { INTENT_KEY_CODES } from '@/ecs/domains/input/input-system';
 import { setVirtualKeyHeld } from '@/game/input/keyboard-state';
 
 const COOLDOWN_EVENT = 'ability-cooldown-start';
+const TARGET_REQUEST_EVENT = 'area-ability-target';
 const pressTimers = new Map<string, number>();
 
 function pulseAction(intent: string): void {
@@ -34,9 +35,9 @@ export function mountAbilityHud(root: HTMLElement): void {
     item.type = 'button';
     item.className = 'ability-hud__item';
     item.setAttribute('aria-label', `${nameText}, ${keyText}, cooldown configurado ${cooldownText}; activar`);
-    const code = INTENT_KEY_CODES[action.control.inputIntent]?.[0];
 
-    if (action.control.type === 'sustained' && code) {
+    if (action.control.type === 'sustained' && INTENT_KEY_CODES[action.control.inputIntent]?.[0]) {
+      const code = INTENT_KEY_CODES[action.control.inputIntent]![0]!;
       item.setAttribute('aria-pressed', 'false');
       const release = (): void => { setVirtualKeyHeld(code, false); item.setAttribute('aria-pressed', 'false'); };
       item.addEventListener('pointerdown', (event) => {
@@ -52,7 +53,10 @@ export function mountAbilityHud(root: HTMLElement): void {
         window.setTimeout(release, 120);
       } });
     } else {
-      const activate = (): void => pulseAction(action.control.inputIntent);
+      const activate = (): void => {
+        if (action.area) window.dispatchEvent(new CustomEvent(TARGET_REQUEST_EVENT, { detail: { actionId: action.id } }));
+        else pulseAction(action.control.inputIntent);
+      };
       item.addEventListener('pointerdown', activate);
       item.addEventListener('click', (event) => { if (event.detail === 0) activate(); });
     }
