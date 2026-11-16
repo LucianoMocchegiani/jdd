@@ -20,21 +20,32 @@ type actionFile struct {
 		Control           struct {
 			InputIntent string `json:"inputIntent"`
 			Type        string `json:"type"`
-			When        struct { Not struct { Medium []string `json:"medium"` } `json:"not"` } `json:"when"`
+			When        struct {
+				Not struct { Medium []string `json:"medium"` } `json:"not"`
+			} `json:"when"`
 		} `json:"control"`
 		Impact     *port.DamageProfile `json:"impact"`
 		Area       *port.AreaProfile   `json:"area"`
 		Projectile *struct {
-			Speed float64 `json:"speed"`; Range float64 `json:"range"`; Damage float64 `json:"damage"`; Radius float64 `json:"radius"`; DelayMs int `json:"delayMs"`
+			Speed   float64 `json:"speed"`
+			Range   float64 `json:"range"`
+			Damage  float64 `json:"damage"`
+			Radius  float64 `json:"radius"`
+			DelayMs int     `json:"delayMs"`
 		} `json:"projectile"`
 	} `json:"actions"`
 }
 
-type Catalog struct { profiles map[string]*port.CombatProfile; byInputIntent map[string]string }
+type Catalog struct {
+	profiles      map[string]*port.CombatProfile
+	byInputIntent map[string]string
+}
 
 func LoadCatalog(path string) (*Catalog, error) {
-	data, err := os.ReadFile(path); if err != nil { return nil, err }
-	var raw actionFile; if err := json.Unmarshal(data, &raw); err != nil { return nil, err }
+	data, err := os.ReadFile(path)
+	if err != nil { return nil, err }
+	var raw actionFile
+	if err := json.Unmarshal(data, &raw); err != nil { return nil, err }
 	catalog := &Catalog{profiles: make(map[string]*port.CombatProfile), byInputIntent: make(map[string]string)}
 	for _, action := range raw.Actions {
 		if action.ID == "" { return nil, fmt.Errorf("action without id") }
@@ -43,17 +54,29 @@ func LoadCatalog(path string) (*Catalog, error) {
 			if action.Control.Type != "sustained" && action.CooldownMs <= 0 { return nil, fmt.Errorf("action %q has combat impact without positive cooldownMs", action.ID) }
 			if action.Impact.Reach <= 0 || action.Impact.Damage <= 0 || action.Impact.Width < 0 || action.Impact.Width > 5 { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
 		}
-		if action.Area != nil && (action.CooldownMs <= 0 || action.Area.Range <= 0 || action.Area.Range > 100 || action.Area.Radius <= 0 || action.Area.Radius > 10 || action.Area.Damage <= 0 || (action.Area.Effect != "orb" && action.Area.Effect != "thunder")) { return nil, fmt.Errorf("action %q has invalid area profile", action.ID) }
-		if action.Area != nil && action.Impact != nil { return nil, fmt.Errorf("action %q cannot have both area and line impact", action.ID) }
-		if action.Control.Type == "sustained" && (action.ManaCostPerSecond <= 0 || action.DamageIntervalMs <= 0 || action.Impact == nil || action.Projectile != nil) { return nil, fmt.Errorf("action %q has invalid sustained profile", action.ID) }
+		if action.Area != nil && (action.CooldownMs <= 0 || action.Area.Range <= 0 || action.Area.Range > 100 || action.Area.Radius <= 0 || action.Area.Radius > 10 || action.Area.Damage <= 0 || (action.Area.Effect != "orb" && action.Area.Effect != "thunder")) {
+			return nil, fmt.Errorf("action %q has invalid area profile", action.ID)
+		}
+		if action.Area != nil && (action.Impact != nil || action.Projectile != nil) { return nil, fmt.Errorf("action %q cannot combine area, line and projectile profiles", action.ID) }
+		if action.Control.Type == "sustained" && (action.ManaCostPerSecond <= 0 || action.DamageIntervalMs <= 0 || action.Impact == nil || action.Projectile != nil) {
+			return nil, fmt.Errorf("action %q has invalid sustained profile", action.ID)
+		}
 		var projectile *port.ProjectileProfile
 		if action.Projectile != nil {
 			p := action.Projectile
-			if action.CooldownMs <= 0 || p.Speed <= 0 || p.Range <= 0 || p.Damage <= 0 || p.Radius <= 0 || p.DelayMs < 0 || p.Speed > 100 || p.Range > 1000 || p.Radius > 5 || p.DelayMs > 10000 { return nil, fmt.Errorf("action %q has invalid projectile profile", action.ID) }
-			projectile = &port.ProjectileProfile{Speed:p.Speed, Range:p.Range, Damage:p.Damage, Radius:p.Radius, Delay:time.Duration(p.DelayMs)*time.Millisecond}
+			if action.CooldownMs <= 0 || p.Speed <= 0 || p.Range <= 0 || p.Damage <= 0 || p.Radius <= 0 || p.DelayMs < 0 || p.Speed > 100 || p.Range > 1000 || p.Radius > 5 || p.DelayMs > 10000 {
+				return nil, fmt.Errorf("action %q has invalid projectile profile", action.ID)
+			}
+			projectile = &port.ProjectileProfile{Speed: p.Speed, Range: p.Range, Damage: p.Damage, Radius: p.Radius, Delay: time.Duration(p.DelayMs) * time.Millisecond}
 		}
 		if _, exists := catalog.profiles[action.ID]; exists { return nil, fmt.Errorf("duplicate action id %q", action.ID) }
-		catalog.profiles[action.ID] = &port.CombatProfile{InputIntent:action.Control.InputIntent, ControlType:action.Control.Type, Cooldown:time.Duration(action.CooldownMs)*time.Millisecond, ManaCost:action.ManaCost, ManaCostPerSecond:action.ManaCostPerSecond, DamageInterval:time.Duration(action.DamageIntervalMs)*time.Millisecond, BlockedMediums:action.Control.When.Not.Medium, Impact:action.Impact, Area:action.Area, Projectile:projectile}
+		catalog.profiles[action.ID] = &port.CombatProfile{
+			InputIntent: action.Control.InputIntent, ControlType: action.Control.Type,
+			Cooldown: time.Duration(action.CooldownMs) * time.Millisecond,
+			ManaCost: action.ManaCost, ManaCostPerSecond: action.ManaCostPerSecond,
+			DamageInterval: time.Duration(action.DamageIntervalMs) * time.Millisecond,
+			BlockedMediums: action.Control.When.Not.Medium, Impact: action.Impact, Area: action.Area, Projectile: projectile,
+		}
 		if action.Control.InputIntent != "" && (action.Impact != nil || action.Area != nil || projectile != nil) {
 			if _, exists := catalog.byInputIntent[action.Control.InputIntent]; exists { return nil, fmt.Errorf("duplicate combat input intent %q", action.Control.InputIntent) }
 			catalog.byInputIntent[action.Control.InputIntent] = action.ID
@@ -61,6 +84,10 @@ func LoadCatalog(path string) (*Catalog, error) {
 	}
 	return catalog, nil
 }
+
 func (c *Catalog) Get(actionID string) *port.CombatProfile { return c.profiles[actionID] }
-func (c *Catalog) GetByInputIntent(intent string) (string, *port.CombatProfile) { id := c.byInputIntent[intent]; return id, c.profiles[id] }
+func (c *Catalog) GetByInputIntent(intent string) (string, *port.CombatProfile) {
+	id := c.byInputIntent[intent]
+	return id, c.profiles[id]
+}
 var _ port.CombatCatalog = (*Catalog)(nil)
