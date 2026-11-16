@@ -92,16 +92,16 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 	if blocked { return buildError("swing_error", "swing_rejected"), true }
 	if s.SwingPub == nil { return buildError("swing_error", "not_configured"), true }
 	now := time.Now()
-	reservation, ok := sess.BeginSwing(in.PlayerID, in.Seq, now, profile.Cooldown, profile.BlockedMediums)
+	reservation, ok := sess.BeginActionSwing(in.PlayerID, in.ActionID, in.Seq, now, profile.Cooldown, profile.BlockedMediums)
 	if !ok { return buildError("swing_error", "swing_rejected"), true }
 	if !sess.SpendSwingMana(in.PlayerID, in.Seq, profile.ManaCost) {
-		sess.CancelSwing(in.PlayerID, reservation)
+		sess.CancelActionSwing(in.PlayerID, reservation)
 		return buildError("swing_error", "swing_rejected"), true
 	}
 	if profile.Projectile != nil {
 		p := profile.Projectile
-		if !sess.SpawnProjectile(in.PlayerID, in.ActionID, reservation, p.Speed, p.Range, p.Damage, p.Radius, p.Delay) {
-			sess.CancelSwingAndRefundMana(in.PlayerID, reservation, profile.ManaCost)
+		if !sess.SpawnProjectile(in.PlayerID, in.ActionID, reservation.SwingReservation, p.Speed, p.Range, p.Damage, p.Radius, p.Delay) {
+			sess.CancelActionSwingAndRefundMana(in.PlayerID, reservation, profile.ManaCost)
 			return buildError("swing_error", "projectile_rejected"), true
 		}
 	} else {
@@ -113,7 +113,7 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 			}
 		})
 		if err := s.SwingPub.PublishSwing(port.SwingCommand{BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: in.ActionID, EntityID: int(reservation.EntityID), Seq: in.Seq, PosX: reservation.X, PosY: reservation.Y, PosZ: reservation.Z, Yaw: reservation.Yaw, Targets: targets}); err != nil {
-			sess.CancelSwingAndRefundMana(in.PlayerID, reservation, profile.ManaCost)
+			sess.CancelActionSwingAndRefundMana(in.PlayerID, reservation, profile.ManaCost)
 			return buildError("swing_error", "enqueue_failed"), true
 		}
 	}
