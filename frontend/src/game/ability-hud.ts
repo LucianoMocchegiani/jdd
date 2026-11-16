@@ -63,7 +63,10 @@ export function mountAbilityHud(root: HTMLElement): void {
 
     const icon = document.createElement('span');
     icon.className = 'ability-hud__icon';
+    icon.textContent = action.id === 'attack' ? '⚔' : nameText.slice(0, 1).toUpperCase();
     icon.setAttribute('aria-hidden', 'true');
+    const key = document.createElement('kbd');
+    key.textContent = keyText;
     const label = document.createElement('span');
     label.className = 'ability-hud__label';
     label.textContent = nameText;
@@ -73,7 +76,7 @@ export function mountAbilityHud(root: HTMLElement): void {
     const cooldown = document.createElement('span');
     cooldown.className = 'ability-hud__cooldown';
     cooldown.textContent = cooldownText;
-    item.append(icon, label, clock, cooldown);
+    item.append(icon, key, label, clock, cooldown);
     root.append(item);
     rows.set(action.id, { item, clock, cooldown, cooldownMs, label: cooldown.textContent });
   }
