@@ -1,3 +1,4 @@
+/** Estado autoritativo usado para elegir el clip de animación presentado en el cliente. */
 export interface RemoteAnimationState {
   medium: string;
   vx: number;
@@ -10,11 +11,12 @@ export interface RemoteAnimationState {
 
 const MOVE_INTENTS = ['move_forward', 'move_backward', 'move_left', 'move_right'] as const;
 
+/** Compara secuencias de acción para ignorar estados duplicados o atrasados. */
 export function isNewActionSequence(previous: number | null, next: number): boolean {
   return next > (previous ?? 0);
 }
 
-/** Selecciona el clip visual del jugador local o remoto desde el estado recibido. */
+/** Elige primero acciones explícitas; si no hay una, deriva el clip de movimiento y medio. */
 export function selectRemoteClip(state: RemoteAnimationState): string | null {
   if (state.continuous_attack_active || state.intents?.continuous_attack) return 'rayo_de_ki';
   if (state.action_id === 'attack') return 'attack';

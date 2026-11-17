@@ -9,6 +9,7 @@ import (
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/wshub"
 )
 
+// AreaSpellPayload identifies the selected target for a server-validated area cast.
 type AreaSpellPayload struct {
 	BloqueID string
 	EcoID    int
@@ -18,6 +19,7 @@ type AreaSpellPayload struct {
 	Target   port.AreaTarget
 }
 
+// HandleAreaSpell validates the profile, range, solid target, restrictions, mana and cooldown before accepting R/T.
 func (s *Services) HandleAreaSpell(in AreaSpellPayload) (string, bool) {
 	if s.Combat == nil || s.SwingPub == nil || in.PlayerID == "" || in.Seq <= 0 ||
 		!finiteAreaCoordinate(in.Target.X) || !finiteAreaCoordinate(in.Target.Y) || !finiteAreaCoordinate(in.Target.Z) {
@@ -87,6 +89,7 @@ func (s *Services) HandleAreaSpell(in AreaSpellPayload) (string, bool) {
 		})
 }
 
+// insideArea applies the current cylindrical player-height test around an area target.
 func insideArea(p *entity.Player, target port.AreaTarget, radius float64) bool {
 	dx, dy := p.X-target.X, p.Y-target.Y
 	return dx*dx+dy*dy <= radius*radius && p.Z <= target.Z+radius+1.8 && p.Z >= target.Z-radius

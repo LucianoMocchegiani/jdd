@@ -9,6 +9,7 @@ import (
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
 )
 
+// InputPayload carries a player's latest input state and optional facing updates.
 type InputPayload struct {
 	BloqueID string
 	EcoID    int
@@ -23,6 +24,7 @@ type inputActionCatalog interface {
 	GetByInputIntent(intent string) (string, *port.CombatProfile)
 }
 
+// HandleInput applies a fresh input snapshot and starts one-shot or sustained actions on intent edges.
 func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 	sess, exists := s.Sessions.Get(in.BloqueID, in.EcoID)
 	if !exists { return buildError("input_error", "not_in_block"), false }
@@ -69,6 +71,7 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 	return "", true
 }
 
+// SwingPayload identifies a single action request; combat values come from the trusted catalog.
 type SwingPayload struct {
 	BloqueID string
 	EcoID    int
@@ -77,6 +80,7 @@ type SwingPayload struct {
 	Seq      int
 }
 
+// HandleSwing validates and enqueues one line attack or projectile action.
 func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bool) {
 	if in.PlayerID == "" { return buildError("swing_error", "missing_player_id"), true }
 	sess, exists := s.Sessions.Get(in.BloqueID, in.EcoID)
