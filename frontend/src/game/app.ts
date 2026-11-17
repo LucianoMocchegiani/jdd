@@ -15,6 +15,7 @@ import { PlayerSnapshotBuffer, RemotePresence } from '@/game/player-replication'
 import { PresenceHandler } from '@/game/network/presence-handler';
 import { HealthHud } from '@/game/health-hud';
 import { ProjectileVisuals } from '@/game/projectile-visuals';
+import { AreaSpellVisuals } from '@/game/area-abilities';
 import { isNewActionSequence, selectRemoteClip } from '@/game/player/remote-animation';
 import type { PlayerCharacterVisual } from '@/game/player/player-character-visual';
 import type { PlayerStateEvent, SessionEvent } from '@/types/world-events';
@@ -83,7 +84,9 @@ export async function bootstrapApp(
   const particleRenderer = new SimpleParticleRenderer(scene);
   let cellSize = 1;
   let terrain: TerrainStore;
-  const rebuildTerrainMeshes = (): void => { particleRenderer.rebuildIncremental(terrain.getParticles(), terrain.getTypesByNombre(), terrain.cellSize); };
+  const rebuildTerrainMeshes = (): void => {
+    particleRenderer.rebuildIncremental(terrain.getParticles(), terrain.getTypesByNombre(), terrain.cellSize);
+  };
   let spawnResolved = false;
   let terrainReady = false;
   let socketReady = false;
@@ -108,6 +111,7 @@ export async function bootstrapApp(
   const bloqueNombre = bloque.nombre;
   terrain = new TerrainStore(bloqueId, cellSize);
   const projectileVisuals = new ProjectileVisuals(scene, cellSize);
+  const areaSpellVisuals = new AreaSpellVisuals(scene, cellSize);
   spawnZ = 8;
   terrain.onViewportLoaded(() => {
     rebuildTerrainMeshes();
@@ -146,6 +150,15 @@ export async function bootstrapApp(
   let localCharacter: PlayerCharacterVisual | null = null;
   let setPlayerVisible = (_visible: boolean): void => {};
 
+  areaSpellVisuals.enableTargeting(camera, renderer.domElement, terrain, (action, target) => {
+    worldRealtime.send({
+      type: 'area_spell_cast',
+      seq: networkInput.reserveSequence(),
+      action_id: action.id,
+      target_position: target,
+    });
+  });
+
   requestActivation = (): void => {
     if (socketReady && terrainReady && !activationSent) {
       activationSent = worldRealtime.send({ type: 'activate_player', position: { x: spawnX, y: spawnY, z: spawnZ } });
@@ -153,9 +166,28 @@ export async function bootstrapApp(
   };
 
   const handleSessionEvent = (event: SessionEvent): void => {
+    if (event.type === 'swing_queued') {
+      if (isNewActionSequence(localActionSeq, event.action_seq)) {
+        localActionSeq = event.action_seq;
+        pendingLocalActionClip = selectRemoteClip({
+          medium: localVisualState?.medium ?? 'ground',
+          vx: localVisualState?.vx ?? 0, vy: localVisualState?.vy ?? 0, vz: localVisualState?.vz ?? 0,
+          action_id: event.action_id,
+        });
+        window.dispatchEvent(new CustomEvent('ability-cooldown-start', { detail: { actionId: event.action_id } }));
+      }
+    }
     if (event.type === 'projectile_state') {
       projectileVisuals.apply(event);
       return;
+    }
+    if (event.type === 'area_spell') {
+      areaSpellVisuals.apply(event);
+      return;
+    }
+    if (event.type === 'swing_result' && event.action_id === 'rayo_de_ki' && event.player_id && event.beam_length !== undefined) {
+      if (event.player_id === playerId) localCharacter?.setBeamLength(event.beam_length, event.seq);
+      else remotePresence.setBeamLength(event.player_id, event.beam_length, event.seq);
     }
     if (event.type === 'player_state') {
       ingestLocalPlayerState(event, playerId);
@@ -176,7 +208,8 @@ export async function bootstrapApp(
           if (event.action_id && isNewActionSequence(localActionSeq, event.action_seq)) {
             pendingLocalActionClip = selectRemoteClip({
               medium: event.medium, vx: event.vx, vy: event.vy, vz: event.vz,
-              intents: event.intents, action_id: event.action_id,
+              intents: event.intents, continuous_attack_active: event.continuous_attack_active,
+              action_id: event.action_id,
             });
             window.dispatchEvent(new CustomEvent('ability-cooldown-start', { detail: { actionId: event.action_id } }));
           }
@@ -195,7 +228,7 @@ export async function bootstrapApp(
     } else if (event.type === 'join_ok') {
       playerActive = true;
       setPlayerVisible(true);
-      statusEl.textContent = `${formatBackendOkStatus(health.status, catalog.statusSuffix)} · ${bloqueNombre} · ${terrain.getParticles().length} partículas · clic canvas · WASD · C cámara · F/G ataques`;
+      statusEl.textContent = `${formatBackendOkStatus(health.status, catalog.statusSuffix)} · ${bloqueNombre} · ${terrain.getParticles().length} partículas · clic canvas · WASD · C cámara · F/G/Q/R/T habilidades`;
     } else if (event.type === 'join_error') {
       playerActive = false;
       setPlayerVisible(false);
@@ -253,6 +286,7 @@ export async function bootstrapApp(
       const clip = pendingLocalActionClip ?? (localVisualState ? selectRemoteClip({
         medium: localVisualState.medium, vx: localVisualState.vx, vy: localVisualState.vy,
         vz: localVisualState.vz, intents: localVisualState.intents,
+        continuous_attack_active: localVisualState.continuous_attack_active,
       }) : null);
       localCharacter?.update(deltaTime, clip, pos.x, pos.y, pos.z, facing?.yaw ?? 0, null);
       pendingLocalActionClip = null;
@@ -277,6 +311,7 @@ export async function bootstrapApp(
         });
       }
     }
+    areaSpellVisuals.update(deltaTime, pos ? { x: pos.x, y: pos.y, z: pos.z } : undefined);
     worldRealtime.drainInboundQueue();
     remotePresence.update();
     healthHud.update(localHealth, localMaxHealth, localMana, localMaxMana, localInCombat, activeConditionIds, remotePresence.getHealthIndicators(), camera, cellSize);

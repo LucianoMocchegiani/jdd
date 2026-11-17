@@ -9,23 +9,11 @@
         "inputIntent": "attack_light",
         "slot": "body_actions",
         "type": "one_shot",
-        "when": {
-          "not": {
-            "medium": ["air", "submerged_full"]
-          }
-        },
-        "interrupt": {
-          "blocks": ["run", "walk", "swim", "jump"]
-        }
+        "when": { "not": { "medium": ["air", "submerged_full"] } },
+        "interrupt": { "blocks": ["run", "walk", "swim", "jump"] }
       },
-      "appearance": {
-        "state": "attack",
-        "clip": "attack"
-      },
-      "impact": {
-        "reach": 2,
-        "damage": 15
-      }
+      "appearance": { "state": "attack", "clip": "attack" },
+      "impact": { "reach": 2, "damage": 15 }
     },
     {
       "id": "kamehameha",
@@ -36,21 +24,40 @@
         "inputIntent": "attack_projectile",
         "slot": "body_actions",
         "type": "one_shot",
-        "interrupt": {
-          "blocks": ["run", "walk", "swim", "jump"]
-        }
+        "interrupt": { "blocks": ["run", "walk", "swim", "jump"] }
       },
-      "appearance": {
-        "state": "attack",
-        "clip": "kamehameha"
+      "appearance": { "state": "attack", "clip": "kamehameha" },
+      "projectile": { "speed": 18, "range": 28, "damage": 30, "radius": 0.55, "delayMs": 1033 }
+    },
+    {
+      "id": "rayo_de_ki",
+      "description": "Rayo canalizado sostenido que daña partículas y objetivos en secuencia.",
+      "manaCostPerSecond": 5,
+      "damageIntervalMs": 1000,
+      "control": {
+        "inputIntent": "continuous_attack",
+        "slot": "body_actions",
+        "type": "sustained",
+        "when": { "not": { "medium": ["air", "submerged_full"] } }
       },
-      "projectile": {
-        "speed": 18,
-        "range": 28,
-        "damage": 30,
-        "radius": 0.55,
-        "delayMs": 1033
-      }
+      "appearance": { "state": "attack", "clip": "rayo_de_ki" },
+      "impact": { "reach": 28, "width": 0.55, "damage": 5 }
+    },
+    {
+      "id": "orbe_explosivo",
+      "description": "Invoca un orbe que explota en el punto seleccionado.",
+      "cooldownMs": 3000,
+      "manaCost": 20,
+      "control": { "inputIntent": "target_orbe", "slot": "body_actions", "type": "one_shot" },
+      "area": { "range": 18, "radius": 3, "damage": 20, "effect": "orb" }
+    },
+    {
+      "id": "trueno",
+      "description": "Invoca un trueno que cae sobre el punto seleccionado.",
+      "cooldownMs": 4000,
+      "manaCost": 25,
+      "control": { "inputIntent": "target_trueno", "slot": "body_actions", "type": "one_shot" },
+      "area": { "range": 18, "radius": 2, "damage": 25, "effect": "thunder" }
     }
   ]
 }

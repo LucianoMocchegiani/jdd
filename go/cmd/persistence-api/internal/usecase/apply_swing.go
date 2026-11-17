@@ -24,6 +24,12 @@ type SwingPlayerTarget struct {
 	Z        float64 `json:"z"`
 }
 
+type AreaTarget struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	Z float64 `json:"z"`
+}
+
 type SwingCommand struct {
 	BloqueID   string              `json:"bloque_id"`
 	EcoID      int                 `json:"eco_id"`
@@ -37,6 +43,7 @@ type SwingCommand struct {
 	Yaw        float64             `json:"yaw"`
 	IsNPC      bool                `json:"is_npc"`
 	Targets    []SwingPlayerTarget `json:"targets"`
+	AreaTarget *AreaTarget         `json:"area_target,omitempty"`
 	ParticleID string              `json:"particle_id"`
 	ParticleX  int                 `json:"particle_x"`
 	ParticleY  int                 `json:"particle_y"`
@@ -53,6 +60,7 @@ type SwingOutcome struct {
 	TargetPlayerID string
 	TargetEntityID int
 	EntityDamage   float64
+	BeamLength     float64
 	Truncated      bool
 }
 
@@ -70,15 +78,15 @@ func NewSwingService(repo port.ParticleRepository, cat port.CombatCatalog, ev po
 	return &SwingService{Repo: repo, Catalog: cat, Events: ev, RateLimit: rl, processed: make(map[string]struct{})}
 }
 
-func swingDedupKey(playerID string, entityID, seq int) string {
+func swingDedupKey(playerID, actionID string, entityID, seq int) string {
 	if playerID != "" {
-		return fmt.Sprintf("p:%s:%d", playerID, seq)
+		return fmt.Sprintf("p:%s:%s:%d", playerID, actionID, seq)
 	}
-	return fmt.Sprintf("e:%d:%d", entityID, seq)
+	return fmt.Sprintf("e:%d:%s:%d", entityID, actionID, seq)
 }
 
-func (s *SwingService) rememberSwing(playerID string, entityID, seq int) bool {
-	key := swingDedupKey(playerID, entityID, seq)
+func (s *SwingService) rememberSwing(playerID, actionID string, entityID, seq int) bool {
+	key := swingDedupKey(playerID, actionID, entityID, seq)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.processed[key]; ok {
@@ -112,11 +120,14 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 	if profile == nil {
 		return SwingOutcome{Error: "unknown_action", ActionID: cmd.ActionID}, nil
 	}
-	if !s.rememberSwing(cmd.PlayerID, cmd.EntityID, cmd.Seq) {
+	if !s.rememberSwing(cmd.PlayerID, cmd.ActionID, cmd.EntityID, cmd.Seq) {
 		return SwingOutcome{OK: true, Duplicate: true, ActionID: cmd.ActionID}, nil
 	}
 	if cmd.ParticleID != "" {
 		return s.applyProjectileParticleHit(ctx, cmd, profile)
+	}
+	if profile.Area != nil {
+		return s.applyAreaSwing(ctx, cmd, profile)
 	}
 	if profile.Impact == nil {
 		return SwingOutcome{OK: true, ActionID: cmd.ActionID}, nil
@@ -132,13 +143,13 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 	impacts := make([]swingImpact, 0, len(candidates)+len(cmd.Targets))
 	for i := range candidates {
 		p := candidates[i]
-		if isSolidParticle(p) && jdcombat.HitsWorldCell(origin, cmd.Yaw, p.CeldaX, p.CeldaY, p.CeldaZ, impact.Reach) {
+		if isSolidParticle(p) && jdcombat.HitsWorldCellWithWidth(origin, cmd.Yaw, p.CeldaX, p.CeldaY, p.CeldaZ, impact.Reach, impact.Width) {
 			impacts = append(impacts, swingImpact{forward: jdcombat.ForwardDistance(origin, cmd.Yaw, float64(p.CeldaX), float64(p.CeldaY)), particle: &p})
 		}
 	}
 	for i := range cmd.Targets {
 		target := cmd.Targets[i]
-		if target.PlayerID == "" || target.PlayerID == cmd.PlayerID || !jdcombat.HitsPlayer(origin, cmd.Yaw, jdcombat.Point{X: target.X, Y: target.Y, Z: target.Z}, impact.Reach) {
+		if target.PlayerID == "" || target.PlayerID == cmd.PlayerID || !jdcombat.HitsPlayerWithWidth(origin, cmd.Yaw, jdcombat.Point{X: target.X, Y: target.Y, Z: target.Z}, impact.Reach, impact.Width) {
 			continue
 		}
 		impacts = append(impacts, swingImpact{forward: jdcombat.ForwardDistance(origin, cmd.Yaw, target.X, target.Y), player: &target})
@@ -163,9 +174,13 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 	var targetPlayerID string
 	var targetEntityID int
 	var entityDamage float64
+	beamLength, hasImpact := impact.Reach, false
 	for _, hit := range impacts {
 		if remaining <= 0 {
 			break
+		}
+		if !hasImpact {
+			beamLength, hasImpact = hit.forward, true
 		}
 		if hit.player != nil {
 			targetPlayerID, targetEntityID, entityDamage = hit.player.PlayerID, hit.player.EntityID, remaining
@@ -184,10 +199,7 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 		}
 		worldHits++
 		hits = append(hits, *res)
-		if res.Destroyed && res.Position != nil {
-			_ = s.Events.PublishCellDestroyed(ctx, cmd.BloqueID, res.ParticleID, res.Position.X, res.Position.Y, res.Position.Z)
-			_ = s.Events.PublishParticleDestroyed(ctx, cmd.BloqueID, res.ParticleID, res.Position.X, res.Position.Y, res.Position.Z)
-		}
+		s.publishParticleDestruction(ctx, cmd.BloqueID, res)
 		if !res.Destroyed {
 			break
 		}
@@ -202,17 +214,52 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 			destroyed++
 		}
 	}
-	return s.publishSwingOutcome(ctx, cmd, SwingOutcome{OK: true, ActionID: cmd.ActionID, Hits: hits, DestroyedCount: destroyed, TargetPlayerID: targetPlayerID, TargetEntityID: targetEntityID, EntityDamage: entityDamage, Truncated: truncated})
+	return s.publishSwingOutcome(ctx, cmd, SwingOutcome{OK: true, ActionID: cmd.ActionID, Hits: hits, DestroyedCount: destroyed, TargetPlayerID: targetPlayerID, TargetEntityID: targetEntityID, EntityDamage: entityDamage, BeamLength: beamLength, Truncated: truncated})
 }
+
+func (s *SwingService) applyAreaSwing(ctx context.Context, cmd SwingCommand, profile *domain.CombatProfile) (SwingOutcome, error) {
+	if cmd.AreaTarget == nil || !finiteSwingCoordinate(cmd.AreaTarget.X) || !finiteSwingCoordinate(cmd.AreaTarget.Y) || !finiteSwingCoordinate(cmd.AreaTarget.Z) {
+		return SwingOutcome{Error: "invalid_area_target", ActionID: cmd.ActionID}, nil
+	}
+	center, radius := cmd.AreaTarget, profile.Area.Radius
+	candidates, err := s.Repo.GetParticlesNear(ctx, cmd.BloqueID, center.X, center.Y, center.Z, int(math.Ceil(radius))+1)
+	if err != nil {
+		return SwingOutcome{}, err
+	}
+	var hits []domain.DamageResult
+	for _, p := range candidates {
+		dx, dy, dz := float64(p.CeldaX)-center.X, float64(p.CeldaY)-center.Y, float64(p.CeldaZ)-center.Z
+		if !isSolidParticle(p) || dx*dx+dy*dy+dz*dz > radius*radius {
+			continue
+		}
+		if len(hits) >= MaxWorldHitsPerSwing {
+			return s.publishSwingOutcome(ctx, cmd, SwingOutcome{OK: true, ActionID: cmd.ActionID, Hits: hits, Truncated: true})
+		}
+		res, err := ApplyParticleDamage(ctx, s.Repo, ApplyDamageInput{BloqueID: cmd.BloqueID, ParticleID: p.ID, Damage: profile.Area.Damage, WeaponType: cmd.ActionID, RateLimiter: s.RateLimit})
+		if err != nil {
+			return SwingOutcome{}, fmt.Errorf("apply area particle %s: %w", p.ID, err)
+		}
+		if res == nil {
+			return SwingOutcome{}, fmt.Errorf("apply area particle %s: empty damage result", p.ID)
+		}
+		hits = append(hits, *res)
+		s.publishParticleDestruction(ctx, cmd.BloqueID, res)
+	}
+	destroyed := 0
+	for _, hit := range hits {
+		if hit.Destroyed { destroyed++ }
+	}
+	return s.publishSwingOutcome(ctx, cmd, SwingOutcome{OK: true, ActionID: cmd.ActionID, Hits: hits, DestroyedCount: destroyed})
+}
+
+func finiteSwingCoordinate(v float64) bool { return !math.IsNaN(v) && !math.IsInf(v, 0) }
 
 func (s *SwingService) applyProjectileParticleHit(ctx context.Context, cmd SwingCommand, profile *domain.CombatProfile) (SwingOutcome, error) {
 	if profile.ProjectileDamage <= 0 {
 		return SwingOutcome{Error: "invalid_projectile_hit", ActionID: cmd.ActionID}, nil
 	}
 	candidates, err := s.Repo.GetParticlesNear(ctx, cmd.BloqueID, float64(cmd.ParticleX), float64(cmd.ParticleY), float64(cmd.ParticleZ), 1)
-	if err != nil {
-		return SwingOutcome{}, err
-	}
+	if err != nil { return SwingOutcome{}, err }
 	var target *domain.ParticleNear
 	for i := range candidates {
 		p := candidates[i]
@@ -224,35 +271,20 @@ func (s *SwingService) applyProjectileParticleHit(ctx context.Context, cmd Swing
 	var hits []domain.DamageResult
 	if target != nil {
 		result, err := ApplyParticleDamage(ctx, s.Repo, ApplyDamageInput{BloqueID: cmd.BloqueID, ParticleID: target.ID, Damage: profile.ProjectileDamage, WeaponType: cmd.ActionID, RateLimiter: s.RateLimit})
-		if err != nil {
-			return SwingOutcome{}, fmt.Errorf("apply projectile particle %s: %w", target.ID, err)
-		}
-		if result == nil {
-			return SwingOutcome{}, fmt.Errorf("apply projectile particle %s: empty damage result", target.ID)
-		}
+		if err != nil { return SwingOutcome{}, fmt.Errorf("apply projectile particle %s: %w", target.ID, err) }
+		if result == nil { return SwingOutcome{}, fmt.Errorf("apply projectile particle %s: empty damage result", target.ID) }
 		hits = append(hits, *result)
-		if result.Destroyed && result.Position != nil {
-			_ = s.Events.PublishCellDestroyed(ctx, cmd.BloqueID, result.ParticleID, result.Position.X, result.Position.Y, result.Position.Z)
-			_ = s.Events.PublishParticleDestroyed(ctx, cmd.BloqueID, result.ParticleID, result.Position.X, result.Position.Y, result.Position.Z)
-		}
+		s.publishParticleDestruction(ctx, cmd.BloqueID, result)
 	}
 	destroyed := 0
-	for _, hit := range hits {
-		if hit.Destroyed {
-			destroyed++
-		}
-	}
+	for _, hit := range hits { if hit.Destroyed { destroyed++ } }
 	return s.publishSwingOutcome(ctx, cmd, SwingOutcome{OK: true, ActionID: cmd.ActionID, Hits: hits, DestroyedCount: destroyed})
 }
 
 func (s *SwingService) publishSwingOutcome(ctx context.Context, cmd SwingCommand, out SwingOutcome) (SwingOutcome, error) {
 	payload, err := buildSwingResultJSON(cmd, out)
-	if err != nil {
-		return out, err
-	}
-	if err := s.Events.PublishSwingResult(ctx, payload); err != nil {
-		return out, fmt.Errorf("publish swing result: %w", err)
-	}
+	if err != nil { return out, err }
+	if err := s.Events.PublishSwingResult(ctx, payload); err != nil { return out, fmt.Errorf("publish swing result: %w", err) }
 	return out, nil
 }
 
@@ -265,7 +297,7 @@ func buildSwingResultJSON(cmd SwingCommand, out SwingOutcome) (string, error) {
 		"type": "swing_result", "seq": cmd.Seq, "entity_id": cmd.EntityID, "player_id": cmd.PlayerID, "eco_id": cmd.EcoID,
 		"action_id": cmd.ActionID, "bloque_id": cmd.BloqueID, "hits": hitPayload,
 		"target_player_id": out.TargetPlayerID, "target_entity_id": out.TargetEntityID,
-		"entity_damage": out.EntityDamage, "truncated": out.Truncated,
+		"entity_damage": out.EntityDamage, "beam_length": out.BeamLength, "truncated": out.Truncated,
 	}
 	b, err := json.Marshal(payload)
 	return string(b), err

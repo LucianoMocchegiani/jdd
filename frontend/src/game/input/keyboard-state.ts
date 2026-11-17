@@ -1,7 +1,9 @@
 /**
- * @file Estado global de teclas (un listener en `document`, capture).
+ * @file Estado compartido de teclas físicas y virtuales.
+ *
+ * Los eventos de teclado se capturan una sola vez; controles táctiles actualizan
+ * el mismo estado virtual para reutilizar el pipeline normal de intents.
  */
-
 import { logInputKey } from '@/game/debug/input-flow-debug';
 
 const HELD = new Set<string>();
@@ -32,60 +34,38 @@ const GAME_KEY_CODES = new Set([
   'KeyF',
   'KeyG',
   'KeyC',
+  'KeyR',
+  'KeyT',
   'Mouse0',
 ]);
 
 /** Registra listeners una sola vez (llamar desde `main.ts` al arranque). */
 export function attachKeyboardInput(): void {
-  if (attached || typeof document === 'undefined') {
-    return;
-  }
+  if (attached || typeof document === 'undefined') return;
   attached = true;
-
-  document.addEventListener(
-    'keydown',
-    (e) => {
-      if (isTextInputFocused()) return;
-      if (GAME_KEY_CODES.has(e.code)) {
-        e.preventDefault();
-      }
-      const wasNew = !HELD.has(e.code);
-      HELD.add(e.code);
-      if (wasNew) {
-        logInputKey('down', e.code, getHeldKeyCodes());
-      }
-    },
-    { capture: true },
-  );
-
-  document.addEventListener(
-    'keyup',
-    (e) => {
-      if (isTextInputFocused()) return;
-      const had = HELD.delete(e.code);
-      if (had) {
-        logInputKey('up', e.code, getHeldKeyCodes());
-      }
-    },
-    { capture: true },
-  );
-
-  document.addEventListener(
-    'focusin',
-    (e) => {
-      const t = e.target;
-      if (
-        t instanceof HTMLInputElement
-        || t instanceof HTMLTextAreaElement
-        || t instanceof HTMLSelectElement
-      ) {
-        HELD.clear();
-        VIRTUAL_HELD.clear();
-      }
-    },
-    { capture: true },
-  );
-
+  document.addEventListener('keydown', (event) => {
+    if (isTextInputFocused()) return;
+    if (GAME_KEY_CODES.has(event.code)) event.preventDefault();
+    const wasNew = !HELD.has(event.code);
+    HELD.add(event.code);
+    if (wasNew) logInputKey('down', event.code, getHeldKeyCodes());
+  }, { capture: true });
+  document.addEventListener('keyup', (event) => {
+    if (isTextInputFocused()) return;
+    const had = HELD.delete(event.code);
+    if (had) logInputKey('up', event.code, getHeldKeyCodes());
+  }, { capture: true });
+  document.addEventListener('focusin', (event) => {
+    const target = event.target;
+    if (
+      target instanceof HTMLInputElement
+      || target instanceof HTMLTextAreaElement
+      || target instanceof HTMLSelectElement
+    ) {
+      HELD.clear();
+      VIRTUAL_HELD.clear();
+    }
+  }, { capture: true });
   window.addEventListener('blur', () => {
     if (HELD.size > 0 || VIRTUAL_HELD.size > 0) {
       HELD.clear();

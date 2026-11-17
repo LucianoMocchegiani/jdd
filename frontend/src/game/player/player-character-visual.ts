@@ -1,15 +1,14 @@
-/**
- * Renderiza el jugador local con el rig y los clips del Character Studio.
- */
-
 import { buildRig, SkeletonPose } from '@/poc/character-studio/rig-math';
-import { createDefaultClipLibrary, sampleClip } from '@/poc/character-studio/studio-clip';
+import { clipFromJson, createDefaultClipLibrary, sampleClip } from '@/poc/character-studio/studio-clip';
 import { defaultBipedDocument } from '@/poc/character-studio/studio-document';
 import { StudioRenderer } from '@/poc/character-studio/studio-renderer';
 import type { StudioAnimationClip, StudioDocument } from '@/poc/character-studio/types';
 import { DEFAULT_PALETTE } from '@/poc/shared';
 import { PARTICLE_SIZE_RATIO } from '@/game/terrain/particle-geometry';
-import { Box3, MeshStandardMaterial, Vector3, type Scene } from 'three';
+import rayoDeKiClipRaw from '@/game/player/animations/rayo_de_ki.json?raw';
+import orbeExplosivoClipRaw from '@/game/player/animations/orbe_explosivo.json?raw';
+import truenoClipRaw from '@/game/player/animations/trueno.json?raw';
+import { Box3, CylinderGeometry, Mesh, MeshBasicMaterial, MeshStandardMaterial, Vector3, type Scene } from 'three';
 
 const UNIT_ELEMENT_BOUNDS = new Box3(new Vector3(-0.5, -0.5, -0.5), new Vector3(0.5, 0.5, 0.5));
 
@@ -37,9 +36,21 @@ export class PlayerCharacterVisual {
   private clipId = 'idle';
   private time = 0;
   private damageFlashUntilMs = 0;
+  private beamActive = false;
+  private beamLength = 28;
+  private beamSeq = 0;
+  private readonly beam = new Mesh(
+    new CylinderGeometry(0.18, 0.3, 1, 10),
+    new MeshBasicMaterial({ color: 0x55ddff, transparent: true, opacity: 0.88, depthWrite: false }),
+  );
 
-  constructor(scene: Scene, cellSize: number) {
+  constructor(scene: Scene, private readonly cellSize: number) {
     this.renderer = new StudioRenderer(scene, cellSize);
+    this.clips.set('rayo_de_ki', clipFromJson(rayoDeKiClipRaw));
+    this.clips.set('orbe_explosivo', clipFromJson(orbeExplosivoClipRaw));
+    this.clips.set('trueno', clipFromJson(truenoClipRaw));
+    this.beam.visible = false;
+    scene.add(this.beam);
   }
 
   update(
@@ -79,6 +90,23 @@ export class PlayerCharacterVisual {
       yaw: visualYaw,
       showBones: false,
     });
+    const beamActive = requested === 'rayo_de_ki';
+    if (beamActive && !this.beamActive) this.beamLength = 28;
+    this.beamActive = beamActive;
+    this.beam.visible = beamActive;
+    if (beamActive) {
+      const direction = new Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+      const rightHand = this.renderer.getBoneWorldPosition(this.pose, 'muneca-derecha');
+      const leftHand = this.renderer.getBoneWorldPosition(this.pose, 'muneca-izquierda');
+      const handCenter = rightHand.add(leftHand).multiplyScalar(0.5);
+      const bodyOrigin = new Vector3(x * this.cellSize, z * this.cellSize, y * this.cellSize);
+      const handOffset = handCenter.clone().sub(bodyOrigin).dot(direction);
+      const length = Math.max(0, this.beamLength * this.cellSize - handOffset);
+      this.beam.position.copy(handCenter).addScaledVector(direction, length / 2);
+      this.beam.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), direction);
+      const radius = (0.2 + 0.04 * Math.sin(this.time * 18)) * this.cellSize;
+      this.beam.scale.set(radius, length, radius);
+    }
     const color = this.damageFlashUntilMs > performance.now() ? 0xff5555 : tint;
     for (const mesh of this.renderer.getPickMeshes()) {
       const layer = String(mesh.userData.bucketKey).split(':')[0]! as keyof typeof DEFAULT_PALETTE;
@@ -86,6 +114,13 @@ export class PlayerCharacterVisual {
         color ?? DEFAULT_PALETTE[layer] ?? DEFAULT_PALETTE.flesh,
       );
     }
+  }
+
+  /** Actualiza el alcance del rayo con el resultado autoritativo de un pulso. */
+  setBeamLength(length: number, seq: number): void {
+    if (!Number.isFinite(length) || length < 0 || !Number.isSafeInteger(seq) || seq <= this.beamSeq) return;
+    this.beamSeq = seq;
+    this.beamLength = Math.min(length, 28);
   }
 
   /** Mantiene un destello breve cuando el servidor confirma daño recibido. */
@@ -107,5 +142,8 @@ export class PlayerCharacterVisual {
   /** Libera el renderer al desaparecer una réplica remota. */
   dispose(): void {
     this.renderer.dispose();
+    this.beam.parent?.remove(this.beam);
+    this.beam.geometry.dispose();
+    (this.beam.material as MeshBasicMaterial).dispose();
   }
 }

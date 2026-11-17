@@ -8,7 +8,6 @@
  * Los listeners viven en `keyboard-state.ts` (un solo attach en `main.ts`).
  * Este sistema solo **lee** el estado HELD cada frame.
  */
-
 import { InputComponent } from '@/ecs/components/input';
 import { System } from '@/ecs/core';
 import { logInputIntents } from '@/game/debug/input-flow-debug';
@@ -17,23 +16,11 @@ import { isCameraInspectMode } from '@/game/camera/camera-access';
 import { getHeldKeyCodes, isKeyHeld } from '@/game/input/keyboard-state';
 
 const BLOCKED_IN_INSPECT = new Set([
-  'move_forward',
-  'move_backward',
-  'move_left',
-  'move_right',
-  'run_forward',
-  'jump',
-  'attack_light',
-  'attack_projectile',
+  'move_forward', 'move_backward', 'move_left', 'move_right', 'run_forward',
+  'jump', 'attack_light', 'attack_projectile', 'continuous_attack', 'target_orbe', 'target_trueno',
 ]);
 
-/**
- * Mapa de intents locales a códigos `KeyboardEvent.code`.
- *
- * Regla **OR**: si **cualquiera** de la lista está pulsada, el intent queda `true`.
- * Ej.: Shift izquierdo o derecho → `run_forward`.
- * Se exporta para que el HUD pueda reflejar estos mismos atajos.
- */
+/** Mapa de intents locales a códigos `KeyboardEvent.code`, también usado por el HUD. */
 export const INTENT_KEY_CODES: Record<string, readonly string[]> = {
   move_forward: ['KeyW', 'ArrowUp'],
   move_backward: ['KeyS', 'ArrowDown'],
@@ -41,17 +28,14 @@ export const INTENT_KEY_CODES: Record<string, readonly string[]> = {
   move_right: ['KeyD', 'ArrowRight'],
   run_forward: ['ShiftLeft', 'ShiftRight'],
   jump: ['Space'],
+  continuous_attack: ['KeyQ'],
   attack_light: ['KeyF', 'Mouse0'],
   attack_projectile: ['KeyG'],
+  target_orbe: ['KeyR'],
+  target_trueno: ['KeyT'],
 };
 
-/**
- * Lee controles del jugador local y actualiza `InputComponent` antes de enviarlos.
- *
- * - **Entrada:** estado global de teclado (`keyboard-state.ts`).
- * - **Salida:** `InputComponent.intents` de las entidades con componente `input`.
- * - En modo inspect bloquea locomoción y ataques; los demás controles se conservan.
- */
+/** Lee controles locales y actualiza `InputComponent` antes de enviarlos. */
 export class InputSystem extends System {
   readonly priority = 0;
   readonly requiredComponents = ['input'] as const;
@@ -62,28 +46,16 @@ export class InputSystem extends System {
       logMovementWarn('InputSystem: ninguna entidad con input');
       return;
     }
-
     const held = getHeldKeyCodes();
-
     for (const entityId of entities) {
       const input = this.world?.getComponent<InputComponent>(entityId, 'input');
-      if (!input) {
-        continue;
-      }
-
-      // Cada frame parte de cero; no arrastra intents del frame anterior.
+      if (!input) continue;
       input.clear();
-
       const inspect = isCameraInspectMode();
-
       for (const [intent, codes] of Object.entries(INTENT_KEY_CODES)) {
-        if (inspect && BLOCKED_IN_INSPECT.has(intent)) {
-          continue;
-        }
-        const active = codes.some((code) => isKeyHeld(code));
-        input.setIntent(intent, active);
+        if (inspect && BLOCKED_IN_INSPECT.has(intent)) continue;
+        input.setIntent(intent, codes.some((code) => isKeyHeld(code)));
       }
-
       logInputIntents(entityId, input.intents, held);
     }
   }

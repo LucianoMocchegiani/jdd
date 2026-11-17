@@ -3,6 +3,7 @@ package usecase
 
 import (
 	"encoding/json"
+	"math"
 	"time"
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
@@ -30,6 +31,7 @@ func (s *Services) RunTick(deltaSec float64) {
 		}
 		s.MaybeRefreshTerrain(sess)
 		now := time.Now()
+		continuousCommands := make([]port.SwingCommand, 0)
 		sess.ForEachPlayer(func(p *entity.Player) {
 			p.RegenerateMana(deltaSec, now)
 			systems.ResolvePlayerContact(p, sess.SolidGrid, s.SessionCfg, s.Medium)
@@ -42,7 +44,23 @@ func (s *Services) RunTick(deltaSec float64) {
 				speed = s.Conditions.MovementSpeedMultiplier(p.Conditions)
 			}
 			systems.RunPlayerTickWithEffects(p, sess.SolidGrid, s.SessionCfg, s.Medium, deltaSec, intents, speed)
+			if cmd, ok := s.advanceContinuousAttack(sess, p, deltaSec, now); ok {
+				continuousCommands = append(continuousCommands, cmd)
+			}
 		})
+		for _, cmd := range continuousCommands {
+			profile := s.Combat.Get(cmd.ActionID)
+			if profile != nil && profile.Impact != nil {
+				cmd.Targets = snapshotSwingTargets(sess, cmd, profile)
+			}
+			if err := s.SwingPub.PublishSwing(cmd); err != nil {
+				if profile != nil {
+					sess.UpdatePlayer(cmd.PlayerID, func(p *entity.Player) {
+						p.Mana = math.Min(p.MaxMana, p.Mana+profile.ManaCostPerSecond*profile.DamageInterval.Seconds())
+					})
+				}
+			}
+		}
 		projectiles := sess.AdvanceProjectiles(deltaSec)
 		for _, projectile := range projectiles {
 			if projectile.ParticleID != "" && s.SwingPub != nil {
@@ -96,6 +114,7 @@ func buildPlayerStates(sess *entity.BlockSession, tick int, publishActions bool)
 			"health": p.Health, "max_health": p.MaxHealth, "mana": p.Mana, "max_mana": p.MaxMana,
 			"in_combat": p.InCombat(now), "conditions": jdconditions.IDs(p.Conditions),
 			"condition_damage_total": p.ConditionDamageTotal,
+			"continuous_attack_active": p.ContinuousAttackID != "",
 		}
 		if p.Pitch != 0 {
 			payload["pitch"] = p.Pitch

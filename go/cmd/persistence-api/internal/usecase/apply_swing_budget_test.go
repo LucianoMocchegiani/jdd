@@ -2,6 +2,7 @@ package usecase_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/juego-de-dioses/jd/cmd/persistence-api/internal/domain"
@@ -83,6 +84,9 @@ func TestApplySwingSharesDamageBetweenParticleAndPlayer(t *testing.T) {
 	if out.TargetPlayerID != "target" || out.EntityDamage != 5 {
 		t.Fatalf("remaining damage not shared with player: %+v", out)
 	}
+	if out.BeamLength != 1 {
+		t.Fatalf("beam should end at first particle, got %v", out.BeamLength)
+	}
 	if out.DestroyedCount != 1 {
 		t.Fatalf("unexpected destroyed count: %d", out.DestroyedCount)
 	}
@@ -93,9 +97,10 @@ func TestApplySwingStopsAtParticleThatSurvives(t *testing.T) {
 		near:      []domain.ParticleNear{{ID: "stone", CeldaY: -1, CeldaZ: 1, TipoFisico: "solido"}},
 		particles: map[string]domain.ParticleWithDureza{"stone": {ID: "stone", Integridad: 10, Dureza: 1}},
 	}
+	events := &swingEvents{}
 	svc := usecase.NewSwingService(repo, swingCatalog{&domain.CombatProfile{
 		ActionID: "attack", Impact: &domain.ImpactProfile{Reach: 4, Damage: 5},
-	}}, &swingEvents{}, nil)
+	}}, events, nil)
 	out, err := svc.ApplySwing(context.Background(), usecase.SwingCommand{
 		BloqueID: "block", PlayerID: "attacker", ActionID: "attack", EntityID: 1, Seq: 1,
 		Targets: []usecase.SwingPlayerTarget{{PlayerID: "target", EntityID: 2, Y: -2}},
@@ -108,5 +113,14 @@ func TestApplySwingStopsAtParticleThatSurvives(t *testing.T) {
 	}
 	if out.TargetPlayerID != "" || out.EntityDamage != 0 {
 		t.Fatalf("attack passed through a surviving particle: %+v", out)
+	}
+	if out.BeamLength != 1 {
+		t.Fatalf("beam should stop at the particle, got %v", out.BeamLength)
+	}
+	var result struct {
+		BeamLength float64 `json:"beam_length"`
+	}
+	if err := json.Unmarshal([]byte(events.result), &result); err != nil || result.BeamLength != 1 {
+		t.Fatalf("swing result beam_length = %v, err=%v", result.BeamLength, err)
 	}
 }

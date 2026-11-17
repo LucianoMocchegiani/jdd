@@ -186,6 +186,11 @@ export class StudioRenderer {
     this.matrix.compose(this.pos, this.quat, this.scl);
   }
 
+  /** Posición mundial del pivote de un hueso en la última pose sincronizada. */
+  getBoneWorldPosition(pose: SkeletonPose, boneId: string): Vector3 {
+    return new Vector3().setFromMatrixPosition(pose.boneWorldMatrix(boneId).premultiply(this.charWorld));
+  }
+
   /** Meshes instanciados de elementos (raycast). */
   getPickMeshes(): InstancedMesh[] {
     return [...this.buckets.values()];

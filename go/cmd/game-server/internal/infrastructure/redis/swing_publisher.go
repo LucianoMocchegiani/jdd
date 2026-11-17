@@ -29,6 +29,7 @@ type swingPayload struct {
 	Yaw float64 `json:"yaw"`
 	IsNPC bool `json:"is_npc"`
 	Targets []port.SwingTarget `json:"targets"`
+	AreaTarget *port.AreaTarget `json:"area_target,omitempty"`
 	ParticleID string `json:"particle_id,omitempty"`
 	ParticleX int `json:"particle_x,omitempty"`
 	ParticleY int `json:"particle_y,omitempty"`
@@ -39,7 +40,7 @@ func (p *SwingPublisher) PublishSwing(cmd port.SwingCommand) error {
 	payload, err := json.Marshal(swingPayload{
 		BloqueID: cmd.BloqueID, EcoID: cmd.EcoID, PlayerID: cmd.PlayerID, ActionID: cmd.ActionID,
 		EntityID: cmd.EntityID, Seq: cmd.Seq, PosX: cmd.PosX, PosY: cmd.PosY,
-		PosZ: cmd.PosZ, Yaw: cmd.Yaw, IsNPC: cmd.IsNPC, Targets: cmd.Targets,
+		PosZ: cmd.PosZ, Yaw: cmd.Yaw, IsNPC: cmd.IsNPC, Targets: cmd.Targets, AreaTarget: cmd.AreaTarget,
 		ParticleID: cmd.ParticleID, ParticleX: cmd.ParticleX, ParticleY: cmd.ParticleY, ParticleZ: cmd.ParticleZ,
 	})
 	if err != nil { return err }

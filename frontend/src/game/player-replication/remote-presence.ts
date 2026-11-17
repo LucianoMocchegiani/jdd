@@ -44,10 +44,11 @@ export class RemotePresence {
   applyPlayerState(event: PlayerStateEvent): void {
     if (event.player_id === this.localPlayerId || this.leftPlayerIds.has(event.player_id) || !event.bloque_id) return;
 
-    const entry = this.ensureRemote(event.player_id);
     const animationState = {
       medium: event.medium, vx: event.vx, vy: event.vy, vz: event.vz, intents: event.intents,
+      continuous_attack_active: event.continuous_attack_active,
     };
+    const entry = this.ensureRemote(event.player_id);
     entry.clip = selectRemoteClip(animationState);
     if (event.action_seq !== undefined) {
       if (event.action_id && isNewActionSequence(entry.actionSeq, event.action_seq)) {
@@ -62,6 +63,10 @@ export class RemotePresence {
       if (Number.isFinite(event.max_health) && event.max_health! > 0) entry.maxHealth = event.max_health!;
     }
     entry.buffer.push(this.toSnapshot(event));
+  }
+
+  setBeamLength(playerId: string, length: number, seq: number): void {
+    this.remotes.get(playerId)?.character.setBeamLength(length, seq);
   }
 
   /** Crea réplica inicial si hace falta (join de otro jugador). */

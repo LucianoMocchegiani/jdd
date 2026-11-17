@@ -1,15 +1,24 @@
-// Package port — Puertos hexagonales del game-server.
+// Package port defines the game-server's combat configuration and publishing contracts.
 package port
 
 import "time"
 
-// DamageProfile is the shared reach and damage budget for an action impact.
+// DamageProfile is the reach, lateral width, and damage budget for a line attack.
 type DamageProfile struct {
 	Reach  float64 `json:"reach"`
+	Width  float64 `json:"width"`
 	Damage float64 `json:"damage"`
 }
 
-// ProjectileProfile configures a reusable discrete projectile in world units.
+// AreaProfile configures the allowed cast range and the resulting area effect.
+type AreaProfile struct {
+	Range  float64 `json:"range"`
+	Radius float64 `json:"radius"`
+	Damage float64 `json:"damage"`
+	Effect string  `json:"effect"`
+}
+
+// ProjectileProfile configures projectile movement, collision, damage, and optional delay.
 type ProjectileProfile struct {
 	Speed  float64
 	Range  float64
@@ -18,17 +27,19 @@ type ProjectileProfile struct {
 	Delay  time.Duration
 }
 
-// CombatProfile contains the combat rules configured on a shared action.
+// CombatProfile contains server-owned rules for one action, not client-supplied combat values.
 type CombatProfile struct {
-	InputIntent    string
-	Cooldown       time.Duration
-	ManaCost       float64
-	BlockedMediums []string
-	Impact         *DamageProfile
-	Projectile     *ProjectileProfile
+	InputIntent       string
+	ControlType       string
+	Cooldown          time.Duration
+	ManaCost          float64
+	ManaCostPerSecond float64
+	DamageInterval    time.Duration
+	BlockedMediums    []string
+	Impact            *DamageProfile
+	Area              *AreaProfile
+	Projectile        *ProjectileProfile
 }
 
-// CombatCatalog resolves a known action without trusting client-provided combat values.
-type CombatCatalog interface {
-	Get(actionID string) *CombatProfile
-}
+// CombatCatalog resolves trusted combat rules from the shared action registry.
+type CombatCatalog interface { Get(actionID string) *CombatProfile }

@@ -12,18 +12,20 @@ import (
 
 type actionFile struct {
 	Actions []struct {
-		ID         string  `json:"id"`
-		CooldownMs int     `json:"cooldownMs"`
-		ManaCost   float64 `json:"manaCost"`
-		Control    struct {
+		ID                string  `json:"id"`
+		CooldownMs        int     `json:"cooldownMs"`
+		ManaCost          float64 `json:"manaCost"`
+		ManaCostPerSecond float64 `json:"manaCostPerSecond"`
+		DamageIntervalMs  int     `json:"damageIntervalMs"`
+		Control           struct {
 			InputIntent string `json:"inputIntent"`
+			Type        string `json:"type"`
 			When        struct {
-				Not struct {
-					Medium []string `json:"medium"`
-				} `json:"not"`
+				Not struct { Medium []string `json:"medium"` } `json:"not"`
 			} `json:"when"`
 		} `json:"control"`
 		Impact     *port.DamageProfile `json:"impact"`
+		Area       *port.AreaProfile   `json:"area"`
 		Projectile *struct {
 			Speed   float64 `json:"speed"`
 			Range   float64 `json:"range"`
@@ -34,35 +36,32 @@ type actionFile struct {
 	} `json:"actions"`
 }
 
+// Catalog stores validated combat profiles indexed by action ID and input intent.
 type Catalog struct {
 	profiles      map[string]*port.CombatProfile
 	byInputIntent map[string]string
 }
 
+// LoadCatalog reads action data and rejects invalid or duplicate combat profiles.
 func LoadCatalog(path string) (*Catalog, error) {
 	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
+	if err != nil { return nil, err }
 	var raw actionFile
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return nil, err
-	}
+	if err := json.Unmarshal(data, &raw); err != nil { return nil, err }
 	catalog := &Catalog{profiles: make(map[string]*port.CombatProfile), byInputIntent: make(map[string]string)}
 	for _, action := range raw.Actions {
-		if action.ID == "" {
-			return nil, fmt.Errorf("action without id")
-		}
-		if action.ManaCost < 0 {
-			return nil, fmt.Errorf("action %q has invalid manaCost", action.ID)
-		}
+		if action.ID == "" { return nil, fmt.Errorf("action without id") }
+		if action.ManaCost < 0 || action.ManaCostPerSecond < 0 { return nil, fmt.Errorf("action %q has invalid mana cost", action.ID) }
 		if action.Impact != nil {
-			if action.CooldownMs <= 0 {
-				return nil, fmt.Errorf("action %q has combat impact without positive cooldownMs", action.ID)
-			}
-			if action.Impact.Reach <= 0 || action.Impact.Damage <= 0 {
-				return nil, fmt.Errorf("action %q has invalid impact", action.ID)
-			}
+			if action.Control.Type != "sustained" && action.CooldownMs <= 0 { return nil, fmt.Errorf("action %q has combat impact without positive cooldownMs", action.ID) }
+			if action.Impact.Reach <= 0 || action.Impact.Damage <= 0 || action.Impact.Width < 0 || action.Impact.Width > 5 { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
+		}
+		if action.Area != nil && (action.CooldownMs <= 0 || action.Area.Range <= 0 || action.Area.Range > 100 || action.Area.Radius <= 0 || action.Area.Radius > 10 || action.Area.Damage <= 0 || (action.Area.Effect != "orb" && action.Area.Effect != "thunder")) {
+			return nil, fmt.Errorf("action %q has invalid area profile", action.ID)
+		}
+		if action.Area != nil && (action.Impact != nil || action.Projectile != nil) { return nil, fmt.Errorf("action %q cannot combine area, line and projectile profiles", action.ID) }
+		if action.Control.Type == "sustained" && (action.ManaCostPerSecond <= 0 || action.DamageIntervalMs <= 0 || action.Impact == nil || action.Projectile != nil) {
+			return nil, fmt.Errorf("action %q has invalid sustained profile", action.ID)
 		}
 		var projectile *port.ProjectileProfile
 		if action.Projectile != nil {
@@ -72,34 +71,28 @@ func LoadCatalog(path string) (*Catalog, error) {
 			}
 			projectile = &port.ProjectileProfile{Speed: p.Speed, Range: p.Range, Damage: p.Damage, Radius: p.Radius, Delay: time.Duration(p.DelayMs) * time.Millisecond}
 		}
-		if _, exists := catalog.profiles[action.ID]; exists {
-			return nil, fmt.Errorf("duplicate action id %q", action.ID)
-		}
+		if _, exists := catalog.profiles[action.ID]; exists { return nil, fmt.Errorf("duplicate action id %q", action.ID) }
 		catalog.profiles[action.ID] = &port.CombatProfile{
-			InputIntent:    action.Control.InputIntent,
-			Cooldown:       time.Duration(action.CooldownMs) * time.Millisecond,
-			ManaCost:       action.ManaCost,
-			BlockedMediums: action.Control.When.Not.Medium,
-			Impact:         action.Impact,
-			Projectile:     projectile,
+			InputIntent: action.Control.InputIntent, ControlType: action.Control.Type,
+			Cooldown: time.Duration(action.CooldownMs) * time.Millisecond,
+			ManaCost: action.ManaCost, ManaCostPerSecond: action.ManaCostPerSecond,
+			DamageInterval: time.Duration(action.DamageIntervalMs) * time.Millisecond,
+			BlockedMediums: action.Control.When.Not.Medium, Impact: action.Impact, Area: action.Area, Projectile: projectile,
 		}
-		if action.Control.InputIntent != "" && (action.Impact != nil || projectile != nil) {
-			if _, exists := catalog.byInputIntent[action.Control.InputIntent]; exists {
-				return nil, fmt.Errorf("duplicate combat input intent %q", action.Control.InputIntent)
-			}
+		if action.Control.InputIntent != "" && (action.Impact != nil || action.Area != nil || projectile != nil) {
+			if _, exists := catalog.byInputIntent[action.Control.InputIntent]; exists { return nil, fmt.Errorf("duplicate combat input intent %q", action.Control.InputIntent) }
 			catalog.byInputIntent[action.Control.InputIntent] = action.ID
 		}
 	}
 	return catalog, nil
 }
 
-func (c *Catalog) Get(actionID string) *port.CombatProfile {
-	return c.profiles[actionID]
-}
+// Get returns the server-owned profile for an action, or nil when it is unknown.
+func (c *Catalog) Get(actionID string) *port.CombatProfile { return c.profiles[actionID] }
 
+// GetByInputIntent resolves the action associated with a combat input intent.
 func (c *Catalog) GetByInputIntent(intent string) (string, *port.CombatProfile) {
 	id := c.byInputIntent[intent]
 	return id, c.profiles[id]
 }
-
 var _ port.CombatCatalog = (*Catalog)(nil)

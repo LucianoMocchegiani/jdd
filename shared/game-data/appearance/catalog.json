@@ -6,7 +6,8 @@
     "swim": { "durationMs": 0 },
     "jump": { "durationMs": 450 },
     "attack": { "durationMs": 400 },
-    "kamehameha": { "durationMs": 2000 }
+    "kamehameha": { "durationMs": 2000 },
+    "rayo_de_ki": { "durationMs": 0 }
   },
   "defaultDurationMs": 350
 }

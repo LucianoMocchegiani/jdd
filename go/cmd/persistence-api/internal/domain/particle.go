@@ -1,8 +1,6 @@
-// Package domain — Modelos de dominio persistence-api.
-
 package domain
 
-// ParticleNear representa particle near.
+// ParticleNear is a particle's location and physical state from a nearby-particle query.
 type ParticleNear struct {
 	ID        string
 	BloqueID  string
@@ -13,7 +11,7 @@ type ParticleNear struct {
 	Extraida  bool
 }
 
-// ParticleWithDureza representa particle with dureza.
+// ParticleWithDureza contains persisted integrity and hardness for damage calculation.
 type ParticleWithDureza struct {
 	ID             string
 	BloqueID       string
@@ -25,13 +23,13 @@ type ParticleWithDureza struct {
 	Dureza         float64
 }
 
-// IntegrityTransition representa integrity transition.
+// IntegrityTransition describes one transition in a particle's integrity state.
 type IntegrityTransition struct {
 	Condicion string
 	Valor     float64
 }
 
-// DamageResult representa particle damage results.
+// DamageResult reports the integrity change and whether the particle was destroyed.
 type DamageResult struct {
 	ParticleID      string
 	NuevaIntegridad float64
@@ -40,19 +38,26 @@ type DamageResult struct {
 	ConsumedDamage  float64
 }
 
-type CellPos struct {
-	X, Y, Z int
-}
+// CellPos is an integer cell coordinate in the world grid.
+type CellPos struct { X, Y, Z int }
 
-// ImpactProfile representa el daño total y el alcance de un impacto.
+// ImpactProfile configures damage, reach, and lateral width for a line impact.
 type ImpactProfile struct {
 	Reach  float64 `json:"reach"`
+	Width  float64 `json:"width"`
 	Damage float64 `json:"damage"`
 }
 
-// CombatProfile representa combat profile.
+// AreaProfile configures particle damage applied within a radius.
+type AreaProfile struct {
+	Radius float64 `json:"radius"`
+	Damage float64 `json:"damage"`
+}
+
+// CombatProfile is the persistence-side damage configuration for one action.
 type CombatProfile struct {
 	ActionID        string
 	Impact          *ImpactProfile
+	Area            *AreaProfile
 	ProjectileDamage float64
 }

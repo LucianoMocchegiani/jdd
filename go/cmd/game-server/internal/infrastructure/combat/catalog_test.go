@@ -30,3 +30,15 @@ func TestLoadActionCombatProfile(t *testing.T) {
 		t.Fatalf("unexpected projectile profile: %+v", projectileProfile)
 	}
 }
+
+func TestLoadSustainedKiBeamProfile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "actions.json")
+	data := `{"actions":[{"id":"rayo_de_ki","manaCostPerSecond":5,"damageIntervalMs":1000,"control":{"inputIntent":"continuous_attack","type":"sustained"},"impact":{"reach":28,"width":0.55,"damage":5}}]}`
+	if err := os.WriteFile(path, []byte(data), 0600); err != nil { t.Fatal(err) }
+	catalog, err := LoadCatalog(path)
+	if err != nil { t.Fatal(err) }
+	p := catalog.Get("rayo_de_ki")
+	if p == nil || p.ControlType != "sustained" || p.ManaCostPerSecond != 5 || p.DamageInterval != time.Second || p.Impact == nil || p.Impact.Width != 0.55 {
+		t.Fatalf("unexpected sustained profile: %+v", p)
+	}
+}
