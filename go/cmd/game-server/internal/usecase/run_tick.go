@@ -51,7 +51,7 @@ func (s *Services) RunTick(deltaSec float64) {
 		for _, cmd := range continuousCommands {
 			profile := s.Combat.Get(cmd.ActionID)
 			if profile != nil && profile.Impact != nil {
-				cmd.Targets = snapshotContinuousAttackTargets(sess, cmd, profile)
+				cmd.Targets = snapshotSwingTargets(sess, cmd, profile)
 			}
 			if err := s.SwingPub.PublishSwing(cmd); err != nil {
 				if profile != nil {
