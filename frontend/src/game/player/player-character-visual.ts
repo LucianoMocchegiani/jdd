@@ -5,9 +5,9 @@ import { StudioRenderer } from '@/poc/character-studio/studio-renderer';
 import type { StudioAnimationClip, StudioDocument } from '@/poc/character-studio/types';
 import { DEFAULT_PALETTE } from '@/poc/shared';
 import { PARTICLE_SIZE_RATIO } from '@/game/terrain/particle-geometry';
-import rayoDeKiClipRaw from '@/poc/rayo_de_ki.json?raw';
-import orbeExplosivoClipRaw from '@/poc/orbe_explosivo.json?raw';
-import truenoClipRaw from '@/poc/trueno.json?raw';
+import rayoDeKiClipRaw from '@/game/player/animations/rayo_de_ki.json?raw';
+import orbeExplosivoClipRaw from '@/game/player/animations/orbe_explosivo.json?raw';
+import truenoClipRaw from '@/game/player/animations/trueno.json?raw';
 import { Box3, CylinderGeometry, Mesh, MeshBasicMaterial, MeshStandardMaterial, Vector3, type Scene } from 'three';
 
 const UNIT_ELEMENT_BOUNDS = new Box3(new Vector3(-0.5, -0.5, -0.5), new Vector3(0.5, 0.5, 0.5));

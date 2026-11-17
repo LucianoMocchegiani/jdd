@@ -87,41 +87,4 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 	if !exists { return buildError("swing_error", "not_in_block"), true }
 	if s.Combat == nil { return buildError("swing_error", "not_configured"), true }
 	profile := s.Combat.Get(in.ActionID)
-	if profile == nil || (profile.Impact == nil && profile.Projectile == nil) || profile.ControlType == "sustained" { return buildError("swing_error", "unknown_action"), true }
-	blocked := false
-	if s.Conditions != nil {
-		sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) { blocked = s.Conditions.BlocksAction(p.Conditions, in.ActionID) })
-	}
-	if blocked { return buildError("swing_error", "swing_rejected"), true }
-	if s.SwingPub == nil { return buildError("swing_error", "not_configured"), true }
-
-	return s.executeAction(sess, in.PlayerID, in.ActionID, in.Seq, profile,
-		func(reservation entity.ActionSwingReservation) string {
-			pose := reservation.SwingReservation
-			if profile.Projectile != nil {
-				p := profile.Projectile
-				if !sess.SpawnProjectile(in.PlayerID, in.ActionID, pose, p.Speed, p.Range, p.Damage, p.Radius, p.Delay) {
-					return "projectile_rejected"
-				}
-				return ""
-			}
-			cmd := port.SwingCommand{BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: in.ActionID, EntityID: int(pose.EntityID), Seq: in.Seq, PosX: pose.X, PosY: pose.Y, PosZ: pose.Z, Yaw: pose.Yaw}
-			cmd.Targets = snapshotSwingTargets(sess, cmd, profile)
-			if err := s.SwingPub.PublishSwing(cmd); err != nil {
-				return "enqueue_failed"
-			}
-			return ""
-		}, nil)
-}
-
-func mediumBlocked(medium string, blocked []string) bool {
-	for _, blockedMedium := range blocked {
-		if medium == blockedMedium { return true }
-	}
-	return false
-}
-
-func buildError(msgType, code string) string {
-	b, _ := json.Marshal(map[string]string{"type": msgType, "error": code})
-	return string(b)
-}
+	if profile == nil || (profile.Impact == nil && profile.Projectile == nil) || profile.ControlType == "sustained

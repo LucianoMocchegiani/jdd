@@ -52,7 +52,7 @@ func (s *Services) HandleAreaSpell(in AreaSpellPayload) (string, bool) {
 		return buildError("swing_error", "swing_rejected"), true
 	}
 
-	return s.executeAction(sess, in.PlayerID, in.ActionID, in.Seq, profile,
+	return s.executeOneShotAction(sess, in.PlayerID, in.ActionID, in.Seq, profile,
 		func(reservation entity.ActionSwingReservation) string {
 			cmd := port.SwingCommand{
 				BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID,
