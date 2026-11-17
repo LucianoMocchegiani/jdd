@@ -20,11 +20,13 @@ type catalogFile struct {
 	} `json:"actions"`
 }
 
+// Catalog stores validated damage profiles by action ID.
 type Catalog struct {
 	mu       sync.RWMutex
 	profiles map[string]*domain.CombatProfile
 }
 
+// LoadCatalog reads action data and rejects profiles with invalid or conflicting damage modes.
 func LoadCatalog(path string) (*Catalog, error) {
 	data, err := os.ReadFile(path)
 	if err != nil { return nil, err }
@@ -53,6 +55,7 @@ func LoadCatalog(path string) (*Catalog, error) {
 	return c, nil
 }
 
+// Get returns the persistence-side damage profile for an action, or nil if absent.
 func (c *Catalog) Get(actionID string) *domain.CombatProfile {
 	c.mu.RLock()
 	defer c.mu.RUnlock()

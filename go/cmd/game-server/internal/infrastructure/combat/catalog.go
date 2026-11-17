@@ -36,11 +36,13 @@ type actionFile struct {
 	} `json:"actions"`
 }
 
+// Catalog stores validated combat profiles indexed by action ID and input intent.
 type Catalog struct {
 	profiles      map[string]*port.CombatProfile
 	byInputIntent map[string]string
 }
 
+// LoadCatalog reads action data and rejects invalid or duplicate combat profiles.
 func LoadCatalog(path string) (*Catalog, error) {
 	data, err := os.ReadFile(path)
 	if err != nil { return nil, err }
@@ -85,7 +87,10 @@ func LoadCatalog(path string) (*Catalog, error) {
 	return catalog, nil
 }
 
+// Get returns the server-owned profile for an action, or nil when it is unknown.
 func (c *Catalog) Get(actionID string) *port.CombatProfile { return c.profiles[actionID] }
+
+// GetByInputIntent resolves the action associated with a combat input intent.
 func (c *Catalog) GetByInputIntent(intent string) (string, *port.CombatProfile) {
 	id := c.byInputIntent[intent]
 	return id, c.profiles[id]
