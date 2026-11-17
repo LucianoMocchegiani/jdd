@@ -44,7 +44,7 @@ func TestContinuousAttackChargesAndPublishesOncePerDamageInterval(t *testing.T) 
 			t.Fatal("beam pulsed before the damage interval")
 		}
 		if i == 1 && ok {
-			cmd.Targets = snapshotContinuousAttackTargets(sess, cmd, profile)
+			cmd.Targets = snapshotSwingTargets(sess, cmd, profile)
 			publisher.PublishSwing(cmd)
 		}
 	}

@@ -7,7 +7,6 @@ import (
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
-	jdcombat "github.com/juego-de-dioses/jd/pkg/jd/combat"
 )
 
 type InputPayload struct {
@@ -102,14 +101,9 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 				}
 				return ""
 			}
-			origin := jdcombat.Point{X: pose.X, Y: pose.Y, Z: pose.Z}
-			targets := make([]port.SwingTarget, 0)
-			sess.ForEachPlayer(func(p *entity.Player) {
-				if p.ID != in.PlayerID && p.Health > 0 && jdcombat.HitsPlayerWithWidth(origin, pose.Yaw, jdcombat.Point{X: p.X, Y: p.Y, Z: p.Z}, profile.Impact.Reach, profile.Impact.Width) {
-					targets = append(targets, port.SwingTarget{PlayerID: p.ID, EntityID: int(p.EntityID), X: p.X, Y: p.Y, Z: p.Z})
-				}
-			})
-			if err := s.SwingPub.PublishSwing(port.SwingCommand{BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: in.ActionID, EntityID: int(pose.EntityID), Seq: in.Seq, PosX: pose.X, PosY: pose.Y, PosZ: pose.Z, Yaw: pose.Yaw, Targets: targets}); err != nil {
+			cmd := port.SwingCommand{BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: in.ActionID, EntityID: int(pose.EntityID), Seq: in.Seq, PosX: pose.X, PosY: pose.Y, PosZ: pose.Z, Yaw: pose.Yaw}
+			cmd.Targets = snapshotSwingTargets(sess, cmd, profile)
+			if err := s.SwingPub.PublishSwing(cmd); err != nil {
 				return "enqueue_failed"
 			}
 			return ""
