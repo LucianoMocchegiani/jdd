@@ -2,6 +2,7 @@ package usecase_test
 
 import (
 	"encoding/json"
+	"errors"
 	"testing"
 	"time"
 
@@ -10,6 +11,10 @@ import (
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/usecase"
 	"github.com/juego-de-dioses/jd/pkg/jd/cellkey"
 )
+
+type failingSwingPublisher struct{}
+
+func (failingSwingPublisher) PublishSwing(port.SwingCommand) error { return errors.New("publisher unavailable") }
 
 func TestAreaSpellValidatesGroundAndDamagesPlayersAuthoritatively(t *testing.T) {
 	store := memory.NewSessionStore()
@@ -38,6 +43,30 @@ func TestAreaSpellValidatesGroundAndDamagesPlayersAuthoritatively(t *testing.T) 
 	}
 	if inside.Health != 80 || outside.Health != 100 || caster.Mana != 80 || publisher.calls != 1 || publisher.command.AreaTarget == nil {
 		t.Fatalf("inside=%v outside=%v mana=%v published=%+v", inside.Health, outside.Health, caster.Mana, publisher.command)
+	}
+}
+
+func TestAreaSpellEnqueueFailureRefundsManaAndReservation(t *testing.T) {
+	store := memory.NewSessionStore()
+	sess := store.GetOrCreate("block", 1)
+	sess.AddPlayer("caster", 0, 0, 0, 0, 0)
+	sess.SolidGrid.MergeSolidCells([]string{cellkey.Format(0, 0, 0)})
+	svc := &usecase.Services{
+		Sessions: store,
+		SwingPub: failingSwingPublisher{},
+		Combat: combatCatalog{"orbe_explosivo": {Cooldown: time.Second, ManaCost: 20, Area: &port.AreaProfile{Range: 18, Radius: 3, Damage: 20, Effect: "orb"}}},
+	}
+	input := usecase.AreaSpellPayload{BloqueID: "block", EcoID: 1, PlayerID: "caster", Seq: 1, ActionID: "orbe_explosivo", Target: port.AreaTarget{X: 0, Y: 0, Z: 0.45}}
+	if _, failed := svc.HandleAreaSpell(input); !failed {
+		t.Fatal("failed enqueue was accepted")
+	}
+	caster, _ := sess.GetPlayer("caster")
+	if caster.Mana != caster.MaxMana || caster.ActionSeq != 0 {
+		t.Fatalf("failed enqueue changed mana or action state: mana=%v actionSeq=%d", caster.Mana, caster.ActionSeq)
+	}
+	svc.SwingPub = &swingPublisher{}
+	if _, failed := svc.HandleAreaSpell(input); failed {
+		t.Fatal("failed enqueue did not release the sequence and cooldown reservation")
 	}
 }
 

@@ -41,9 +41,9 @@ func TestHandleInputStartsCombatOnlyOnNewAttackIntent(t *testing.T) {
 		t.Fatalf("first attack input was not accepted: ok=%t calls=%d", ok, publisher.calls)
 	}
 	var ack struct {
-		Type string `json:"type"`
-		ActionID string `json:"action_id"`
-		ActionSeq int `json:"action_seq"`
+		Type      string `json:"type"`
+		ActionID  string `json:"action_id"`
+		ActionSeq int    `json:"action_seq"`
 	}
 	if err := json.Unmarshal([]byte(response), &ack); err != nil || ack.Type != "swing_queued" || ack.ActionID != "attack" || ack.ActionSeq != 1 {
 		t.Fatalf("accepted attack ack=%q, err=%v", response, err)
