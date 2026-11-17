@@ -18,6 +18,7 @@ function pulseAction(intent: string): void {
   }, 120));
 }
 
+/** Construye el HUD de habilidades desde el registro compartido y enlaza controles accesibles. */
 export function mountAbilityHud(root: HTMLElement): void {
   const rows = new Map<string, { item: HTMLButtonElement; clock: HTMLElement; cooldown: HTMLElement; cooldownMs: number; label: string; name: string; key: string }>();
   for (const action of BODY_ACTIONS) {

@@ -13,16 +13,19 @@ import type { TerrainStore } from '@/game/terrain/terrain-store';
 const TARGET_REQUEST_EVENT = 'area-ability-target';
 type CastAreaSpell = (action: ActionDefinition, target: CellPosition) => void;
 
+/** Maneja la selección local de objetivos y los efectos visuales autoritativos de R/T. */
 export class AreaSpellVisuals {
   private readonly effects: Array<{ group: Group; ring: Mesh; core: Mesh; elapsed: number; duration: number }> = [];
   private targeting: AreaAbilityTargeting | null = null;
 
   constructor(private readonly scene: Scene, private readonly cellSize: number) {}
 
+  /** Conecta el raycast del cursor con el envío del cast; el servidor vuelve a validar el objetivo. */
   enableTargeting(camera: Camera, canvas: HTMLCanvasElement, terrain: TerrainStore, cast: CastAreaSpell): void {
     this.targeting = new AreaAbilityTargeting(this.scene, camera, canvas, terrain, this.cellSize, cast);
   }
 
+  /** Crea el efecto recibido del servidor, sin decidir ni aplicar daño en el cliente. */
   apply(event: AreaSpellEvent): void {
     const group = new Group();
     const color = event.effect === 'thunder' ? 0xa78bfa : 0x55ddff;
@@ -45,6 +48,7 @@ export class AreaSpellVisuals {
     this.effects.push({ group, ring, core, elapsed: 0, duration: event.effect === 'thunder' ? 0.45 : 0.6 });
   }
 
+  /** Actualiza el marcador de objetivo y anima/libera los efectos activos. */
   update(deltaTime: number, playerPosition?: CellPosition): void {
     if (playerPosition) this.targeting?.update(playerPosition);
     for (let i = this.effects.length - 1; i >= 0; i -= 1) {
@@ -76,6 +80,7 @@ export class AreaSpellVisuals {
   }
 }
 
+/** Captura R/T y confirma un objetivo válido del terreno con clic izquierdo. */
 class AreaAbilityTargeting {
   private readonly raycaster = new Raycaster();
   private readonly pointer = new Vector2();
@@ -109,6 +114,7 @@ class AreaAbilityTargeting {
     canvas.addEventListener('contextmenu', this.onContextMenu);
   }
 
+  /** Proyecta el cursor sobre celdas sólidas dentro del alcance y oculta objetivos inválidos. */
   update(player: CellPosition): void {
     if (!this.action?.area || isCameraInspectMode()) {
       this.cancel();

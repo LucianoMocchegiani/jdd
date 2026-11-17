@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// ActionSwingReservation snapshots the previous per-player sequence and per-action cooldown for rollback.
 type ActionSwingReservation struct {
 	SwingReservation
 	actionID            string
@@ -12,7 +13,7 @@ type ActionSwingReservation struct {
 	hadPreviousActionAt bool
 }
 
-// BeginActionSwing applies cooldown per ability while retaining player-wide sequence deduplication.
+// BeginActionSwing reserves the player's sequence and this action's cooldown if the player may cast it.
 func (s *BlockSession) BeginActionSwing(playerID, actionID string, seq int, now time.Time, cooldown time.Duration, blockedMediums []string) (ActionSwingReservation, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -38,6 +39,7 @@ func (s *BlockSession) BeginActionSwing(playerID, actionID string, seq int, now 
 	return ActionSwingReservation{SwingReservation: reservation, actionID: actionID, previousActionAt: previousActionAt, hadPreviousActionAt: hadPreviousActionAt}, true
 }
 
+// CancelActionSwing restores the sequence and cooldown captured by reservation after a failed spend.
 func (s *BlockSession) CancelActionSwing(playerID string, reservation ActionSwingReservation) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -51,6 +53,7 @@ func (s *BlockSession) CancelActionSwing(playerID string, reservation ActionSwin
 	}
 }
 
+// CancelActionSwingAndRefundMana restores the reservation and refunds its mana after a failed enqueue.
 func (s *BlockSession) CancelActionSwingAndRefundMana(playerID string, reservation ActionSwingReservation, cost float64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

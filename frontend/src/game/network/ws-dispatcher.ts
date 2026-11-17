@@ -14,6 +14,7 @@ function parsePlayerStateIntents(raw: unknown): Record<string, true> | undefined
 }
 function finiteNumber(value: unknown): value is number { return typeof value === 'number' && Number.isFinite(value); }
 
+/** Valida un mensaje JSON entrante y lo convierte al contrato tipado del cliente. */
 export function parseInboundMessage(raw: unknown): RealtimeInboundMessage | null {
   if (!raw || typeof raw !== 'object') return null;
   const msg = raw as Record<string, unknown>;
@@ -93,6 +94,7 @@ export function parseInboundMessage(raw: unknown): RealtimeInboundMessage | null
   return parseTerrainWsMessage(msg);
 }
 
+/** Enruta los mensajes de mundo y sesión al callback correspondiente. */
 export function dispatchMessage(msg: RealtimeInboundMessage, handlers: WorldRealtimeHandlers): void {
   if (msg.type === 'particle_destroyed' || msg.type === 'terrain_types' || msg.type === 'terrain_chunk' || msg.type === 'terrain_chunk_done') {
     handlers.onWorldEvent(msg);

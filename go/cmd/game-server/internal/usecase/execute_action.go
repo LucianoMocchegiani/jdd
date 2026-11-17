@@ -8,7 +8,8 @@ import (
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
 )
 
-// executeAction shares reservation, mana, rollback, state update, and acknowledgement for one-shot casts.
+// executeAction reserva una acción de un solo uso, cobra su maná y revierte reserva/coste si falla el enqueue.
+// Solo después de encolar correctamente ejecuta onAccepted y genera el acuse con la secuencia autoritativa.
 func (s *Services) executeAction(
 	sess *entity.BlockSession,
 	playerID, actionID string,

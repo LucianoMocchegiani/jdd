@@ -6,6 +6,8 @@ import (
 	jdcombat "github.com/juego-de-dioses/jd/pkg/jd/combat"
 )
 
+// snapshotSwingTargets congela los jugadores vivos alcanzables en la pose de origen del impacto.
+// Compartirlo mantiene idénticos los filtros de ataques de un golpe y de cada pulso sostenido.
 func snapshotSwingTargets(sess *entity.BlockSession, cmd port.SwingCommand, profile *port.CombatProfile) []port.SwingTarget {
 	origin := jdcombat.Point{X: cmd.PosX, Y: cmd.PosY, Z: cmd.PosZ}
 	targets := make([]port.SwingTarget, 0)

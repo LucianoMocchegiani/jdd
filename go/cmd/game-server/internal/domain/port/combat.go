@@ -1,15 +1,16 @@
-// Package port — Puertos hexagonales del game-server.
+// Package port defines the game-server's combat configuration and publishing contracts.
 package port
 
 import "time"
 
-// DamageProfile is the shared reach and damage budget for a line attack.
+// DamageProfile is the reach, lateral width, and damage budget for a line attack.
 type DamageProfile struct {
 	Reach  float64 `json:"reach"`
 	Width  float64 `json:"width"`
 	Damage float64 `json:"damage"`
 }
 
+// AreaProfile configures the allowed cast range and the resulting area effect.
 type AreaProfile struct {
 	Range  float64 `json:"range"`
 	Radius float64 `json:"radius"`
@@ -17,6 +18,7 @@ type AreaProfile struct {
 	Effect string  `json:"effect"`
 }
 
+// ProjectileProfile configures projectile movement, collision, damage, and optional delay.
 type ProjectileProfile struct {
 	Speed  float64
 	Range  float64
@@ -25,6 +27,7 @@ type ProjectileProfile struct {
 	Delay  time.Duration
 }
 
+// CombatProfile contains server-owned rules for one action, not client-supplied combat values.
 type CombatProfile struct {
 	InputIntent       string
 	ControlType       string

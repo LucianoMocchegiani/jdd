@@ -16,6 +16,7 @@ function packActiveIntents(intents: Record<string, boolean>): Record<string, tru
   return out;
 }
 
+/** Devuelve true si F o G acaba de pasar de liberada a pulsada y actualiza ambos flancos. */
 export function hasNewAttackIntent(
   packed: Record<string, true>,
   wasActive: Record<AttackIntent, boolean>,
@@ -29,7 +30,7 @@ export function hasNewAttackIntent(
   return edge;
 }
 
-/** Envía los intents al servidor con el intervalo configurado y al detectar flancos. */
+/** Envía intents y orientación; omite intents sin cambios y fuerza envío en flancos de acción. */
 export class NetworkInputSender {
   private lastSentAt = 0;
   private seq = 0;
@@ -47,11 +48,13 @@ export class NetworkInputSender {
     private readonly playerId: string,
   ) {}
 
-  /** Último `seq` enviado por WS (0 si aún no hubo envíos). */
+  /** Secuencia del último mensaje numerado enviado o reservado. */
   get currentSeq(): number { return this.seq; }
 
+  /** Reserva un número de la misma secuencia para comandos separados, como area_spell_cast. */
   reserveSequence(): number { return ++this.seq; }
 
+  /** Procesa un frame de input y envía el comando si venció el intervalo o cambió una acción. */
   tick(nowSec: number, intents: Record<string, boolean>, yaw: number, pitch?: number): void {
     const packed = packActiveIntents(intents);
     const hasMovement = Object.keys(packed).length > 0;

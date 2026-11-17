@@ -18,6 +18,8 @@ func HitsPlayer(origin Point, yaw float64, target Point, reach float64) bool {
 	return HitsPlayerWithWidth(origin, yaw, target, reach, defaultImpactWidth)
 }
 
+// HitsPlayerWithWidth tests a target against the line attack using the configured lateral width.
+// A zero width keeps the historical default; a negative width is rejected.
 func HitsPlayerWithWidth(origin Point, yaw float64, target Point, reach, width float64) bool {
 	if width < 0 { return false }
 	if width == 0 { width = defaultImpactWidth }
@@ -34,6 +36,8 @@ func HitsWorldCell(origin Point, yaw float64, x, y, z int, reach float64) bool {
 	return HitsWorldCellWithWidth(origin, yaw, x, y, z, reach, defaultImpactWidth)
 }
 
+// HitsWorldCellWithWidth tests a world cell against the line attack's configured lateral width.
+// A zero width keeps the historical default; a negative width is rejected.
 func HitsWorldCellWithWidth(origin Point, yaw float64, x, y, z int, reach, width float64) bool {
 	if width < 0 { return false }
 	if width == 0 { width = defaultImpactWidth }
