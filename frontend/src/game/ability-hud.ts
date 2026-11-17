@@ -19,7 +19,7 @@ function pulseAction(intent: string): void {
 }
 
 export function mountAbilityHud(root: HTMLElement): void {
-  const rows = new Map<string, { item: HTMLButtonElement; clock: HTMLElement; cooldown: HTMLElement; cooldownMs: number; label: string }>();
+  const rows = new Map<string, { item: HTMLButtonElement; clock: HTMLElement; cooldown: HTMLElement; cooldownMs: number; label: string; name: string; key: string }>();
   for (const action of BODY_ACTIONS) {
     const keyText = (INTENT_KEY_CODES[action.control.inputIntent] ?? [])
       .map((code) => code.startsWith('Key') ? code.slice(3) : code === 'Mouse0' ? 'Click izq.' : code)
@@ -34,7 +34,7 @@ export function mountAbilityHud(root: HTMLElement): void {
     const item = document.createElement('button');
     item.type = 'button';
     item.className = 'ability-hud__item';
-    item.setAttribute('aria-label', `${nameText}, ${keyText}, cooldown configurado ${cooldownText}; activar`);
+    item.setAttribute('aria-label', `${nameText}, ${keyText}, ${cooldownText} de enfriamiento; activar`);
 
     if (action.control.type === 'sustained' && INTENT_KEY_CODES[action.control.inputIntent]?.[0]) {
       const code = INTENT_KEY_CODES[action.control.inputIntent]![0]!;
@@ -78,24 +78,36 @@ export function mountAbilityHud(root: HTMLElement): void {
     cooldown.textContent = cooldownText;
     item.append(icon, key, label, clock, cooldown);
     root.append(item);
-    rows.set(action.id, { item, clock, cooldown, cooldownMs, label: cooldown.textContent });
+    rows.set(action.id, { item, clock, cooldown, cooldownMs, label: cooldown.textContent, name: nameText, key: keyText });
   }
+  const announcement = document.createElement('span');
+  announcement.className = 'ability-hud__status';
+  announcement.setAttribute('role', 'status');
+  announcement.setAttribute('aria-live', 'polite');
+  announcement.setAttribute('aria-atomic', 'true');
+  root.append(announcement);
+
   window.addEventListener(COOLDOWN_EVENT, (event) => {
     const actionId = (event as CustomEvent<{ actionId: string }>).detail?.actionId;
     const row = actionId ? rows.get(actionId) : undefined;
-    if (!row || row.cooldownMs <= 0) return;
+    if (!row || row.cooldownMs <= 0 || row.item.classList.contains('is-cooling-down')) return;
     row.clock.style.setProperty('--cooldown-duration', `${row.cooldownMs}ms`);
     row.item.classList.add('is-cooling-down');
+    row.item.setAttribute('aria-label', `${row.name}, ${row.key}, Enfriando`);
+    announcement.textContent = `${row.name}: Enfriando`;
     row.cooldown.textContent = 'Enfriando…';
     row.clock.classList.remove('is-spinning');
     void row.clock.offsetWidth;
     row.clock.classList.add('is-spinning');
   });
-  for (const { item, clock, cooldown, label } of rows.values()) {
+  for (const { item, clock, cooldown, label, name, key } of rows.values()) {
     clock.addEventListener('animationend', () => {
+      if (!item.classList.contains('is-cooling-down')) return;
       item.classList.remove('is-cooling-down');
       clock.classList.remove('is-spinning');
       cooldown.textContent = label;
+      item.setAttribute('aria-label', `${name}, ${key}, Listo; activar`);
+      announcement.textContent = `${name}: Listo`;
     });
   }
 }

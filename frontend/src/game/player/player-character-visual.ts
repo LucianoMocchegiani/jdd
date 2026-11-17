@@ -1,7 +1,3 @@
-/**
- * Renderiza el jugador local con el rig y los clips del Character Studio.
- */
-
 import { buildRig, SkeletonPose } from '@/poc/character-studio/rig-math';
 import { clipFromJson, createDefaultClipLibrary, sampleClip } from '@/poc/character-studio/studio-clip';
 import { defaultBipedDocument } from '@/poc/character-studio/studio-document';
@@ -10,6 +6,8 @@ import type { StudioAnimationClip, StudioDocument } from '@/poc/character-studio
 import { DEFAULT_PALETTE } from '@/poc/shared';
 import { PARTICLE_SIZE_RATIO } from '@/game/terrain/particle-geometry';
 import rayoDeKiClipRaw from '@/poc/rayo_de_ki.json?raw';
+import orbeExplosivoClipRaw from '@/poc/orbe_explosivo.json?raw';
+import truenoClipRaw from '@/poc/trueno.json?raw';
 import { Box3, CylinderGeometry, Mesh, MeshBasicMaterial, MeshStandardMaterial, Vector3, type Scene } from 'three';
 
 const UNIT_ELEMENT_BOUNDS = new Box3(new Vector3(-0.5, -0.5, -0.5), new Vector3(0.5, 0.5, 0.5));
@@ -49,6 +47,8 @@ export class PlayerCharacterVisual {
   constructor(scene: Scene, private readonly cellSize: number) {
     this.renderer = new StudioRenderer(scene, cellSize);
     this.clips.set('rayo_de_ki', clipFromJson(rayoDeKiClipRaw));
+    this.clips.set('orbe_explosivo', clipFromJson(orbeExplosivoClipRaw));
+    this.clips.set('trueno', clipFromJson(truenoClipRaw));
     this.beam.visible = false;
     scene.add(this.beam);
   }

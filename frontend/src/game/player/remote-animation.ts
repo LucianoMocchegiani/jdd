@@ -1,7 +1,3 @@
-/**
- * @file Elige clips de presentación a partir del estado autoritativo del servidor.
- */
-
 export interface RemoteAnimationState {
   medium: string;
   vx: number;
@@ -23,6 +19,7 @@ export function selectRemoteClip(state: RemoteAnimationState): string | null {
   if (state.continuous_attack_active || state.intents?.continuous_attack) return 'rayo_de_ki';
   if (state.action_id === 'attack') return 'attack';
   if (state.action_id === 'kamehameha') return 'kamehameha';
+  if (state.action_id === 'orbe_explosivo' || state.action_id === 'trueno') return state.action_id;
   const moving =
     MOVE_INTENTS.some((intent) => state.intents?.[intent]) || Math.hypot(state.vx, state.vy) > 0.05;
 
