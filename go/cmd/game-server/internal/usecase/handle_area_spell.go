@@ -1,9 +1,7 @@
 package usecase
 
 import (
-	"encoding/json"
 	"math"
-	"time"
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
@@ -51,54 +49,41 @@ func (s *Services) HandleAreaSpell(in AreaSpellPayload) (string, bool) {
 		return buildError("swing_error", "swing_rejected"), true
 	}
 
-	now := time.Now()
-	reservation, ok := sess.BeginActionSwing(in.PlayerID, in.ActionID, in.Seq, now, profile.Cooldown, profile.BlockedMediums)
-	if !ok {
-		return buildError("swing_error", "swing_rejected"), true
-	}
-	if !sess.SpendSwingMana(in.PlayerID, in.Seq, profile.ManaCost) {
-		sess.CancelActionSwing(in.PlayerID, reservation)
-		return buildError("swing_error", "swing_rejected"), true
-	}
-	cmd := port.SwingCommand{
-		BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID,
-		ActionID: in.ActionID, EntityID: int(reservation.EntityID), Seq: in.Seq,
-		AreaTarget: &in.Target,
-	}
-	if err := s.SwingPub.PublishSwing(cmd); err != nil {
-		sess.CancelActionSwingAndRefundMana(in.PlayerID, reservation, profile.ManaCost)
-		return buildError("swing_error", "enqueue_failed"), true
-	}
-
-	// shortcut: area damage ignores line-of-sight; add occlusion checks if walls should block it.
-	var playerIDs []string
-	sess.ForEachPlayer(func(p *entity.Player) {
-		if p.ID != in.PlayerID && p.Health > 0 && insideArea(p, in.Target, profile.Area.Radius) {
-			playerIDs = append(playerIDs, p.ID)
-		}
-	})
-	for _, id := range playerIDs {
-		sess.UpdatePlayer(id, func(p *entity.Player) {
-			if p.Health > 0 && insideArea(p, in.Target, profile.Area.Radius) {
-				p.Health = math.Max(0, p.Health-profile.Area.Damage)
+	return s.executeAction(sess, in.PlayerID, in.ActionID, in.Seq, profile,
+		func(reservation entity.ActionSwingReservation) string {
+			cmd := port.SwingCommand{
+				BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID,
+				ActionID: in.ActionID, EntityID: int(reservation.EntityID), Seq: in.Seq,
+				AreaTarget: &in.Target,
+			}
+			if err := s.SwingPub.PublishSwing(cmd); err != nil {
+				return "enqueue_failed"
+			}
+			return ""
+		}, func() {
+			// shortcut: area damage ignores line-of-sight; add occlusion checks if walls should block it.
+			var playerIDs []string
+			sess.ForEachPlayer(func(p *entity.Player) {
+				if p.ID != in.PlayerID && p.Health > 0 && insideArea(p, in.Target, profile.Area.Radius) {
+					playerIDs = append(playerIDs, p.ID)
+				}
+			})
+			for _, id := range playerIDs {
+				sess.UpdatePlayer(id, func(p *entity.Player) {
+					if p.Health > 0 && insideArea(p, in.Target, profile.Area.Radius) {
+						p.Health = math.Max(0, p.Health-profile.Area.Damage)
+					}
+				})
+			}
+			if s.Hub != nil {
+				wire, _ := json.Marshal(map[string]interface{}{
+					"type": "area_spell", "action_id": in.ActionID, "player_id": in.PlayerID,
+					"effect": profile.Area.Effect, "x": in.Target.X, "y": in.Target.Y,
+					"z": in.Target.Z, "radius": profile.Area.Radius,
+				})
+				s.Hub.ForSession(in.BloqueID, in.EcoID, func(c *wshub.Conn) { wshub.SafeWrite(c, string(wire)) })
 			}
 		})
-	}
-	sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) {
-		p.InCombatUntil = now.Add(6 * time.Second)
-		p.ActionID = in.ActionID
-		p.ActionSeq++
-	})
-	if s.Hub != nil {
-		wire, _ := json.Marshal(map[string]interface{}{
-			"type": "area_spell", "action_id": in.ActionID, "player_id": in.PlayerID,
-			"effect": profile.Area.Effect, "x": in.Target.X, "y": in.Target.Y,
-			"z": in.Target.Z, "radius": profile.Area.Radius,
-		})
-		s.Hub.ForSession(in.BloqueID, in.EcoID, func(c *wshub.Conn) { wshub.SafeWrite(c, string(wire)) })
-	}
-	ack, _ := json.Marshal(map[string]interface{}{"type": "swing_queued", "seq": in.Seq, "entity_id": reservation.EntityID, "action_id": in.ActionID})
-	return string(ack), false
 }
 
 func insideArea(p *entity.Player, target port.AreaTarget, radius float64) bool {

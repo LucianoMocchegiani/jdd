@@ -91,41 +91,29 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 	}
 	if blocked { return buildError("swing_error", "swing_rejected"), true }
 	if s.SwingPub == nil { return buildError("swing_error", "not_configured"), true }
-	now := time.Now()
-	reservation, ok := sess.BeginActionSwing(in.PlayerID, in.ActionID, in.Seq, now, profile.Cooldown, profile.BlockedMediums)
-	if !ok { return buildError("swing_error", "swing_rejected"), true }
-	if !sess.SpendSwingMana(in.PlayerID, in.Seq, profile.ManaCost) {
-		sess.CancelActionSwing(in.PlayerID, reservation)
-		return buildError("swing_error", "swing_rejected"), true
-	}
-	if profile.Projectile != nil {
-		p := profile.Projectile
-		if !sess.SpawnProjectile(in.PlayerID, in.ActionID, reservation.SwingReservation, p.Speed, p.Range, p.Damage, p.Radius, p.Delay) {
-			sess.CancelActionSwingAndRefundMana(in.PlayerID, reservation, profile.ManaCost)
-			return buildError("swing_error", "projectile_rejected"), true
-		}
-	} else {
-		origin := jdcombat.Point{X: reservation.X, Y: reservation.Y, Z: reservation.Z}
-		targets := make([]port.SwingTarget, 0)
-		sess.ForEachPlayer(func(p *entity.Player) {
-			if p.ID != in.PlayerID && p.Health > 0 && jdcombat.HitsPlayerWithWidth(origin, reservation.Yaw, jdcombat.Point{X: p.X, Y: p.Y, Z: p.Z}, profile.Impact.Reach, profile.Impact.Width) {
-				targets = append(targets, port.SwingTarget{PlayerID: p.ID, EntityID: int(p.EntityID), X: p.X, Y: p.Y, Z: p.Z})
+
+	return s.executeAction(sess, in.PlayerID, in.ActionID, in.Seq, profile,
+		func(reservation entity.ActionSwingReservation) string {
+			pose := reservation.SwingReservation
+			if profile.Projectile != nil {
+				p := profile.Projectile
+				if !sess.SpawnProjectile(in.PlayerID, in.ActionID, pose, p.Speed, p.Range, p.Damage, p.Radius, p.Delay) {
+					return "projectile_rejected"
+				}
+				return ""
 			}
-		})
-		if err := s.SwingPub.PublishSwing(port.SwingCommand{BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: in.ActionID, EntityID: int(reservation.EntityID), Seq: in.Seq, PosX: reservation.X, PosY: reservation.Y, PosZ: reservation.Z, Yaw: reservation.Yaw, Targets: targets}); err != nil {
-			sess.CancelActionSwingAndRefundMana(in.PlayerID, reservation, profile.ManaCost)
-			return buildError("swing_error", "enqueue_failed"), true
-		}
-	}
-	var actionSeq int
-	sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) {
-		p.InCombatUntil = now.Add(6 * time.Second)
-		p.ActionID = in.ActionID
-		p.ActionSeq++
-		actionSeq = p.ActionSeq
-	})
-	ack, _ := json.Marshal(map[string]interface{}{"type": "swing_queued", "seq": in.Seq, "entity_id": reservation.EntityID, "action_id": in.ActionID, "action_seq": actionSeq})
-	return string(ack), false
+			origin := jdcombat.Point{X: pose.X, Y: pose.Y, Z: pose.Z}
+			targets := make([]port.SwingTarget, 0)
+			sess.ForEachPlayer(func(p *entity.Player) {
+				if p.ID != in.PlayerID && p.Health > 0 && jdcombat.HitsPlayerWithWidth(origin, pose.Yaw, jdcombat.Point{X: p.X, Y: p.Y, Z: p.Z}, profile.Impact.Reach, profile.Impact.Width) {
+					targets = append(targets, port.SwingTarget{PlayerID: p.ID, EntityID: int(p.EntityID), X: p.X, Y: p.Y, Z: p.Z})
+				}
+			})
+			if err := s.SwingPub.PublishSwing(port.SwingCommand{BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: in.ActionID, EntityID: int(pose.EntityID), Seq: in.Seq, PosX: pose.X, PosY: pose.Y, PosZ: pose.Z, Yaw: pose.Yaw, Targets: targets}); err != nil {
+				return "enqueue_failed"
+			}
+			return ""
+		}, nil)
 }
 
 func mediumBlocked(medium string, blocked []string) bool {
