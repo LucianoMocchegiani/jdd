@@ -199,10 +199,7 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 		}
 		worldHits++
 		hits = append(hits, *res)
-		if res.Destroyed && res.Position != nil {
-			_ = s.Events.PublishCellDestroyed(ctx, cmd.BloqueID, res.ParticleID, res.Position.X, res.Position.Y, res.Position.Z)
-			_ = s.Events.PublishParticleDestroyed(ctx, cmd.BloqueID, res.ParticleID, res.Position.X, res.Position.Y, res.Position.Z)
-		}
+		s.publishParticleDestruction(ctx, cmd.BloqueID, res)
 		if !res.Destroyed {
 			break
 		}
@@ -246,10 +243,7 @@ func (s *SwingService) applyAreaSwing(ctx context.Context, cmd SwingCommand, pro
 			return SwingOutcome{}, fmt.Errorf("apply area particle %s: empty damage result", p.ID)
 		}
 		hits = append(hits, *res)
-		if res.Destroyed && res.Position != nil {
-			_ = s.Events.PublishCellDestroyed(ctx, cmd.BloqueID, res.ParticleID, res.Position.X, res.Position.Y, res.Position.Z)
-			_ = s.Events.PublishParticleDestroyed(ctx, cmd.BloqueID, res.ParticleID, res.Position.X, res.Position.Y, res.Position.Z)
-		}
+		s.publishParticleDestruction(ctx, cmd.BloqueID, res)
 	}
 	destroyed := 0
 	for _, hit := range hits {
@@ -280,10 +274,7 @@ func (s *SwingService) applyProjectileParticleHit(ctx context.Context, cmd Swing
 		if err != nil { return SwingOutcome{}, fmt.Errorf("apply projectile particle %s: %w", target.ID, err) }
 		if result == nil { return SwingOutcome{}, fmt.Errorf("apply projectile particle %s: empty damage result", target.ID) }
 		hits = append(hits, *result)
-		if result.Destroyed && result.Position != nil {
-			_ = s.Events.PublishCellDestroyed(ctx, cmd.BloqueID, result.ParticleID, result.Position.X, result.Position.Y, result.Position.Z)
-			_ = s.Events.PublishParticleDestroyed(ctx, cmd.BloqueID, result.ParticleID, result.Position.X, result.Position.Y, result.Position.Z)
-		}
+		s.publishParticleDestruction(ctx, cmd.BloqueID, result)
 	}
 	destroyed := 0
 	for _, hit := range hits { if hit.Destroyed { destroyed++ } }
