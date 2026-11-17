@@ -83,7 +83,8 @@ func (s *Services) HandleAreaSpell(in AreaSpellPayload) (string, bool) {
 					"z": in.Target.Z, "radius": profile.Area.Radius,
 				})
 				s.Hub.ForSession(in.BloqueID, in.EcoID, func(c *wshub.Conn) { wshub.SafeWrite(c, string(wire)) })
-		})
+			}
+		}, nil)
 }
 
 func insideArea(p *entity.Player, target port.AreaTarget, radius float64) bool {
