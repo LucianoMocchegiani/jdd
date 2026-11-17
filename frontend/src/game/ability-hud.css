@@ -28,8 +28,13 @@
   backdrop-filter: blur(10px);
 }
 
-#ability-hud::-webkit-scrollbar { display: none; }
-#status { bottom: 72px; }
+#ability-hud::-webkit-scrollbar {
+  display: none;
+}
+
+#status {
+  bottom: 72px;
+}
 
 .ability-hud__item {
   position: relative;
@@ -83,8 +88,15 @@
   text-overflow: ellipsis;
 }
 
-.ability-hud__label { color: #cbd5e1; }
-.ability-hud__cooldown { color: #94a3b8; font-size: 9px; }
+.ability-hud__label {
+  color: #cbd5e1;
+}
+
+.ability-hud__cooldown {
+  color: #94a3b8;
+  font-size: 9px;
+}
+
 .ability-hud__status {
   position: absolute;
   width: 1px;
@@ -125,25 +137,44 @@
   animation: ability-cooldown-spin var(--cooldown-duration) linear forwards;
 }
 
-.ability-hud__item.is-cooling-down .ability-hud__cooldown-clock { display: block; }
-.ability-hud__item.is-cooling-down .ability-hud__icon { color: #64748b; }
-.ability-hud__item.is-cooling-down .ability-hud__cooldown { color: #fbbf24; }
+.ability-hud__item.is-cooling-down .ability-hud__cooldown-clock {
+  display: block;
+}
+
+.ability-hud__item.is-cooling-down .ability-hud__icon {
+  color: #64748b;
+}
+
+.ability-hud__item.is-cooling-down .ability-hud__cooldown {
+  color: #fbbf24;
+}
 
 @keyframes ability-cooldown-spin {
-  to { transform: translateX(-50%) rotate(1turn); }
+  to {
+    transform: translateX(-50%) rotate(1turn);
+  }
 }
 
 @keyframes ability-cooldown-static {
-  to { transform: translateX(-50%); }
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ability-hud__cooldown-clock.is-spinning::after { animation-name: ability-cooldown-static; }
+  .ability-hud__cooldown-clock.is-spinning::after {
+    animation-name: ability-cooldown-static;
+  }
 }
 
 body.character-studio-mode #ability-hud,
-body.character-studio-mode #mobile-controls { display: none; }
-#mobile-controls { display: none; }
+body.character-studio-mode #mobile-controls {
+  display: none;
+}
+
+#mobile-controls {
+  display: none;
+}
 
 @media (pointer: coarse) {
   #mobile-controls {
@@ -181,7 +212,11 @@ body.character-studio-mode #mobile-controls { display: none; }
     pointer-events: none;
   }
 
-  .mobile-controls__actions { display: flex; flex-direction: column; gap: 8px; }
+  .mobile-controls__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
 
   .mobile-controls__button {
     min-width: 58px;
@@ -210,6 +245,12 @@ body.character-studio-mode #mobile-controls { display: none; }
 }
 
 @media (max-width: 520px) {
-  #ability-hud { gap: 4px; padding: 7px; }
-  .ability-hud__item { min-width: 60px; }
+  #ability-hud {
+    gap: 4px;
+    padding: 7px;
+  }
+
+  .ability-hud__item {
+    min-width: 60px;
+  }
 }
