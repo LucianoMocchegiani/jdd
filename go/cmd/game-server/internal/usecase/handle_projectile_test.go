@@ -2,7 +2,6 @@ package usecase_test
 
 import (
 	"encoding/json"
-	"errors"
 	"testing"
 	"time"
 
@@ -15,10 +14,6 @@ import (
 type projectileSwingPublisher struct{}
 
 func (projectileSwingPublisher) PublishSwing(port.SwingCommand) error { return nil }
-
-type failingSwingPublisher struct{}
-
-func (failingSwingPublisher) PublishSwing(port.SwingCommand) error { return errors.New("queue unavailable") }
 
 func TestHandleSwingSpendsConfiguredProjectileMana(t *testing.T) {
 	store := memory.NewSessionStore()
