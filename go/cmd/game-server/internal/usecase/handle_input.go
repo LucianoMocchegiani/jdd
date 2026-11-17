@@ -27,25 +27,44 @@ type inputActionCatalog interface {
 // HandleInput applies a fresh input snapshot and starts one-shot or sustained actions on intent edges.
 func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 	sess, exists := s.Sessions.Get(in.BloqueID, in.EcoID)
-	if !exists { return buildError("input_error", "not_in_block"), false }
+	if !exists {
+		return buildError("input_error", "not_in_block"), false
+	}
+
 	var actionID string
 	stale := false
 	updated := sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) {
-		if in.Seq != 0 && in.Seq <= p.InputSeq { stale = true; return }
-		if in.Seq != 0 { p.InputSeq = in.Seq }
+		if in.Seq != 0 && in.Seq <= p.InputSeq {
+			stale = true
+			return
+		}
+		if in.Seq != 0 {
+			p.InputSeq = in.Seq
+		}
 		if in.Intents != nil {
 			if in.Seq > 0 {
 				if catalog, ok := s.Combat.(inputActionCatalog); ok {
 					for _, intent := range []string{"attack_light", "attack_projectile"} {
-						if in.Intents[intent] && !p.Intents[intent] && (s.Conditions == nil || !s.Conditions.BlocksIntent(p.Conditions, intent)) {
-							if id, profile := catalog.GetByInputIntent(intent); profile != nil && profile.ControlType != "sustained" && (profile.Impact != nil || profile.Projectile != nil) {
+						if in.Intents[intent] && !p.Intents[intent] &&
+							(s.Conditions == nil || !s.Conditions.BlocksIntent(p.Conditions, intent)) {
+							if id, profile := catalog.GetByInputIntent(intent); profile != nil &&
+								profile.ControlType != "sustained" &&
+								(profile.Impact != nil || profile.Projectile != nil) {
 								actionID = id
 								break
 							}
 						}
 					}
+
 					if in.Intents["continuous_attack"] && !p.Intents["continuous_attack"] {
-						if id, profile := catalog.GetByInputIntent("continuous_attack"); profile != nil && profile.ControlType == "sustained" && profile.Impact != nil && profile.ManaCostPerSecond > 0 && profile.DamageInterval > 0 && p.Health > 0 && p.Mana > 0 && s.SwingPub != nil && !mediumBlocked(p.Medium, profile.BlockedMediums) && (s.Conditions == nil || (!s.Conditions.BlocksIntent(p.Conditions, "continuous_attack") && !s.Conditions.BlocksAction(p.Conditions, id))) {
+						if id, profile := catalog.GetByInputIntent("continuous_attack"); profile != nil &&
+							profile.ControlType == "sustained" && profile.Impact != nil &&
+							profile.ManaCostPerSecond > 0 && profile.DamageInterval > 0 &&
+							p.Health > 0 && p.Mana > 0 && s.SwingPub != nil &&
+							!mediumBlocked(p.Medium, profile.BlockedMediums) &&
+							(s.Conditions == nil ||
+								(!s.Conditions.BlocksIntent(p.Conditions, "continuous_attack") &&
+									!s.Conditions.BlocksAction(p.Conditions, id))) {
 							p.ContinuousAttackID = id
 							p.ContinuousAttackElapsed = 0
 							p.ActionID, p.ActionSeq = id, p.ActionSeq+1
@@ -59,13 +78,24 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 			}
 			p.Intents = in.Intents
 		}
-		if in.Yaw != nil { p.Yaw = *in.Yaw }
-		if in.Pitch != nil { p.Pitch = *in.Pitch }
+		if in.Yaw != nil {
+			p.Yaw = *in.Yaw
+		}
+		if in.Pitch != nil {
+			p.Pitch = *in.Pitch
+		}
 	})
-	if !updated { return buildError("input_error", "player_not_in_session"), false }
-	if stale { return "", true }
+	if !updated {
+		return buildError("input_error", "player_not_in_session"), false
+	}
+	if stale {
+		return "", true
+	}
 	if actionID != "" {
-		response, _ := s.HandleSwing(SwingPayload{BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: actionID, Seq: in.Seq})
+		response, _ := s.HandleSwing(SwingPayload{
+			BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID,
+			ActionID: actionID, Seq: in.Seq,
+		})
 		return response, true
 	}
 	return "", true
@@ -82,18 +112,33 @@ type SwingPayload struct {
 
 // HandleSwing validates and enqueues one line attack or projectile action.
 func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bool) {
-	if in.PlayerID == "" { return buildError("swing_error", "missing_player_id"), true }
+	if in.PlayerID == "" {
+		return buildError("swing_error", "missing_player_id"), true
+	}
 	sess, exists := s.Sessions.Get(in.BloqueID, in.EcoID)
-	if !exists { return buildError("swing_error", "not_in_block"), true }
-	if s.Combat == nil { return buildError("swing_error", "not_configured"), true }
+	if !exists {
+		return buildError("swing_error", "not_in_block"), true
+	}
+	if s.Combat == nil {
+		return buildError("swing_error", "not_configured"), true
+	}
 	profile := s.Combat.Get(in.ActionID)
-	if profile == nil || (profile.Impact == nil && profile.Projectile == nil) || profile.ControlType == "sustained" { return buildError("swing_error", "unknown_action"), true }
+	if profile == nil || (profile.Impact == nil && profile.Projectile == nil) || profile.ControlType == "sustained" {
+		return buildError("swing_error", "unknown_action"), true
+	}
+
 	blocked := false
 	if s.Conditions != nil {
-		sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) { blocked = s.Conditions.BlocksAction(p.Conditions, in.ActionID) })
+		sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) {
+			blocked = s.Conditions.BlocksAction(p.Conditions, in.ActionID)
+		})
 	}
-	if blocked { return buildError("swing_error", "swing_rejected"), true }
-	if s.SwingPub == nil { return buildError("swing_error", "not_configured"), true }
+	if blocked {
+		return buildError("swing_error", "swing_rejected"), true
+	}
+	if s.SwingPub == nil {
+		return buildError("swing_error", "not_configured"), true
+	}
 
 	return s.executeOneShotAction(sess, in.PlayerID, in.ActionID, in.Seq, profile,
 		func(reservation entity.ActionSwingReservation) string {
@@ -105,7 +150,11 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 				}
 				return ""
 			}
-			cmd := port.SwingCommand{BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: in.ActionID, EntityID: int(pose.EntityID), Seq: in.Seq, PosX: pose.X, PosY: pose.Y, PosZ: pose.Z, Yaw: pose.Yaw}
+			cmd := port.SwingCommand{
+				BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID,
+				ActionID: in.ActionID, EntityID: int(pose.EntityID), Seq: in.Seq,
+				PosX: pose.X, PosY: pose.Y, PosZ: pose.Z, Yaw: pose.Yaw,
+			}
 			cmd.Targets = snapshotSwingTargets(sess, cmd, profile)
 			if err := s.SwingPub.PublishSwing(cmd); err != nil {
 				return "enqueue_failed"
@@ -116,7 +165,9 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 
 func mediumBlocked(medium string, blocked []string) bool {
 	for _, blockedMedium := range blocked {
-		if medium == blockedMedium { return true }
+		if medium == blockedMedium {
+			return true
+		}
 	}
 	return false
 }
