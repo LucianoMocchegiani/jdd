@@ -3,7 +3,7 @@ package port
 
 import "time"
 
-// DamageProfile defines a configurable impact geometry and its server-owned damage values.
+// DamageProfile defines an impact geometry independently of whether its action is one-shot or sustained.
 type DamageProfile struct {
 	Shape  string  `json:"shape,omitempty"`
 	Reach  float64 `json:"reach,omitempty"`

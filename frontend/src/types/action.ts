@@ -13,7 +13,7 @@ export interface ActionInterrupt { blocks?: readonly string[]; canBeInterruptedB
 export interface ActionControl { inputIntent: string; slot: ActionSlot; type: ActionType; when?: ActionWhen; interrupt?: ActionInterrupt; }
 export interface ActionAppearance { state?: string; clip?: string; }
 export interface ActionDamage { reach: number; damage: number; }
-/** Configuración de la geometría de impacto en unidades del mundo. */
+/** Impact geometry is independent of the action cycle declared by control.type. */
 export interface ActionImpact {
   shape?: 'line' | 'radial';
   reach?: number;
