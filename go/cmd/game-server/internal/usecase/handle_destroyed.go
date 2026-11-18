@@ -47,7 +47,7 @@ func (s *Services) HandleParticleDestroyed(ev DestroyedEvent) {
 
 func (s *Services) HandleSwingResult(ev SwingResultEvent) {
 	sess, exists := s.Sessions.Get(ev.BloqueID, ev.EcoID)
-	if !exists {
+	if !exists || !validEntityID(ev.EntityID) {
 		return
 	}
 	attacker, exists := sess.GetPlayer(ev.PlayerID)
@@ -55,12 +55,12 @@ func (s *Services) HandleSwingResult(ev SwingResultEvent) {
 		return
 	}
 	seen := make(map[string]struct{}, len(ev.PlayerHits)+1)
-	if ev.TargetPlayerID != "" && ev.TargetPlayerID != ev.PlayerID && ev.TargetEntityID > 0 && finitePositiveDamage(ev.EntityDamage) {
+	if ev.TargetPlayerID != "" && ev.TargetPlayerID != ev.PlayerID && validEntityID(ev.TargetEntityID) && finitePositiveDamage(ev.EntityDamage) {
 		applyPlayerDamage(sess, ev.TargetPlayerID, ev.TargetEntityID, ev.EntityDamage)
 		seen[ev.TargetPlayerID] = struct{}{}
 	}
 	for _, hit := range ev.PlayerHits {
-		if hit.PlayerID == "" || hit.PlayerID == ev.PlayerID || hit.EntityID <= 0 || !finitePositiveDamage(hit.Damage) {
+		if hit.PlayerID == "" || hit.PlayerID == ev.PlayerID || !validEntityID(hit.EntityID) || !finitePositiveDamage(hit.Damage) {
 			continue
 		}
 		if _, duplicate := seen[hit.PlayerID]; duplicate {
@@ -74,6 +74,10 @@ func (s *Services) HandleSwingResult(ev SwingResultEvent) {
 			wshub.SafeWrite(c, ev.RawJSON)
 		}
 	})
+}
+
+func validEntityID(id int) bool {
+	return id > 0 && uint64(id) <= uint64(^uint32(0))
 }
 
 func finitePositiveDamage(damage float64) bool {
