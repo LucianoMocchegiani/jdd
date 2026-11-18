@@ -1,5 +1,6 @@
+import type { CellPosition } from '@/types/world-events';
+
 /** Contratos de mensajes WebSocket intercambiados por cliente y servidor. */
-export interface CellPosition { x: number; y: number; z: number; }
 export interface ParticleDestroyedEvent { type: 'particle_destroyed'; particle_id: string; bloque_id: string; position?: CellPosition; }
 export type TerrainWsPhysicsType = 'solido' | 'liquido' | 'gas' | 'energia';
 export interface TerrainWsParticle { id: string; x: number; y: number; z: number; tipo_nombre: string; tipo_fisico: TerrainWsPhysicsType; }
@@ -22,7 +23,8 @@ export interface PlayerStateEvent {
   pitch?: number; medium: string; dominant_particle?: string; conditions?: string[]; condition_damage_total?: number;
   action_id?: string; action_seq?: number; action_t0_ms?: number; entity_id?: number;
   intents?: Record<string, true>; input_seq?: number; health?: number; max_health?: number;
-  mana?: number; max_mana?: number; in_combat?: boolean; continuous_attack_active?: boolean; receivedAtMs?: number;
+  mana?: number; max_mana?: number; in_combat?: boolean; continuous_attack_active?: boolean;
+  continuous_action_id?: string; receivedAtMs?: number;
 }
 export type PresenceEvent = JoinOkEvent | JoinErrorEvent | PlayerJoinedEvent | PlayerLeftEvent | PlayerStateEvent;
 export interface InputCommand { type: 'input'; bloque_id: string; player_id: string; seq: number; intents?: Record<string, true>; yaw: number; pitch?: number; }
@@ -32,7 +34,8 @@ export interface SwingCommand { type: 'swing'; seq: number; action_id: string; e
 export interface AreaSpellCommand { type: 'area_spell_cast'; seq: number; action_id: string; target_position: CellPosition; }
 /** Acuse de acción aceptada: seq identifica la solicitud y action_seq la acción autoritativa. */
 export interface SwingQueuedEvent { type: 'swing_queued'; seq: number; action_seq: number; entity_id: number; action_id: string; }
-export interface SwingResultEvent { type: 'swing_result'; seq: number; entity_id: number; action_id: string; player_id?: string; beam_length?: number; hits: Array<{ particle_id: string; destroyed: boolean; integridad?: number }>; }
+export interface SwingResultPlayerHit { player_id: string; entity_id: number; damage: number; }
+export interface SwingResultEvent { type: 'swing_result'; seq: number; entity_id: number; action_id: string; player_id?: string; beam_length?: number; hits: Array<{ particle_id: string; destroyed: boolean; integridad?: number }>; player_hits?: SwingResultPlayerHit[]; }
 export interface SwingErrorEvent { type: 'swing_error'; error: string; action_id?: string; seq?: number; }
 /** Efecto replicado de un cast aceptado; no representa por sí mismo un resultado de daño. */
 export interface AreaSpellEvent { type: 'area_spell'; action_id: string; player_id: string; effect: 'orb' | 'thunder'; x: number; y: number; z: number; radius: number; }
