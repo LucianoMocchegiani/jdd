@@ -114,7 +114,7 @@ func buildPlayerStates(sess *entity.BlockSession, tick int, publishActions bool)
 			"health": p.Health, "max_health": p.MaxHealth, "mana": p.Mana, "max_mana": p.MaxMana,
 			"in_combat": p.InCombat(now), "conditions": jdconditions.IDs(p.Conditions),
 			"condition_damage_total": p.ConditionDamageTotal,
-			"continuous_attack_active": p.ContinuousAttackID != "",
+			"continuous_attack_active": p.ContinuousAttackID != "", "continuous_action_id": p.ContinuousAttackID,
 		}
 		if p.Pitch != 0 {
 			payload["pitch"] = p.Pitch

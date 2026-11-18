@@ -41,7 +41,21 @@
         "when": { "not": { "medium": ["air", "submerged_full"] } }
       },
       "appearance": { "state": "attack", "clip": "rayo_de_ki" },
-      "impact": { "reach": 28, "width": 0.55, "damage": 5 }
+      "impact": { "shape": "line", "reach": 28, "width": 0.55, "damage": 5 }
+    },
+    {
+      "id": "aura_de_ki",
+      "description": "Aura canalizada que daña jugadores y partículas visibles alrededor del personaje.",
+      "manaCostPerSecond": 5,
+      "damageIntervalMs": 1000,
+      "control": {
+        "inputIntent": "continuous_aura",
+        "slot": "body_actions",
+        "type": "sustained",
+        "when": { "not": { "medium": ["air", "submerged_full"] } }
+      },
+      "appearance": { "state": "attack", "clip": "aura_de_ki" },
+      "impact": { "shape": "radial", "radius": 3, "damage": 5 }
     },
     {
       "id": "orbe_explosivo",

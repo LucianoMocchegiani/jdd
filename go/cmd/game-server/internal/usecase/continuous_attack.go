@@ -7,7 +7,7 @@ import (
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
 )
 
-// advanceContinuousAttack cobra maná mientras el intent siga activo y entrega un comando al vencer cada intervalo.
+// advanceContinuousAttack cobra maná mientras el intent configurado siga activo y entrega un comando al vencer cada intervalo.
 // El llamador publica el comando y revierte el coste del intervalo si el enqueue falla.
 func (s *Services) advanceContinuousAttack(sess *entity.BlockSession, p *entity.Player, deltaSec float64, now time.Time) (port.SwingCommand, bool) {
 	if p.ContinuousAttackID == "" {

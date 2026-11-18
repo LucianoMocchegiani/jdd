@@ -41,10 +41,12 @@ type DamageResult struct {
 // CellPos is an integer cell coordinate in the world grid.
 type CellPos struct { X, Y, Z int }
 
-// ImpactProfile configures damage, reach, and lateral width for a line impact.
+// ImpactProfile defines the geometry and damage for one combat pulse.
 type ImpactProfile struct {
-	Reach  float64 `json:"reach"`
-	Width  float64 `json:"width"`
+	Shape  string  `json:"shape,omitempty"`
+	Reach  float64 `json:"reach,omitempty"`
+	Width  float64 `json:"width,omitempty"`
+	Radius float64 `json:"radius,omitempty"`
 	Damage float64 `json:"damage"`
 }
 

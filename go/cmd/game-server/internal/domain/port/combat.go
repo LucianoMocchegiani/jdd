@@ -3,10 +3,12 @@ package port
 
 import "time"
 
-// DamageProfile is the reach, lateral width, and damage budget for a line attack.
+// DamageProfile defines an impact geometry independently of whether its action is one-shot or sustained.
 type DamageProfile struct {
-	Reach  float64 `json:"reach"`
-	Width  float64 `json:"width"`
+	Shape  string  `json:"shape,omitempty"`
+	Reach  float64 `json:"reach,omitempty"`
+	Width  float64 `json:"width,omitempty"`
+	Radius float64 `json:"radius,omitempty"`
 	Damage float64 `json:"damage"`
 }
 

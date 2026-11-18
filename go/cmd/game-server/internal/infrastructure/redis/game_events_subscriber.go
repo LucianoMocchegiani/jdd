@@ -71,11 +71,12 @@ func (s *GameEventsSubscriber) handleSwingResult(raw string) {
 		TargetPlayerID string `json:"target_player_id"`
 		TargetEntityID int `json:"target_entity_id"`
 		EntityDamage float64 `json:"entity_damage"`
+		PlayerHits []usecase.SwingPlayerDamage `json:"player_hits"`
 	}
 	if json.Unmarshal([]byte(raw), &p) != nil { return }
 	s.svc.HandleSwingResult(usecase.SwingResultEvent{
 		BloqueID: p.BloqueID, EcoID: p.EcoID, PlayerID: p.PlayerID, EntityID: p.EntityID,
 		Seq: p.Seq, ActionID: p.ActionID, TargetPlayerID: p.TargetPlayerID,
-		TargetEntityID: p.TargetEntityID, EntityDamage: p.EntityDamage, RawJSON: raw,
+		TargetEntityID: p.TargetEntityID, EntityDamage: p.EntityDamage, PlayerHits: p.PlayerHits, RawJSON: raw,
 	})
 }

@@ -6,6 +6,7 @@ export interface RemoteAnimationState {
   vz: number;
   intents?: Record<string, boolean>;
   continuous_attack_active?: boolean;
+  continuous_action_id?: string;
   action_id?: string;
 }
 
@@ -18,6 +19,7 @@ export function isNewActionSequence(previous: number | null, next: number): bool
 
 /** Elige primero acciones explícitas; si no hay una, deriva el clip de movimiento y medio. */
 export function selectRemoteClip(state: RemoteAnimationState): string | null {
+  if (state.continuous_action_id === 'aura_de_ki' || state.intents?.continuous_aura || state.action_id === 'aura_de_ki') return 'aura_de_ki';
   if (state.continuous_attack_active || state.intents?.continuous_attack) return 'rayo_de_ki';
   if (state.action_id === 'attack') return 'attack';
   if (state.action_id === 'kamehameha') return 'kamehameha';

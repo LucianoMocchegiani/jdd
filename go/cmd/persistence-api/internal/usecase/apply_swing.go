@@ -50,6 +50,12 @@ type SwingCommand struct {
 	ParticleZ  int                 `json:"particle_z"`
 }
 
+type SwingPlayerHit struct {
+	PlayerID string  `json:"player_id"`
+	EntityID int     `json:"entity_id"`
+	Damage   float64 `json:"damage"`
+}
+
 type SwingOutcome struct {
 	OK             bool
 	Duplicate      bool
@@ -60,6 +66,7 @@ type SwingOutcome struct {
 	TargetPlayerID string
 	TargetEntityID int
 	EntityDamage   float64
+	PlayerHits     []SwingPlayerHit
 	BeamLength     float64
 	Truncated      bool
 }
@@ -131,6 +138,9 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 	}
 	if profile.Impact == nil {
 		return SwingOutcome{OK: true, ActionID: cmd.ActionID}, nil
+	}
+	if profile.Impact.Shape == "radial" {
+		return s.applyRadialImpact(ctx, cmd, profile)
 	}
 
 	impact := profile.Impact
@@ -295,7 +305,7 @@ func buildSwingResultJSON(cmd SwingCommand, out SwingOutcome) (string, error) {
 	}
 	payload := map[string]interface{}{
 		"type": "swing_result", "seq": cmd.Seq, "entity_id": cmd.EntityID, "player_id": cmd.PlayerID, "eco_id": cmd.EcoID,
-		"action_id": cmd.ActionID, "bloque_id": cmd.BloqueID, "hits": hitPayload,
+		"action_id": cmd.ActionID, "bloque_id": cmd.BloqueID, "hits": hitPayload, "player_hits": out.PlayerHits,
 		"target_player_id": out.TargetPlayerID, "target_entity_id": out.TargetEntityID,
 		"entity_damage": out.EntityDamage, "beam_length": out.BeamLength, "truncated": out.Truncated,
 	}

@@ -30,8 +30,9 @@ export function mountAbilityHud(root: HTMLElement): void {
     const nameText = action.id === 'attack' ? 'Ataque'
       : action.id === 'kamehameha' ? 'Kamehameha'
         : action.id === 'rayo_de_ki' ? 'Rayo de Ki'
-          : action.id === 'orbe_explosivo' ? 'Orbe explosivo'
-            : action.id === 'trueno' ? 'Trueno' : action.id.replaceAll('_', ' ');
+          : action.id === 'aura_de_ki' ? 'Aura de Ki'
+            : action.id === 'orbe_explosivo' ? 'Orbe explosivo'
+              : action.id === 'trueno' ? 'Trueno' : action.id.replaceAll('_', ' ');
     const item = document.createElement('button');
     item.type = 'button';
     item.className = 'ability-hud__item';
