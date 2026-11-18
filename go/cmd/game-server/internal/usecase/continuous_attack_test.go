@@ -7,6 +7,7 @@ import (
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/memory"
+	"github.com/juego-de-dioses/jd/pkg/jd/cellkey"
 )
 
 type continuousAttackCatalog map[string]*port.CombatProfile
@@ -40,9 +41,7 @@ func TestContinuousAttackChargesAndPublishesOncePerDamageInterval(t *testing.T) 
 	player, _ := sess.GetPlayer("player")
 	for i := 0; i < 2; i++ {
 		cmd, ok := svc.advanceContinuousAttack(sess, player, 0.5, time.Now())
-		if i == 0 && ok {
-			t.Fatal("beam pulsed before the damage interval")
-		}
+		if i == 0 && ok { t.Fatal("beam pulsed before the damage interval") }
 		if i == 1 && ok {
 			cmd.Targets = snapshotSwingTargets(sess, cmd, profile)
 			publisher.PublishSwing(cmd)
@@ -54,11 +53,22 @@ func TestContinuousAttackChargesAndPublishesOncePerDamageInterval(t *testing.T) 
 	}
 	sess.UpdatePlayer("player", func(p *entity.Player) { delete(p.Intents, "continuous_attack") })
 	player, _ = sess.GetPlayer("player")
-	if _, ok := svc.advanceContinuousAttack(sess, player, 0.5, time.Now()); ok {
-		t.Fatal("released beam produced another pulse")
-	}
+	if _, ok := svc.advanceContinuousAttack(sess, player, 0.5, time.Now()); ok { t.Fatal("released beam produced another pulse") }
 	player, _ = sess.GetPlayer("player")
-	if player.ContinuousAttackID != "" || len(publisher.commands) != 1 {
-		t.Fatalf("released beam remained active or pulsed: %+v", player)
+	if player.ContinuousAttackID != "" || len(publisher.commands) != 1 { t.Fatalf("released beam remained active or pulsed: %+v", player) }
+}
+
+func TestSnapshotRadialTargetsRequireRangeAndClearLineOfSight(t *testing.T) {
+	sess := memory.NewSessionStore().GetOrCreate("block", 1)
+	sess.AddPlayer("caster", 0, 0, 0, 0, 0)
+	sess.AddPlayer("visible", 0, -2, 0, 0, 0)
+	sess.AddPlayer("behind-wall", 2, 0, 0, 0, 0)
+	sess.AddPlayer("outside", 4, 0, 0, 0, 0)
+	sess.SolidGrid.MergeSolidCells([]string{cellkey.Format(1, 0, 0)})
+	profile := &port.CombatProfile{Impact: &port.DamageProfile{Shape: "radial", Radius: 3, Damage: 5}}
+	cmd := port.SwingCommand{PlayerID: "caster", PosX: 0, PosY: 0, PosZ: 0}
+	targets := snapshotSwingTargets(sess, cmd, profile)
+	if len(targets) != 1 || targets[0].PlayerID != "visible" {
+		t.Fatalf("radial targets crossed a wall or exceeded radius: %+v", targets)
 	}
 }
