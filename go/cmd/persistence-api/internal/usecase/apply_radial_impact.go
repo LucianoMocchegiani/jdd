@@ -18,21 +18,15 @@ func (s *SwingService) applyRadialImpact(ctx context.Context, cmd SwingCommand, 
 		return SwingOutcome{Error: "invalid_radial_impact", ActionID: cmd.ActionID}, nil
 	}
 	candidates, err := s.Repo.GetParticlesNear(ctx, cmd.BloqueID, cmd.PosX, cmd.PosY, cmd.PosZ, int(math.Ceil(impact.Radius))+1)
-	if err != nil {
-		return SwingOutcome{}, err
-	}
+	if err != nil { return SwingOutcome{}, err }
 	origin := jdcombat.Point{X: cmd.PosX, Y: cmd.PosY, Z: cmd.PosZ + 0.9}
 	obstacles := make(map[[3]int]struct{}, len(candidates))
 	for _, particle := range candidates {
-		if isSolidParticle(particle) {
-			obstacles[[3]int{particle.CeldaX, particle.CeldaY, particle.CeldaZ}] = struct{}{}
-		}
+		if isSolidParticle(particle) { obstacles[[3]int{particle.CeldaX, particle.CeldaY, particle.CeldaZ}] = struct{}{} }
 	}
 	visible := make([]domain.ParticleNear, 0, len(candidates))
 	for _, particle := range candidates {
-		if !isSolidParticle(particle) {
-			continue
-		}
+		if !isSolidParticle(particle) { continue }
 		target := jdcombat.Point{X: float64(particle.CeldaX), Y: float64(particle.CeldaY), Z: float64(particle.CeldaZ)}
 		if squaredDistance(origin, target) <= impact.Radius*impact.Radius && radialParticleVisible(origin, target, obstacles) {
 			visible = append(visible, particle)
@@ -51,7 +45,7 @@ func (s *SwingService) applyRadialImpact(ctx context.Context, cmd SwingCommand, 
 	for _, particle := range visible {
 		res, err := ApplyParticleDamage(ctx, s.Repo, ApplyDamageInput{
 			BloqueID: cmd.BloqueID, ParticleID: particle.ID, Damage: impact.Damage,
-				WeaponType: cmd.ActionID, RateLimiter: s.RateLimit,
+			WeaponType: cmd.ActionID, RateLimiter: s.RateLimit,
 		})
 		if err != nil { return SwingOutcome{}, fmt.Errorf("apply radial particle %s: %w", particle.ID, err) }
 		if res == nil { return SwingOutcome{}, fmt.Errorf("apply radial particle %s: empty damage result", particle.ID) }
@@ -63,7 +57,8 @@ func (s *SwingService) applyRadialImpact(ctx context.Context, cmd SwingCommand, 
 	seenPlayers := make(map[string]struct{}, len(cmd.Targets))
 	playerRadius := impact.Radius + 0.45
 	for _, target := range cmd.Targets {
-		if target.PlayerID == "" || target.PlayerID == cmd.PlayerID || !finiteSwingCoordinate(target.X) || !finiteSwingCoordinate(target.Y) || !finiteSwingCoordinate(target.Z) ||
+		if target.PlayerID == "" || target.PlayerID == cmd.PlayerID || target.EntityID <= 0 ||
+			!finiteSwingCoordinate(target.X) || !finiteSwingCoordinate(target.Y) || !finiteSwingCoordinate(target.Z) ||
 			squaredDistance(origin, jdcombat.Point{X: target.X, Y: target.Y, Z: target.Z + 0.9}) > playerRadius*playerRadius {
 			continue
 		}

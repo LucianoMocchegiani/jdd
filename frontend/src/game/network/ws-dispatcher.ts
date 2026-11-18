@@ -1,4 +1,4 @@
-import type { RealtimeInboundMessage, SessionEvent, WorldEvent } from '@/types/world-events';
+import type { RealtimeInboundMessage, SessionEvent, WorldEvent, SwingResultPlayerHit } from '@/types/world-events';
 import { parseTerrainWsMessage } from '@/game/network/parse-terrain-ws';
 
 export type WorldEventHandler = (event: WorldEvent) => void;
@@ -11,6 +11,16 @@ function parsePlayerStateIntents(raw: unknown): Record<string, true> | undefined
   const out: Record<string, true> = {};
   for (const [key, value] of Object.entries(raw as Record<string, unknown>)) if (value === true) out[key] = true;
   return Object.keys(out).length > 0 ? out : undefined;
+}
+function parseSwingPlayerHits(raw: unknown): SwingResultPlayerHit[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.flatMap((value) => {
+    if (!value || typeof value !== 'object') return [];
+    const hit = value as Record<string, unknown>;
+    return typeof hit.player_id === 'string' && hit.player_id !== '' && finiteNumber(hit.entity_id) && hit.entity_id > 0 && finiteNumber(hit.damage) && hit.damage > 0
+      ? [{ player_id: hit.player_id, entity_id: hit.entity_id, damage: hit.damage }]
+      : [];
+  });
 }
 function finiteNumber(value: unknown): value is number { return typeof value === 'number' && Number.isFinite(value); }
 
@@ -89,6 +99,7 @@ export function parseInboundMessage(raw: unknown): RealtimeInboundMessage | null
       player_id: typeof msg.player_id === 'string' ? msg.player_id : undefined,
       beam_length: finiteNumber(msg.beam_length) ? msg.beam_length : undefined,
       hits: Array.isArray(msg.hits) ? msg.hits as SwingResultHit[] : [],
+      player_hits: parseSwingPlayerHits(msg.player_hits),
     };
   }
   if (type === 'swing_error') return { type: 'swing_error', error: String(msg.error ?? 'unknown'), action_id: typeof msg.action_id === 'string' ? msg.action_id : undefined, seq: finiteNumber(msg.seq) ? msg.seq : undefined };
