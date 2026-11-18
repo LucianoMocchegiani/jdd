@@ -79,6 +79,7 @@ export function parseInboundMessage(raw: unknown): RealtimeInboundMessage | null
       mana: finiteNumber(msg.mana) ? msg.mana : undefined, max_mana: finiteNumber(msg.max_mana) ? msg.max_mana : undefined,
       in_combat: typeof msg.in_combat === 'boolean' ? msg.in_combat : undefined,
       continuous_attack_active: typeof msg.continuous_attack_active === 'boolean' ? msg.continuous_attack_active : undefined,
+      continuous_action_id: typeof msg.continuous_action_id === 'string' ? msg.continuous_action_id : undefined,
     };
   }
   if (type === 'swing_result') {

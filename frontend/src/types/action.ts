@@ -13,10 +13,12 @@ export interface ActionInterrupt { blocks?: readonly string[]; canBeInterruptedB
 export interface ActionControl { inputIntent: string; slot: ActionSlot; type: ActionType; when?: ActionWhen; interrupt?: ActionInterrupt; }
 export interface ActionAppearance { state?: string; clip?: string; }
 export interface ActionDamage { reach: number; damage: number; }
-/** Configuración del impacto frontal: alcance y ancho se expresan en unidades del mundo. */
+/** Configuración de la geometría de impacto en unidades del mundo. */
 export interface ActionImpact {
+  shape?: 'line' | 'radial';
   reach?: number;
   width?: number;
+  radius?: number;
   damage?: number;
   entityDamage?: ActionDamage;
   applyConditions?: readonly ConditionApplyRef[];
