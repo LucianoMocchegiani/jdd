@@ -53,6 +53,9 @@ func LoadCatalog(path string) (*Catalog, error) {
 		if action.ID == "" { return nil, fmt.Errorf("action without id") }
 		if action.ManaCost < 0 || action.ManaCostPerSecond < 0 { return nil, fmt.Errorf("action %q has invalid mana cost", action.ID) }
 		if action.Impact != nil {
+			if action.Control.Type != "sustained" && action.CooldownMs <= 0 {
+				return nil, fmt.Errorf("action %q has combat impact without positive cooldownMs", action.ID)
+			}
 			shape := action.Impact.Shape
 			if shape == "" { shape = "line"; action.Impact.Shape = shape }
 			valid := action.Impact.Damage > 0 && ((shape == "line" && action.Impact.Reach > 0 && action.Impact.Width >= 0 && action.Impact.Width <= 5) ||
