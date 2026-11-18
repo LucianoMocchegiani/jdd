@@ -17,16 +17,23 @@ func (s *SwingService) applyRadialImpact(ctx context.Context, cmd SwingCommand, 
 		!finiteSwingCoordinate(cmd.PosX) || !finiteSwingCoordinate(cmd.PosY) || !finiteSwingCoordinate(cmd.PosZ) {
 		return SwingOutcome{Error: "invalid_radial_impact", ActionID: cmd.ActionID}, nil
 	}
+
 	candidates, err := s.Repo.GetParticlesNear(ctx, cmd.BloqueID, cmd.PosX, cmd.PosY, cmd.PosZ, int(math.Ceil(impact.Radius))+1)
-	if err != nil { return SwingOutcome{}, err }
+	if err != nil {
+		return SwingOutcome{}, err
+	}
 	origin := jdcombat.Point{X: cmd.PosX, Y: cmd.PosY, Z: cmd.PosZ + 0.9}
 	obstacles := make(map[[3]int]struct{}, len(candidates))
 	for _, particle := range candidates {
-		if isSolidParticle(particle) { obstacles[[3]int{particle.CeldaX, particle.CeldaY, particle.CeldaZ}] = struct{}{} }
+		if isSolidParticle(particle) {
+			obstacles[[3]int{particle.CeldaX, particle.CeldaY, particle.CeldaZ}] = struct{}{}
+		}
 	}
 	visible := make([]domain.ParticleNear, 0, len(candidates))
 	for _, particle := range candidates {
-		if !isSolidParticle(particle) { continue }
+		if !isSolidParticle(particle) {
+			continue
+		}
 		target := jdcombat.Point{X: float64(particle.CeldaX), Y: float64(particle.CeldaY), Z: float64(particle.CeldaZ)}
 		if squaredDistance(origin, target) <= impact.Radius*impact.Radius && radialParticleVisible(origin, target, obstacles) {
 			visible = append(visible, particle)
@@ -36,19 +43,27 @@ func (s *SwingService) applyRadialImpact(ctx context.Context, cmd SwingCommand, 
 		a, b := visible[i], visible[j]
 		da := squaredDistance(origin, jdcombat.Point{X: float64(a.CeldaX), Y: float64(a.CeldaY), Z: float64(a.CeldaZ)})
 		db := squaredDistance(origin, jdcombat.Point{X: float64(b.CeldaX), Y: float64(b.CeldaY), Z: float64(b.CeldaZ)})
-		if da != db { return da < db }
+		if da != db {
+			return da < db
+		}
 		return a.ID < b.ID
 	})
-	var hits []domain.DamageResult
 	truncated := len(visible) > MaxWorldHitsPerSwing
-	if truncated { visible = visible[:MaxWorldHitsPerSwing] }
+	if truncated {
+		visible = visible[:MaxWorldHitsPerSwing]
+	}
+	var hits []domain.DamageResult
 	for _, particle := range visible {
 		res, err := ApplyParticleDamage(ctx, s.Repo, ApplyDamageInput{
 			BloqueID: cmd.BloqueID, ParticleID: particle.ID, Damage: impact.Damage,
 			WeaponType: cmd.ActionID, RateLimiter: s.RateLimit,
 		})
-		if err != nil { return SwingOutcome{}, fmt.Errorf("apply radial particle %s: %w", particle.ID, err) }
-		if res == nil { return SwingOutcome{}, fmt.Errorf("apply radial particle %s: empty damage result", particle.ID) }
+		if err != nil {
+			return SwingOutcome{}, fmt.Errorf("apply radial particle %s: %w", particle.ID, err)
+		}
+		if res == nil {
+			return SwingOutcome{}, fmt.Errorf("apply radial particle %s: empty damage result", particle.ID)
+		}
 		hits = append(hits, *res)
 		s.publishParticleDestruction(ctx, cmd.BloqueID, res)
 	}
@@ -62,13 +77,19 @@ func (s *SwingService) applyRadialImpact(ctx context.Context, cmd SwingCommand, 
 			squaredDistance(origin, jdcombat.Point{X: target.X, Y: target.Y, Z: target.Z + 0.9}) > playerRadius*playerRadius {
 			continue
 		}
-		if _, duplicate := seenPlayers[target.PlayerID]; duplicate { continue }
+		if _, duplicate := seenPlayers[target.PlayerID]; duplicate {
+			continue
+		}
 		seenPlayers[target.PlayerID] = struct{}{}
 		playerHits = append(playerHits, SwingPlayerHit{PlayerID: target.PlayerID, EntityID: target.EntityID, Damage: impact.Damage})
 	}
 	sort.Slice(playerHits, func(i, j int) bool { return playerHits[i].PlayerID < playerHits[j].PlayerID })
 	destroyed := 0
-	for _, hit := range hits { if hit.Destroyed { destroyed++ } }
+	for _, hit := range hits {
+		if hit.Destroyed {
+			destroyed++
+		}
+	}
 	return s.publishSwingOutcome(ctx, cmd, SwingOutcome{
 		OK: true, ActionID: cmd.ActionID, Hits: hits, DestroyedCount: destroyed,
 		PlayerHits: playerHits, Truncated: truncated,
@@ -77,8 +98,7 @@ func (s *SwingService) applyRadialImpact(ctx context.Context, cmd SwingCommand, 
 
 func radialParticleVisible(origin, target jdcombat.Point, obstacles map[[3]int]struct{}) bool {
 	dx, dy, dz := target.X-origin.X, target.Y-origin.Y, target.Z-origin.Z
-	distance := math.Sqrt(dx*dx + dy*dy + dz*dz)
-	steps := int(math.Ceil(distance / 0.2))
+	steps := int(math.Ceil(math.Sqrt(dx*dx+dy*dy+dz*dz) / 0.2))
 	start := [3]int{int(math.Floor(origin.X)), int(math.Floor(origin.Y)), int(math.Floor(origin.Z))}
 	end := [3]int{int(math.Floor(target.X)), int(math.Floor(target.Y)), int(math.Floor(target.Z))}
 	for i := 1; i < steps; i++ {
@@ -89,7 +109,9 @@ func radialParticleVisible(origin, target jdcombat.Point, obstacles map[[3]int]s
 			int(math.Floor(origin.Z + dz*t)),
 		}
 		if cell != start && cell != end {
-			if _, blocked := obstacles[cell]; blocked { return false }
+			if _, blocked := obstacles[cell]; blocked {
+				return false
+			}
 		}
 	}
 	return true

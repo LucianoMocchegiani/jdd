@@ -10,9 +10,9 @@ import (
 )
 
 type DestroyedEvent struct {
-	BloqueID string
+	BloqueID   string
 	ParticleID string
-	X, Y, Z int
+	X, Y, Z    int
 }
 
 type SwingPlayerDamage struct {
@@ -22,17 +22,17 @@ type SwingPlayerDamage struct {
 }
 
 type SwingResultEvent struct {
-	BloqueID string
-	EcoID int
-	PlayerID string
-	EntityID int
-	Seq int
-	ActionID string
+	BloqueID       string
+	EcoID          int
+	PlayerID       string
+	EntityID       int
+	Seq            int
+	ActionID       string
 	TargetPlayerID string
 	TargetEntityID int
-	EntityDamage float64
-	PlayerHits []SwingPlayerDamage
-	RawJSON string
+	EntityDamage   float64
+	PlayerHits     []SwingPlayerDamage
+	RawJSON        string
 }
 
 func (s *Services) HandleParticleDestroyed(ev DestroyedEvent) {
@@ -54,10 +54,11 @@ func (s *Services) HandleSwingResult(ev SwingResultEvent) {
 	if !exists || attacker.EntityID != uint32(ev.EntityID) {
 		return
 	}
+	seen := make(map[string]struct{}, len(ev.PlayerHits)+1)
 	if ev.TargetPlayerID != "" && ev.TargetPlayerID != ev.PlayerID && ev.TargetEntityID > 0 && finitePositiveDamage(ev.EntityDamage) {
 		applyPlayerDamage(sess, ev.TargetPlayerID, ev.TargetEntityID, ev.EntityDamage)
+		seen[ev.TargetPlayerID] = struct{}{}
 	}
-	seen := make(map[string]struct{}, len(ev.PlayerHits))
 	for _, hit := range ev.PlayerHits {
 		if hit.PlayerID == "" || hit.PlayerID == ev.PlayerID || hit.EntityID <= 0 || !finitePositiveDamage(hit.Damage) {
 			continue
@@ -69,7 +70,9 @@ func (s *Services) HandleSwingResult(ev SwingResultEvent) {
 		applyPlayerDamage(sess, hit.PlayerID, hit.EntityID, hit.Damage)
 	}
 	s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
-		if c.PlayerID == ev.PlayerID { wshub.SafeWrite(c, ev.RawJSON) }
+		if c.PlayerID == ev.PlayerID {
+			wshub.SafeWrite(c, ev.RawJSON)
+		}
 	})
 }
 
@@ -79,7 +82,9 @@ func finitePositiveDamage(damage float64) bool {
 
 func applyPlayerDamage(sess *entity.BlockSession, playerID string, entityID int, damage float64) {
 	sess.UpdatePlayer(playerID, func(p *entity.Player) {
-		if p.EntityID != uint32(entityID) || p.Health <= 0 { return }
+		if p.EntityID != uint32(entityID) || p.Health <= 0 {
+			return
+		}
 		p.Health = math.Max(0, p.Health-damage)
 	})
 }
