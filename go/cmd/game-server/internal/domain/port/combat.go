@@ -1,3 +1,4 @@
+// Package port defines the game-server's combat configuration and publishing contracts.
 package port
 
 import "time"

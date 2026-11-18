@@ -1,14 +1,14 @@
 package usecase
 
-import (
-	"math"
-	"time"
+import "time"
 
+import (
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
 )
 
-// advanceContinuousAttack charges mana while its configured intent remains held and emits one pulse at each interval.
+// advanceContinuousAttack cobra maná mientras el intent configurado siga activo y entrega un comando al vencer cada intervalo.
+// El llamador publica el comando y revierte el coste del intervalo si el enqueue falla.
 func (s *Services) advanceContinuousAttack(sess *entity.BlockSession, p *entity.Player, deltaSec float64, now time.Time) (port.SwingCommand, bool) {
 	if p.ContinuousAttackID == "" {
 		return port.SwingCommand{}, false
