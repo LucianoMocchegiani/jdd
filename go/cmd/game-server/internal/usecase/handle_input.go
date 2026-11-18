@@ -24,6 +24,8 @@ type inputActionCatalog interface {
 	GetByInputIntent(intent string) (string, *port.CombatProfile)
 }
 
+var sustainedActionIntents = [...]string{"continuous_attack", "continuous_aura"}
+
 // HandleInput applies a fresh input snapshot and starts one-shot or sustained actions on intent edges.
 func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 	sess, exists := s.Sessions.Get(in.BloqueID, in.EcoID)
@@ -55,24 +57,15 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 							}
 						}
 					}
-
-					if in.Intents["continuous_attack"] && !p.Intents["continuous_attack"] {
-						if id, profile := catalog.GetByInputIntent("continuous_attack"); profile != nil &&
-							profile.ControlType == "sustained" && profile.Impact != nil &&
-							profile.ManaCostPerSecond > 0 && profile.DamageInterval > 0 &&
-							p.Health > 0 && p.Mana > 0 && s.SwingPub != nil &&
-							!mediumBlocked(p.Medium, profile.BlockedMediums) &&
-							(s.Conditions == nil ||
-								(!s.Conditions.BlocksIntent(p.Conditions, "continuous_attack") &&
-									!s.Conditions.BlocksAction(p.Conditions, id))) {
+					if id, profile := s.selectSustainedAction(catalog, p, in.Intents); profile != nil {
+						if p.ContinuousAttackID != id {
 							p.ContinuousAttackID = id
 							p.ContinuousAttackElapsed = 0
 							p.ActionID, p.ActionSeq = id, p.ActionSeq+1
-							p.InCombatUntil = time.Now().Add(6 * time.Second)
 						}
-					} else if !in.Intents["continuous_attack"] {
-						p.ContinuousAttackID = ""
-						p.ContinuousAttackElapsed = 0
+						p.InCombatUntil = time.Now().Add(6 * time.Second)
+					} else {
+						p.ContinuousAttackID, p.ContinuousAttackElapsed = "", 0
 					}
 				}
 			}
@@ -99,6 +92,33 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 		return response, true
 	}
 	return "", true
+}
+
+func (s *Services) selectSustainedAction(catalog inputActionCatalog, p *entity.Player, intents map[string]bool) (string, *port.CombatProfile) {
+	valid := func(id string, profile *port.CombatProfile) bool {
+		return profile != nil && profile.ControlType == "sustained" && profile.Impact != nil &&
+			profile.ManaCostPerSecond > 0 && profile.DamageInterval > 0 && p.Health > 0 && p.Mana > 0 &&
+			s.SwingPub != nil && !mediumBlocked(p.Medium, profile.BlockedMediums) &&
+			(s.Conditions == nil || (!s.Conditions.BlocksIntent(p.Conditions, profile.InputIntent) && !s.Conditions.BlocksAction(p.Conditions, id)))
+	}
+	for _, intent := range sustainedActionIntents {
+		if intents[intent] && !p.Intents[intent] {
+			if id, profile := catalog.GetByInputIntent(intent); valid(id, profile) {
+				return id, profile
+			}
+		}
+	}
+	if profile := s.Combat.Get(p.ContinuousAttackID); profile != nil && intents[profile.InputIntent] && valid(p.ContinuousAttackID, profile) {
+		return p.ContinuousAttackID, profile
+	}
+	for _, intent := range sustainedActionIntents {
+		if intents[intent] {
+			if id, profile := catalog.GetByInputIntent(intent); valid(id, profile) {
+				return id, profile
+			}
+		}
+	}
+	return "", nil
 }
 
 // SwingPayload identifies a single action request; combat values come from the trusted catalog.

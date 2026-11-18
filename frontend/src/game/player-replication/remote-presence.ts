@@ -47,6 +47,7 @@ export class RemotePresence {
     const animationState = {
       medium: event.medium, vx: event.vx, vy: event.vy, vz: event.vz, intents: event.intents,
       continuous_attack_active: event.continuous_attack_active,
+      continuous_action_id: event.continuous_action_id,
     };
     const entry = this.ensureRemote(event.player_id);
     entry.clip = selectRemoteClip(animationState);
