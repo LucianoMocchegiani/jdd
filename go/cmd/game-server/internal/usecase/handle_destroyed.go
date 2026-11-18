@@ -15,6 +15,12 @@ type DestroyedEvent struct {
 	X, Y, Z int
 }
 
+type SwingPlayerDamage struct {
+	PlayerID string  `json:"player_id"`
+	EntityID int     `json:"entity_id"`
+	Damage   float64 `json:"damage"`
+}
+
 type SwingResultEvent struct {
 	BloqueID string
 	EcoID int
@@ -25,6 +31,7 @@ type SwingResultEvent struct {
 	TargetPlayerID string
 	TargetEntityID int
 	EntityDamage float64
+	PlayerHits []SwingPlayerDamage
 	RawJSON string
 }
 
@@ -40,18 +47,40 @@ func (s *Services) HandleParticleDestroyed(ev DestroyedEvent) {
 
 func (s *Services) HandleSwingResult(ev SwingResultEvent) {
 	sess, exists := s.Sessions.Get(ev.BloqueID, ev.EcoID)
-	if !exists { return }
-	if ev.TargetPlayerID != "" && ev.TargetPlayerID != ev.PlayerID && ev.TargetEntityID > 0 &&
-		ev.EntityDamage > 0 && !math.IsInf(ev.EntityDamage, 0) && !math.IsNaN(ev.EntityDamage) {
-		sess.UpdatePlayer(ev.TargetPlayerID, func(p *entity.Player) {
-			if p.EntityID != uint32(ev.TargetEntityID) || p.Health <= 0 { return }
-			p.Health = math.Max(0, p.Health-ev.EntityDamage)
-		})
+	if !exists {
+		return
 	}
 	attacker, exists := sess.GetPlayer(ev.PlayerID)
-	if !exists || attacker.EntityID != uint32(ev.EntityID) { return }
+	if !exists || attacker.EntityID != uint32(ev.EntityID) {
+		return
+	}
+	if ev.TargetPlayerID != "" && ev.TargetPlayerID != ev.PlayerID && ev.TargetEntityID > 0 && finitePositiveDamage(ev.EntityDamage) {
+		applyPlayerDamage(sess, ev.TargetPlayerID, ev.TargetEntityID, ev.EntityDamage)
+	}
+	seen := make(map[string]struct{}, len(ev.PlayerHits))
+	for _, hit := range ev.PlayerHits {
+		if hit.PlayerID == "" || hit.PlayerID == ev.PlayerID || hit.EntityID <= 0 || !finitePositiveDamage(hit.Damage) {
+			continue
+		}
+		if _, duplicate := seen[hit.PlayerID]; duplicate {
+			continue
+		}
+		seen[hit.PlayerID] = struct{}{}
+		applyPlayerDamage(sess, hit.PlayerID, hit.EntityID, hit.Damage)
+	}
 	s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
 		if c.PlayerID == ev.PlayerID { wshub.SafeWrite(c, ev.RawJSON) }
+	})
+}
+
+func finitePositiveDamage(damage float64) bool {
+	return damage > 0 && !math.IsInf(damage, 0) && !math.IsNaN(damage)
+}
+
+func applyPlayerDamage(sess *entity.BlockSession, playerID string, entityID int, damage float64) {
+	sess.UpdatePlayer(playerID, func(p *entity.Player) {
+		if p.EntityID != uint32(entityID) || p.Health <= 0 { return }
+		p.Health = math.Max(0, p.Health-damage)
 	})
 }
 
