@@ -35,14 +35,18 @@ func LoadCatalog(path string) (*Catalog, error) {
 	c := &Catalog{profiles: make(map[string]*domain.CombatProfile)}
 	for _, action := range raw.Actions {
 		if action.ID == "" { return nil, fmt.Errorf("action without id") }
-		if action.Impact != nil && (action.Impact.Reach <= 0 || action.Impact.Damage <= 0 || action.Impact.Width < 0 || action.Impact.Width > 5) {
-			return nil, fmt.Errorf("action %q has invalid impact", action.ID)
+		if action.Impact != nil {
+			shape := action.Impact.Shape
+			if shape == "" { shape = "line"; action.Impact.Shape = shape }
+			valid := action.Impact.Damage > 0 && ((shape == "line" && action.Impact.Reach > 0 && action.Impact.Width >= 0 && action.Impact.Width <= 5) ||
+				(shape == "radial" && action.Impact.Radius > 0 && action.Impact.Radius <= 10))
+			if !valid { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
 		}
 		if action.Area != nil && (action.Area.Radius <= 0 || action.Area.Radius > 10 || action.Area.Damage <= 0) {
 			return nil, fmt.Errorf("action %q has invalid area", action.ID)
 		}
 		if action.Area != nil && (action.Impact != nil || action.Projectile != nil) {
-			return nil, fmt.Errorf("action %q cannot combine area and line/projectile profiles", action.ID)
+			return nil, fmt.Errorf("action %q cannot combine area and impact/projectile profiles", action.ID)
 		}
 		var projectileDamage float64
 		if action.Projectile != nil {

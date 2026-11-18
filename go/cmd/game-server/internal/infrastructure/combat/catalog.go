@@ -53,13 +53,16 @@ func LoadCatalog(path string) (*Catalog, error) {
 		if action.ID == "" { return nil, fmt.Errorf("action without id") }
 		if action.ManaCost < 0 || action.ManaCostPerSecond < 0 { return nil, fmt.Errorf("action %q has invalid mana cost", action.ID) }
 		if action.Impact != nil {
-			if action.Control.Type != "sustained" && action.CooldownMs <= 0 { return nil, fmt.Errorf("action %q has combat impact without positive cooldownMs", action.ID) }
-			if action.Impact.Reach <= 0 || action.Impact.Damage <= 0 || action.Impact.Width < 0 || action.Impact.Width > 5 { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
+			shape := action.Impact.Shape
+			if shape == "" { shape = "line"; action.Impact.Shape = shape }
+			valid := action.Impact.Damage > 0 && ((shape == "line" && action.Impact.Reach > 0 && action.Impact.Width >= 0 && action.Impact.Width <= 5) ||
+				(shape == "radial" && action.Impact.Radius > 0 && action.Impact.Radius <= 10))
+			if !valid { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
 		}
 		if action.Area != nil && (action.CooldownMs <= 0 || action.Area.Range <= 0 || action.Area.Range > 100 || action.Area.Radius <= 0 || action.Area.Radius > 10 || action.Area.Damage <= 0 || (action.Area.Effect != "orb" && action.Area.Effect != "thunder")) {
 			return nil, fmt.Errorf("action %q has invalid area profile", action.ID)
 		}
-		if action.Area != nil && (action.Impact != nil || action.Projectile != nil) { return nil, fmt.Errorf("action %q cannot combine area, line and projectile profiles", action.ID) }
+		if action.Area != nil && (action.Impact != nil || action.Projectile != nil) { return nil, fmt.Errorf("action %q cannot combine area, impact and projectile profiles", action.ID) }
 		if action.Control.Type == "sustained" && (action.ManaCostPerSecond <= 0 || action.DamageIntervalMs <= 0 || action.Impact == nil || action.Projectile != nil) {
 			return nil, fmt.Errorf("action %q has invalid sustained profile", action.ID)
 		}

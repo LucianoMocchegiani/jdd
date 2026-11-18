@@ -38,7 +38,7 @@ type TerrainPublisher interface { PublishChunkRequest(req ChunkRequest) error }
 // TerrainSubscriber consumes completed chunk requests.
 type TerrainSubscriber interface { Run(readyCh chan<- ChunkReady) error }
 
-// SwingTarget is a server-snapshotted player candidate for a line attack.
+// SwingTarget is a server-snapshotted player candidate for an impact.
 type SwingTarget struct {
 	PlayerID string  `json:"player_id"`
 	EntityID int     `json:"entity_id"`
