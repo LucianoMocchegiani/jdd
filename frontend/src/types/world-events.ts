@@ -1,4 +1,4 @@
-import type { CellPosition } from '@/types/world-events';
+export interface CellPosition { x: number; y: number; z: number; }
 
 /** Contratos de mensajes WebSocket intercambiados por cliente y servidor. */
 export interface ParticleDestroyedEvent { type: 'particle_destroyed'; particle_id: string; bloque_id: string; position?: CellPosition; }

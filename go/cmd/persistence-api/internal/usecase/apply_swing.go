@@ -105,7 +105,9 @@ func (s *SwingService) rememberSwing(playerID, actionID string, entityID, seq in
 		for k := range s.processed {
 			delete(s.processed, k)
 			i++
-			if i >= maxProcessedSwings/2 { break }
+			if i >= maxProcessedSwings/2 {
+				break
+			}
 		}
 	}
 	return true
@@ -144,7 +146,9 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 	impact := profile.Impact
 	queryReach := int(math.Ceil(impact.Reach)) + 1
 	candidates, err := s.Repo.GetParticlesNear(ctx, cmd.BloqueID, cmd.PosX, cmd.PosY, cmd.PosZ, queryReach)
-	if err != nil { return SwingOutcome{}, err }
+	if err != nil {
+		return SwingOutcome{}, err
+	}
 	origin := jdcombat.Point{X: cmd.PosX, Y: cmd.PosY, Z: cmd.PosZ}
 	impacts := make([]swingImpact, 0, len(candidates)+len(cmd.Targets))
 	for i := range candidates {
@@ -162,9 +166,15 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 	}
 	sort.SliceStable(impacts, func(i, j int) bool {
 		a, b := impacts[i], impacts[j]
-		if a.forward != b.forward { return a.forward < b.forward }
-		if (a.particle != nil) != (b.particle != nil) { return a.particle != nil }
-		if a.particle != nil { return a.particle.ID < b.particle.ID }
+		if a.forward != b.forward {
+			return a.forward < b.forward
+		}
+		if (a.particle != nil) != (b.particle != nil) {
+			return a.particle != nil
+		}
+		if a.particle != nil {
+			return a.particle.ID < b.particle.ID
+		}
 		return a.player.PlayerID < b.player.PlayerID
 	})
 
@@ -176,25 +186,44 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 	var entityDamage float64
 	beamLength, hasImpact := impact.Reach, false
 	for _, hit := range impacts {
-		if remaining <= 0 { break }
-		if !hasImpact { beamLength, hasImpact = hit.forward, true }
+		if remaining <= 0 {
+			break
+		}
+		if !hasImpact {
+			beamLength, hasImpact = hit.forward, true
+		}
 		if hit.player != nil {
 			targetPlayerID, targetEntityID, entityDamage = hit.player.PlayerID, hit.player.EntityID, remaining
 			break
 		}
-		if worldHits >= MaxWorldHitsPerSwing { truncated = true; break }
+		if worldHits >= MaxWorldHitsPerSwing {
+			truncated = true
+			break
+		}
 		res, err := ApplyParticleDamage(ctx, s.Repo, ApplyDamageInput{BloqueID: cmd.BloqueID, ParticleID: hit.particle.ID, Damage: remaining, WeaponType: cmd.ActionID, RateLimiter: s.RateLimit})
-		if err != nil { return SwingOutcome{}, fmt.Errorf("apply swing particle %s: %w", hit.particle.ID, err) }
-		if res == nil { return SwingOutcome{}, fmt.Errorf("apply swing particle %s: empty damage result", hit.particle.ID) }
+		if err != nil {
+			return SwingOutcome{}, fmt.Errorf("apply swing particle %s: %w", hit.particle.ID, err)
+		}
+		if res == nil {
+			return SwingOutcome{}, fmt.Errorf("apply swing particle %s: empty damage result", hit.particle.ID)
+		}
 		worldHits++
 		hits = append(hits, *res)
 		s.publishParticleDestruction(ctx, cmd.BloqueID, res)
-		if !res.Destroyed { break }
+		if !res.Destroyed {
+			break
+		}
 		remaining = math.Max(0, remaining-res.ConsumedDamage)
-		if res.ConsumedDamage <= 0 { break }
+		if res.ConsumedDamage <= 0 {
+			break
+		}
 	}
 	destroyed := 0
-	for _, hit := range hits { if hit.Destroyed { destroyed++ } }
+	for _, hit := range hits {
+		if hit.Destroyed {
+			destroyed++
+		}
+	}
 	return s.publishSwingOutcome(ctx, cmd, SwingOutcome{OK: true, ActionID: cmd.ActionID, Hits: hits, DestroyedCount: destroyed, TargetPlayerID: targetPlayerID, TargetEntityID: targetEntityID, EntityDamage: entityDamage, BeamLength: beamLength, Truncated: truncated})
 }
 
@@ -204,29 +233,41 @@ func (s *SwingService) applyAreaSwing(ctx context.Context, cmd SwingCommand, pro
 	}
 	center, radius := cmd.AreaTarget, profile.Area.Radius
 	candidates, err := s.Repo.GetParticlesNear(ctx, cmd.BloqueID, center.X, center.Y, center.Z, int(math.Ceil(radius))+1)
-	if err != nil { return SwingOutcome{}, err }
+	if err != nil {
+		return SwingOutcome{}, err
+	}
 	var hits []domain.DamageResult
 	for _, p := range candidates {
 		dx, dy, dz := float64(p.CeldaX)-center.X, float64(p.CeldaY)-center.Y, float64(p.CeldaZ)-center.Z
-		if !isSolidParticle(p) || dx*dx+dy*dy+dz*dz > radius*radius { continue }
+		if !isSolidParticle(p) || dx*dx+dy*dy+dz*dz > radius*radius {
+			continue
+		}
 		if len(hits) >= MaxWorldHitsPerSwing {
 			return s.publishSwingOutcome(ctx, cmd, SwingOutcome{OK: true, ActionID: cmd.ActionID, Hits: hits, Truncated: true})
 		}
 		res, err := ApplyParticleDamage(ctx, s.Repo, ApplyDamageInput{BloqueID: cmd.BloqueID, ParticleID: p.ID, Damage: profile.Area.Damage, WeaponType: cmd.ActionID, RateLimiter: s.RateLimit})
-		if err != nil { return SwingOutcome{}, fmt.Errorf("apply area particle %s: %w", p.ID, err) }
-		if res == nil { return SwingOutcome{}, fmt.Errorf("apply area particle %s: empty damage result", p.ID) }
+		if err != nil {
+			return SwingOutcome{}, fmt.Errorf("apply area particle %s: %w", p.ID, err)
+		}
+		if res == nil {
+			return SwingOutcome{}, fmt.Errorf("apply area particle %s: empty damage result", p.ID)
+		}
 		hits = append(hits, *res)
 		s.publishParticleDestruction(ctx, cmd.BloqueID, res)
 	}
 	destroyed := 0
-	for _, hit := range hits { if hit.Destroyed { destroyed++ } }
+	for _, hit := range hits {
+		if hit.Destroyed { destroyed++ }
+	}
 	return s.publishSwingOutcome(ctx, cmd, SwingOutcome{OK: true, ActionID: cmd.ActionID, Hits: hits, DestroyedCount: destroyed})
 }
 
 func finiteSwingCoordinate(v float64) bool { return !math.IsNaN(v) && !math.IsInf(v, 0) }
 
 func (s *SwingService) applyProjectileParticleHit(ctx context.Context, cmd SwingCommand, profile *domain.CombatProfile) (SwingOutcome, error) {
-	if profile.ProjectileDamage <= 0 { return SwingOutcome{Error: "invalid_projectile_hit", ActionID: cmd.ActionID}, nil }
+	if profile.ProjectileDamage <= 0 {
+		return SwingOutcome{Error: "invalid_projectile_hit", ActionID: cmd.ActionID}, nil
+	}
 	candidates, err := s.Repo.GetParticlesNear(ctx, cmd.BloqueID, float64(cmd.ParticleX), float64(cmd.ParticleY), float64(cmd.ParticleZ), 1)
 	if err != nil { return SwingOutcome{}, err }
 	var target *domain.ParticleNear
