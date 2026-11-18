@@ -1,13 +1,3 @@
-/**
- * @file Captura de teclado/ratón y traducción a intents del cliente.
- *
- * No decide resultados de acciones ni simula movimiento. Traduce el estado de
- * hardware a nombres estables en `InputComponent`; `NetworkInputSender` los envía
- * al servidor, que resuelve movimiento y acciones.
- *
- * Los listeners viven en `keyboard-state.ts` (un solo attach en `main.ts`).
- * Este sistema solo **lee** el estado HELD cada frame.
- */
 import { InputComponent } from '@/ecs/components/input';
 import { System } from '@/ecs/core';
 import { logInputIntents } from '@/game/debug/input-flow-debug';

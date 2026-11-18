@@ -2,7 +2,16 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { parseInboundMessage } from './ws-dispatcher.ts';
 
-test('player state accepts optional cooldown action data', () => {
+test('parses successful swing acknowledgements and rejects invalid sequences', () => {
+  assert.deepEqual(parseInboundMessage({
+    type: 'swing_queued', seq: 4, action_seq: 2, entity_id: 7, action_id: 'kamehameha',
+  }), { type: 'swing_queued', seq: 4, action_seq: 2, entity_id: 7, action_id: 'kamehameha' });
+  assert.equal(parseInboundMessage({
+    type: 'swing_queued', seq: 4, action_seq: Number.NaN, entity_id: 7, action_id: 'kamehameha',
+  }), null);
+});
+
+test('parses the active sustained action for remote aura animation', () => {
   const parsed = parseInboundMessage({
     type: 'player_state', server_tick: 1, player_id: 'p', bloque_id: 'b',
     x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, yaw: 0,
