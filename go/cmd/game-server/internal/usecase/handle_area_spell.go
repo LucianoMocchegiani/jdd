@@ -9,7 +9,7 @@ import (
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/wshub"
 )
 
-// AreaSpellPayload identifies the selected target for a server-validated area cast.
+// AreaSpellPayload identifies the selected target for a server-validated point cast.
 type AreaSpellPayload struct {
 	BloqueID string
 	EcoID    int
@@ -19,14 +19,16 @@ type AreaSpellPayload struct {
 	Target   port.AreaTarget
 }
 
-// HandleAreaSpell validates the profile, range, solid target, restrictions, mana and cooldown before accepting R/T.
+// HandleAreaSpell validates target selection independently from the radial impact profile.
 func (s *Services) HandleAreaSpell(in AreaSpellPayload) (string, bool) {
 	if s.Combat == nil || s.SwingPub == nil || in.PlayerID == "" || in.Seq <= 0 ||
 		!finiteAreaCoordinate(in.Target.X) || !finiteAreaCoordinate(in.Target.Y) || !finiteAreaCoordinate(in.Target.Z) {
 		return buildError("swing_error", "invalid_area_spell"), true
 	}
 	profile := s.Combat.Get(in.ActionID)
-	if profile == nil || profile.Area == nil || profile.Area.Range <= 0 || profile.Area.Radius <= 0 || profile.Area.Damage <= 0 {
+	if profile == nil || profile.Targeting == nil || profile.Targeting.Type != "ground_point" ||
+		profile.Impact == nil || profile.Impact.Shape != "radial" || profile.Impact.Origin != "target" ||
+		profile.Targeting.Range <= 0 || profile.Impact.Radius <= 0 || profile.Impact.Damage <= 0 {
 		return buildError("swing_error", "unknown_action"), true
 	}
 	sess, exists := s.Sessions.Get(in.BloqueID, in.EcoID)
@@ -38,7 +40,7 @@ func (s *Services) HandleAreaSpell(in AreaSpellPayload) (string, bool) {
 		return buildError("swing_error", "player_not_in_session"), true
 	}
 	dx, dy, dz := in.Target.X-player.X, in.Target.Y-player.Y, in.Target.Z-player.Z
-	if math.Sqrt(dx*dx+dy*dy+dz*dz) > profile.Area.Range {
+	if math.Sqrt(dx*dx+dy*dy+dz*dz) > profile.Targeting.Range {
 		return buildError("swing_error", "area_target_out_of_range"), true
 	}
 	cellX := int(math.Floor(in.Target.X + 0.5))
@@ -64,32 +66,31 @@ func (s *Services) HandleAreaSpell(in AreaSpellPayload) (string, bool) {
 			}
 			return ""
 		}, func() {
-			// shortcut: area damage ignores line-of-sight; add occlusion checks if walls should block it.
 			var playerIDs []string
 			sess.ForEachPlayer(func(p *entity.Player) {
-				if p.ID != in.PlayerID && p.Health > 0 && insideArea(p, in.Target, profile.Area.Radius) {
+				if p.ID != in.PlayerID && p.Health > 0 && insideArea(p, in.Target, profile.Impact.Radius) {
 					playerIDs = append(playerIDs, p.ID)
 				}
 			})
 			for _, id := range playerIDs {
 				sess.UpdatePlayer(id, func(p *entity.Player) {
-					if p.Health > 0 && insideArea(p, in.Target, profile.Area.Radius) {
-						p.Health = math.Max(0, p.Health-profile.Area.Damage)
+					if p.Health > 0 && insideArea(p, in.Target, profile.Impact.Radius) {
+						p.Health = math.Max(0, p.Health-profile.Impact.Damage)
 					}
 				})
 			}
 			if s.Hub != nil {
 				wire, _ := json.Marshal(map[string]interface{}{
 					"type": "area_spell", "action_id": in.ActionID, "player_id": in.PlayerID,
-					"effect": profile.Area.Effect, "x": in.Target.X, "y": in.Target.Y,
-					"z": in.Target.Z, "radius": profile.Area.Radius,
+					"effect": profile.Targeting.Effect, "x": in.Target.X, "y": in.Target.Y,
+					"z": in.Target.Z, "radius": profile.Impact.Radius,
 				})
 				s.Hub.ForSession(in.BloqueID, in.EcoID, func(c *wshub.Conn) { wshub.SafeWrite(c, string(wire)) })
 			}
 		})
 }
 
-// insideArea applies the current cylindrical player-height test around an area target.
+// insideArea applies the existing cylindrical player-height test around the selected center.
 func insideArea(p *entity.Player, target port.AreaTarget, radius float64) bool {
 	dx, dy := p.X-target.X, p.Y-target.Y
 	return dx*dx+dy*dy <= radius*radius && p.Z <= target.Z+radius+1.8 && p.Z >= target.Z-radius

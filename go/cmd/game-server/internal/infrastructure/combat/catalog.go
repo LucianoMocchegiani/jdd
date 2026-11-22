@@ -25,6 +25,7 @@ type actionFile struct {
 			} `json:"when"`
 		} `json:"control"`
 		Impact     *port.DamageProfile `json:"impact"`
+		Targeting  *port.TargetingProfile `json:"targeting"`
 		Area       *port.AreaProfile   `json:"area"`
 		Projectile *struct {
 			Speed   float64 `json:"speed"`
@@ -58,9 +59,19 @@ func LoadCatalog(path string) (*Catalog, error) {
 			}
 			shape := action.Impact.Shape
 			if shape == "" { shape = "line"; action.Impact.Shape = shape }
-			valid := action.Impact.Damage > 0 && ((shape == "line" && action.Impact.Reach > 0 && action.Impact.Width >= 0 && action.Impact.Width <= 5) ||
-				(shape == "radial" && action.Impact.Radius > 0 && action.Impact.Radius <= 10))
+			if action.Impact.Origin == "" { action.Impact.Origin = "caster" }
+			valid := action.Impact.Damage > 0 && ((shape == "line" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Width >= 0 && action.Impact.Width <= 5) ||
+				(shape == "radial" && (action.Impact.Origin == "caster" || action.Impact.Origin == "target") && action.Impact.Radius > 0 && action.Impact.Radius <= 10))
 			if !valid { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
+		}
+		if action.Targeting != nil && (action.Targeting.Type != "ground_point" || action.Targeting.Range <= 0 || action.Targeting.Range > 100 || (action.Targeting.Effect != "orb" && action.Targeting.Effect != "thunder")) {
+			return nil, fmt.Errorf("action %q has invalid targeting profile", action.ID)
+		}
+		if action.Targeting != nil && (action.Impact == nil || action.Impact.Shape != "radial" || action.Impact.Origin != "target" || action.Projectile != nil) {
+			return nil, fmt.Errorf("action %q targeting requires a radial impact with target origin", action.ID)
+		}
+		if action.Impact != nil && action.Impact.Origin == "target" && action.Targeting == nil {
+			return nil, fmt.Errorf("action %q target-origin impact requires targeting", action.ID)
 		}
 		if action.Area != nil && (action.CooldownMs <= 0 || action.Area.Range <= 0 || action.Area.Range > 100 || action.Area.Radius <= 0 || action.Area.Radius > 10 || action.Area.Damage <= 0 || (action.Area.Effect != "orb" && action.Area.Effect != "thunder")) {
 			return nil, fmt.Errorf("action %q has invalid area profile", action.ID)
@@ -83,9 +94,9 @@ func LoadCatalog(path string) (*Catalog, error) {
 			Cooldown: time.Duration(action.CooldownMs) * time.Millisecond,
 			ManaCost: action.ManaCost, ManaCostPerSecond: action.ManaCostPerSecond,
 			DamageInterval: time.Duration(action.DamageIntervalMs) * time.Millisecond,
-			BlockedMediums: action.Control.When.Not.Medium, Impact: action.Impact, Area: action.Area, Projectile: projectile,
+			BlockedMediums: action.Control.When.Not.Medium, Impact: action.Impact, Targeting: action.Targeting, Area: action.Area, Projectile: projectile,
 		}
-		if action.Control.InputIntent != "" && (action.Impact != nil || action.Area != nil || projectile != nil) {
+		if action.Control.InputIntent != "" && (action.Impact != nil || action.Area != nil || action.Targeting != nil || projectile != nil) {
 			if _, exists := catalog.byInputIntent[action.Control.InputIntent]; exists { return nil, fmt.Errorf("duplicate combat input intent %q", action.Control.InputIntent) }
 			catalog.byInputIntent[action.Control.InputIntent] = action.ID
 		}

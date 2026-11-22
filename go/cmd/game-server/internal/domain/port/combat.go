@@ -3,16 +3,25 @@ package port
 
 import "time"
 
-// DamageProfile defines an impact geometry independently of whether its action is one-shot or sustained.
+// DamageProfile defines impact geometry independently from action cycle and target selection.
 type DamageProfile struct {
-	Shape  string  `json:"shape,omitempty"`
-	Reach  float64 `json:"reach,omitempty"`
-	Width  float64 `json:"width,omitempty"`
-	Radius float64 `json:"radius,omitempty"`
-	Damage float64 `json:"damage"`
+	Shape         string  `json:"shape,omitempty"`
+	Origin        string  `json:"origin,omitempty"`
+	BlockBySolids bool    `json:"blockBySolids,omitempty"`
+	Reach         float64 `json:"reach,omitempty"`
+	Width         float64 `json:"width,omitempty"`
+	Radius        float64 `json:"radius,omitempty"`
+	Damage        float64 `json:"damage"`
 }
 
-// AreaProfile configures the allowed cast range and the resulting area effect.
+// TargetingProfile configures how a player selects an impact point.
+type TargetingProfile struct {
+	Type   string `json:"type"`
+	Range  float64 `json:"range"`
+	Effect string `json:"effect"`
+}
+
+// AreaProfile configures the legacy area-cast behavior.
 type AreaProfile struct {
 	Range  float64 `json:"range"`
 	Radius float64 `json:"radius"`
@@ -39,6 +48,7 @@ type CombatProfile struct {
 	DamageInterval    time.Duration
 	BlockedMediums    []string
 	Impact            *DamageProfile
+	Targeting         *TargetingProfile
 	Area              *AreaProfile
 	Projectile        *ProjectileProfile
 }

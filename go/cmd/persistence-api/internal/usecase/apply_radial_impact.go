@@ -1,4 +1,4 @@
-// Package usecase applies configurable radial continuous-impact pulses.
+// Package usecase applies configurable radial impact pulses.
 package usecase
 
 import (
@@ -13,20 +13,30 @@ import (
 
 func (s *SwingService) applyRadialImpact(ctx context.Context, cmd SwingCommand, profile *domain.CombatProfile) (SwingOutcome, error) {
 	impact := profile.Impact
-	if impact.Radius <= 0 || impact.Radius > 10 || impact.Damage <= 0 ||
-		!finiteSwingCoordinate(cmd.PosX) || !finiteSwingCoordinate(cmd.PosY) || !finiteSwingCoordinate(cmd.PosZ) {
+	if impact.Radius <= 0 || impact.Radius > 10 || impact.Damage <= 0 {
+		return SwingOutcome{Error: "invalid_radial_impact", ActionID: cmd.ActionID}, nil
+	}
+	center := jdcombat.Point{X: cmd.PosX, Y: cmd.PosY, Z: cmd.PosZ + 0.9}
+	if impact.Origin == "target" {
+		if cmd.AreaTarget == nil || !finiteSwingCoordinate(cmd.AreaTarget.X) || !finiteSwingCoordinate(cmd.AreaTarget.Y) || !finiteSwingCoordinate(cmd.AreaTarget.Z) {
+			return SwingOutcome{Error: "invalid_radial_origin", ActionID: cmd.ActionID}, nil
+		}
+		center = jdcombat.Point{X: cmd.AreaTarget.X, Y: cmd.AreaTarget.Y, Z: cmd.AreaTarget.Z}
+	}
+	if !finiteSwingCoordinate(center.X) || !finiteSwingCoordinate(center.Y) || !finiteSwingCoordinate(center.Z) {
 		return SwingOutcome{Error: "invalid_radial_impact", ActionID: cmd.ActionID}, nil
 	}
 
-	candidates, err := s.Repo.GetParticlesNear(ctx, cmd.BloqueID, cmd.PosX, cmd.PosY, cmd.PosZ, int(math.Ceil(impact.Radius))+1)
+	candidates, err := s.Repo.GetParticlesNear(ctx, cmd.BloqueID, center.X, center.Y, center.Z, int(math.Ceil(impact.Radius))+1)
 	if err != nil {
 		return SwingOutcome{}, err
 	}
-	origin := jdcombat.Point{X: cmd.PosX, Y: cmd.PosY, Z: cmd.PosZ + 0.9}
 	obstacles := make(map[[3]int]struct{}, len(candidates))
-	for _, particle := range candidates {
-		if isSolidParticle(particle) {
-			obstacles[[3]int{particle.CeldaX, particle.CeldaY, particle.CeldaZ}] = struct{}{}
+	if impact.BlockBySolids {
+		for _, particle := range candidates {
+			if isSolidParticle(particle) {
+				obstacles[[3]int{particle.CeldaX, particle.CeldaY, particle.CeldaZ}] = struct{}{}
+			}
 		}
 	}
 	visible := make([]domain.ParticleNear, 0, len(candidates))
@@ -35,14 +45,14 @@ func (s *SwingService) applyRadialImpact(ctx context.Context, cmd SwingCommand, 
 			continue
 		}
 		target := jdcombat.Point{X: float64(particle.CeldaX), Y: float64(particle.CeldaY), Z: float64(particle.CeldaZ)}
-		if squaredDistance(origin, target) <= impact.Radius*impact.Radius && radialParticleVisible(origin, target, obstacles) {
+		if squaredDistance(center, target) <= impact.Radius*impact.Radius && (!impact.BlockBySolids || radialParticleVisible(center, target, obstacles)) {
 			visible = append(visible, particle)
 		}
 	}
 	sort.Slice(visible, func(i, j int) bool {
 		a, b := visible[i], visible[j]
-		da := squaredDistance(origin, jdcombat.Point{X: float64(a.CeldaX), Y: float64(a.CeldaY), Z: float64(a.CeldaZ)})
-		db := squaredDistance(origin, jdcombat.Point{X: float64(b.CeldaX), Y: float64(b.CeldaY), Z: float64(b.CeldaZ)})
+		da := squaredDistance(center, jdcombat.Point{X: float64(a.CeldaX), Y: float64(a.CeldaY), Z: float64(a.CeldaZ)})
+		db := squaredDistance(center, jdcombat.Point{X: float64(b.CeldaX), Y: float64(b.CeldaY), Z: float64(b.CeldaZ)})
 		if da != db {
 			return da < db
 		}
@@ -74,7 +84,7 @@ func (s *SwingService) applyRadialImpact(ctx context.Context, cmd SwingCommand, 
 	for _, target := range cmd.Targets {
 		if target.PlayerID == "" || target.PlayerID == cmd.PlayerID || target.EntityID <= 0 ||
 			!finiteSwingCoordinate(target.X) || !finiteSwingCoordinate(target.Y) || !finiteSwingCoordinate(target.Z) ||
-			squaredDistance(origin, jdcombat.Point{X: target.X, Y: target.Y, Z: target.Z + 0.9}) > playerRadius*playerRadius {
+			squaredDistance(center, jdcombat.Point{X: target.X, Y: target.Y, Z: target.Z + 0.9}) > playerRadius*playerRadius {
 			continue
 		}
 		if _, duplicate := seenPlayers[target.PlayerID]; duplicate {
