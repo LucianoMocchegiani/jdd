@@ -23,7 +23,7 @@ func TestRadialImpactDamagesVisibleParticlesAndPlayerTargetsOnlyInRange(t *testi
 	}
 	events := &swingEvents{}
 	svc := usecase.NewSwingService(repo, swingCatalog{&domain.CombatProfile{
-		ActionID: "aura_de_ki", Impact: &domain.ImpactProfile{Shape: "radial", Radius: 3, Damage: 5},
+		ActionID: "aura_de_ki", Impact: &domain.ImpactProfile{Shape: "radial", Origin: "caster", BlockBySolids: true, Radius: 3, Damage: 5},
 	}}, events, nil)
 	out, err := svc.ApplySwing(context.Background(), usecase.SwingCommand{
 		BloqueID: "block", PlayerID: "caster", ActionID: "aura_de_ki", EntityID: 1, Seq: 1,

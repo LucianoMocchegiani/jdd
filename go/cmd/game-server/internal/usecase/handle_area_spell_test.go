@@ -16,6 +16,14 @@ type failingSwingPublisher struct{}
 
 func (failingSwingPublisher) PublishSwing(port.SwingCommand) error { return errors.New("publisher unavailable") }
 
+func targetedOrbProfile() *port.CombatProfile {
+	return &port.CombatProfile{
+		Cooldown: time.Second, ManaCost: 20,
+		Targeting: &port.TargetingProfile{Type: "ground_point", Range: 18, Effect: "orb"},
+		Impact: &port.DamageProfile{Shape: "radial", Origin: "target", Radius: 3, Damage: 20},
+	}
+}
+
 func TestAreaSpellValidatesGroundAndDamagesPlayersAuthoritatively(t *testing.T) {
 	store := memory.NewSessionStore()
 	sess := store.GetOrCreate("block", 1)
@@ -24,7 +32,7 @@ func TestAreaSpellValidatesGroundAndDamagesPlayersAuthoritatively(t *testing.T) 
 	sess.AddPlayer("outside", 5, 0, 0, 0, 0)
 	sess.SolidGrid.MergeSolidCells([]string{cellkey.Format(0, 0, 0)})
 	publisher := &swingPublisher{}
-	svc := &usecase.Services{Sessions: store, SwingPub: publisher, Combat: combatCatalog{"orbe_explosivo": {Cooldown: time.Second, ManaCost: 20, Area: &port.AreaProfile{Range: 18, Radius: 3, Damage: 20, Effect: "orb"}}}}
+	svc := &usecase.Services{Sessions: store, SwingPub: publisher, Combat: combatCatalog{"orbe_explosivo": targetedOrbProfile()}}
 	response, failed := svc.HandleAreaSpell(usecase.AreaSpellPayload{BloqueID: "block", EcoID: 1, PlayerID: "caster", Seq: 1, ActionID: "orbe_explosivo", Target: port.AreaTarget{X: 0, Y: 0, Z: 0.45}})
 	if failed {
 		t.Fatal("valid target rejected")
@@ -51,11 +59,7 @@ func TestAreaSpellEnqueueFailureRefundsManaAndReservation(t *testing.T) {
 	sess := store.GetOrCreate("block", 1)
 	sess.AddPlayer("caster", 0, 0, 0, 0, 0)
 	sess.SolidGrid.MergeSolidCells([]string{cellkey.Format(0, 0, 0)})
-	svc := &usecase.Services{
-		Sessions: store,
-		SwingPub: failingSwingPublisher{},
-		Combat: combatCatalog{"orbe_explosivo": {Cooldown: time.Second, ManaCost: 20, Area: &port.AreaProfile{Range: 18, Radius: 3, Damage: 20, Effect: "orb"}}},
-	}
+	svc := &usecase.Services{Sessions: store, SwingPub: failingSwingPublisher{}, Combat: combatCatalog{"orbe_explosivo": targetedOrbProfile()}}
 	input := usecase.AreaSpellPayload{BloqueID: "block", EcoID: 1, PlayerID: "caster", Seq: 1, ActionID: "orbe_explosivo", Target: port.AreaTarget{X: 0, Y: 0, Z: 0.45}}
 	if _, failed := svc.HandleAreaSpell(input); !failed {
 		t.Fatal("failed enqueue was accepted")
@@ -75,7 +79,11 @@ func TestAreaSpellRejectsUnvalidatedGround(t *testing.T) {
 	sess := store.GetOrCreate("block", 1)
 	sess.AddPlayer("caster", 0, 0, 0, 0, 0)
 	publisher := &swingPublisher{}
-	svc := &usecase.Services{Sessions: store, SwingPub: publisher, Combat: combatCatalog{"trueno": {Cooldown: time.Second, Area: &port.AreaProfile{Range: 18, Radius: 2, Damage: 25, Effect: "thunder"}}}}
+	profile := &port.CombatProfile{
+		Cooldown: time.Second, Targeting: &port.TargetingProfile{Type: "ground_point", Range: 18, Effect: "thunder"},
+		Impact: &port.DamageProfile{Shape: "radial", Origin: "target", Radius: 2, Damage: 25},
+	}
+	svc := &usecase.Services{Sessions: store, SwingPub: publisher, Combat: combatCatalog{"trueno": profile}}
 	if _, failed := svc.HandleAreaSpell(usecase.AreaSpellPayload{BloqueID: "block", EcoID: 1, PlayerID: "caster", Seq: 1, ActionID: "trueno", Target: port.AreaTarget{X: 1, Y: 1, Z: 1}}); !failed || publisher.calls != 0 {
 		t.Fatal("target without server-known solid ground was accepted")
 	}
