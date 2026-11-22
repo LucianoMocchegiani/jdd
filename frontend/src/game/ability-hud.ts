@@ -56,7 +56,7 @@ export function mountAbilityHud(root: HTMLElement): void {
       } });
     } else {
       const activate = (): void => {
-        if (action.area) window.dispatchEvent(new CustomEvent(TARGET_REQUEST_EVENT, { detail: { actionId: action.id } }));
+        if (action.targeting) window.dispatchEvent(new CustomEvent(TARGET_REQUEST_EVENT, { detail: { actionId: action.id } }));
         else pulseAction(action.control.inputIntent);
       };
       item.addEventListener('pointerdown', activate);

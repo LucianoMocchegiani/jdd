@@ -41,7 +41,7 @@
         "when": { "not": { "medium": ["air", "submerged_full"] } }
       },
       "appearance": { "state": "attack", "clip": "rayo_de_ki" },
-      "impact": { "shape": "line", "reach": 28, "width": 0.55, "damage": 5 }
+      "impact": { "shape": "line", "origin": "caster", "reach": 28, "width": 0.55, "damage": 5 }
     },
     {
       "id": "aura_de_ki",
@@ -55,7 +55,7 @@
         "when": { "not": { "medium": ["air", "submerged_full"] } }
       },
       "appearance": { "state": "attack", "clip": "aura_de_ki" },
-      "impact": { "shape": "radial", "radius": 3, "damage": 5 }
+      "impact": { "shape": "radial", "origin": "caster", "blockBySolids": true, "radius": 3, "damage": 5 }
     },
     {
       "id": "orbe_explosivo",
@@ -63,7 +63,8 @@
       "cooldownMs": 3000,
       "manaCost": 20,
       "control": { "inputIntent": "target_orbe", "slot": "body_actions", "type": "one_shot" },
-      "area": { "range": 18, "radius": 3, "damage": 20, "effect": "orb" }
+      "targeting": { "type": "ground_point", "range": 18, "effect": "orb" },
+      "impact": { "shape": "radial", "origin": "target", "radius": 3, "damage": 20 }
     },
     {
       "id": "trueno",
@@ -71,7 +72,8 @@
       "cooldownMs": 4000,
       "manaCost": 25,
       "control": { "inputIntent": "target_trueno", "slot": "body_actions", "type": "one_shot" },
-      "area": { "range": 18, "radius": 2, "damage": 25, "effect": "thunder" }
+      "targeting": { "type": "ground_point", "range": 18, "effect": "thunder" },
+      "impact": { "shape": "radial", "origin": "target", "radius": 2, "damage": 25 }
     }
   ]
 }

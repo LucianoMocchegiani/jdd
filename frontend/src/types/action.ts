@@ -13,9 +13,11 @@ export interface ActionInterrupt { blocks?: readonly string[]; canBeInterruptedB
 export interface ActionControl { inputIntent: string; slot: ActionSlot; type: ActionType; when?: ActionWhen; interrupt?: ActionInterrupt; }
 export interface ActionAppearance { state?: string; clip?: string; }
 export interface ActionDamage { reach: number; damage: number; }
-/** Impact geometry is independent of the action cycle declared by control.type. */
+/** Impact geometry and origin are independent of the action cycle and targeting input. */
 export interface ActionImpact {
   shape?: 'line' | 'radial';
+  origin?: 'caster' | 'target';
+  blockBySolids?: boolean;
   reach?: number;
   width?: number;
   radius?: number;
@@ -23,8 +25,8 @@ export interface ActionImpact {
   entityDamage?: ActionDamage;
   applyConditions?: readonly ConditionApplyRef[];
 }
-/** Configuración de un cast en punto objetivo; el cliente solo la presenta, el servidor valida y aplica el daño. */
-export interface ActionArea { range: number; radius: number; damage: number; effect: 'orb' | 'thunder'; }
+/** Client-side target selection; impact geometry and damage remain server-owned. */
+export interface ActionTargeting { type: 'ground_point'; range: number; effect: 'orb' | 'thunder'; }
 export interface ActionProjectile { speed: number; range: number; damage: number; radius: number; delayMs?: number; }
 /** Definición compartida de una acción y sus datos de control, coste, presentación e impacto. */
 export interface ActionDefinition {
@@ -38,6 +40,6 @@ export interface ActionDefinition {
   movement?: ActionMovement;
   appearance?: ActionAppearance;
   impact?: ActionImpact;
-  area?: ActionArea;
+  targeting?: ActionTargeting;
   projectile?: ActionProjectile;
 }
