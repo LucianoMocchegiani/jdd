@@ -45,7 +45,7 @@ func (s *Services) HandleAreaSpell(in AreaSpellPayload) (string, bool) {
 	}
 	cellX := int(math.Floor(in.Target.X + 0.5))
 	cellY := int(math.Floor(in.Target.Y + 0.5))
-	cellZ := int(math.Floor(in.Target.Z)
+	cellZ := int(math.Floor(in.Target.Z))
 	if sess.SolidGrid == nil || !sess.SolidGrid.IsCellSolid(cellX, cellY, cellZ) ||
 		in.Target.Z-float64(cellZ) < 0.35 || in.Target.Z-float64(cellZ) > 0.55 {
 		return buildError("swing_error", "invalid_area_target"), true
