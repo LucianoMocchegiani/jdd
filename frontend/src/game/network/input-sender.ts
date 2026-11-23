@@ -5,10 +5,11 @@ import { recordInputSent } from '@/game/debug/input-stats-debug';
 
 const NETWORKED_INTENTS = [
   'move_forward', 'move_backward', 'move_left', 'move_right', 'run_forward', 'jump',
-  'attack_light', 'attack_projectile', 'continuous_attack', 'continuous_aura',
+  'attack_light', 'attack_heavy', 'attack_projectile', 'attack_quick_projectile', 'continuous_attack', 'continuous_aura',
 ] as const;
+const ONE_SHOT_ATTACK_INTENTS = ['attack_light', 'attack_heavy', 'attack_projectile', 'attack_quick_projectile'] as const;
+type AttackIntent = typeof ONE_SHOT_ATTACK_INTENTS[number];
 type IntentWireMode = 'omit' | 'clear' | 'active';
-type AttackIntent = 'attack_light' | 'attack_projectile';
 
 function packActiveIntents(intents: Record<string, boolean>): Record<string, true> {
   const out: Record<string, true> = {};
@@ -16,13 +17,13 @@ function packActiveIntents(intents: Record<string, boolean>): Record<string, tru
   return out;
 }
 
-/** Devuelve true si F o G acaba de pasar de liberada a pulsada y actualiza ambos flancos. */
+/** Devuelve true si una habilidad de un solo uso acaba de pasar de liberada a pulsada. */
 export function hasNewAttackIntent(
   packed: Record<string, true>,
   wasActive: Record<AttackIntent, boolean>,
 ): boolean {
   let edge = false;
-  for (const intent of ['attack_light', 'attack_projectile'] as const) {
+  for (const intent of ONE_SHOT_ATTACK_INTENTS) {
     const active = packed[intent] === true;
     edge = edge || (active && !wasActive[intent]);
     wasActive[intent] = active;
@@ -38,7 +39,9 @@ export class NetworkInputSender {
   private jumpWasActive = false;
   private attackWasActive: Record<AttackIntent, boolean> = {
     attack_light: false,
+    attack_heavy: false,
     attack_projectile: false,
+    attack_quick_projectile: false,
   };
   private hadMovementIntent = false;
 
