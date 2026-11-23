@@ -39,7 +39,7 @@ function applyActiveLoadout(): void {
   for (const action of BODY_ACTIONS) INTENT_KEY_CODES[action.control.inputIntent] = [];
   loadouts[activeLoadout]!.forEach((id, slot) => {
     const action = id ? actions.get(id) : undefined;
-    if (action) INTENT_KEY_CODES[action.control.inputIntent] = [CONTROL_SLOTS[slot]!];
+    if (action) INTENT_KEY_CODES[action.control.inputIntent] = [CONTROL_SLOTS[slot]!, ...(slot === 0 ? ['Mouse0'] : [])];
   });
 }
 
@@ -50,7 +50,7 @@ function changed(): void {
   } catch {
     // El juego sigue usando el perfil activo aunque el navegador no permita persistirlo.
   }
-  clearHeldKeyCodes(CONTROL_SLOTS);
+  clearHeldKeyCodes([...CONTROL_SLOTS, 'Mouse0']);
   applyActiveLoadout();
   window.dispatchEvent(new Event('ability-loadout-changed'));
   listeners.forEach((listener) => listener());
