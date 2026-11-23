@@ -24,7 +24,7 @@ type inputActionCatalog interface {
 	GetByInputIntent(intent string) (string, *port.CombatProfile)
 }
 
-var oneShotActionIntents = [...]string{"attack_light", "attack_projectile", "attack_heavy", "attack_quick_projectile"}
+var oneShotActionIntents = [...]string{"attack_light", "attack_projectile", "attack_heavy", "attack_quick_projectile", "attack_shockwave"}
 var sustainedActionIntents = [...]string{"continuous_attack", "continuous_aura"}
 
 // HandleInput applies a fresh input snapshot and starts one-shot or sustained actions on intent edges.
