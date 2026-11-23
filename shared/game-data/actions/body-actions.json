@@ -27,7 +27,7 @@
         "interrupt": { "blocks": ["run", "walk", "swim", "jump"] }
       },
       "appearance": { "state": "attack", "clip": "kamehameha" },
-      "projectile": { "speed": 18, "range": 28, "damage": 30, "radius": 0.55, "delayMs": 1033 }
+      "impact": { "shape": "projectile", "origin": "caster", "reach": 28, "speed": 18, "damage": 30, "radius": 0.55, "delayMs": 1033 }
     },
     {
       "id": "rayo_de_ki",

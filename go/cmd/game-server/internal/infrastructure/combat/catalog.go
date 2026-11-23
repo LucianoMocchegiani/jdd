@@ -24,15 +24,8 @@ type actionFile struct {
 				Not struct { Medium []string `json:"medium"` } `json:"not"`
 			} `json:"when"`
 		} `json:"control"`
-		Impact     *port.DamageProfile    `json:"impact"`
-		Targeting  *port.TargetingProfile `json:"targeting"`
-		Projectile *struct {
-			Speed   float64 `json:"speed"`
-			Range   float64 `json:"range"`
-			Damage  float64 `json:"damage"`
-			Radius  float64 `json:"radius"`
-			DelayMs int     `json:"delayMs"`
-		} `json:"projectile"`
+		Impact    *port.DamageProfile    `json:"impact"`
+		Targeting *port.TargetingProfile `json:"targeting"`
 	} `json:"actions"`
 }
 
@@ -61,28 +54,21 @@ func LoadCatalog(path string) (*Catalog, error) {
 			if action.Impact.Origin == "" { action.Impact.Origin = "caster" }
 			valid := action.Impact.Damage > 0 && ((shape == "line" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Width >= 0 && action.Impact.Width <= 5) ||
 				(shape == "swept_arc" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Reach <= 10 && action.Impact.SweepDegrees > 0 && action.Impact.SweepDegrees <= 180) ||
-				(shape == "radial" && (action.Impact.Origin == "caster" || action.Impact.Origin == "target") && action.Impact.Radius > 0 && action.Impact.Radius <= 10))
+				(shape == "radial" && (action.Impact.Origin == "caster" || action.Impact.Origin == "target") && action.Impact.Radius > 0 && action.Impact.Radius <= 10) ||
+				(shape == "projectile" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Reach <= 1000 && action.Impact.Speed > 0 && action.Impact.Speed <= 100 && action.Impact.Radius > 0 && action.Impact.Radius <= 5 && action.Impact.DelayMs >= 0 && action.Impact.DelayMs <= 10000))
 			if !valid { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
 		}
 		if action.Targeting != nil && (action.Targeting.Type != "ground_point" || action.Targeting.Range <= 0 || action.Targeting.Range > 100 || (action.Targeting.Effect != "orb" && action.Targeting.Effect != "thunder")) {
 			return nil, fmt.Errorf("action %q has invalid targeting profile", action.ID)
 		}
-		if action.Targeting != nil && (action.Impact == nil || action.Impact.Shape != "radial" || action.Impact.Origin != "target" || action.Projectile != nil) {
+		if action.Targeting != nil && (action.Impact == nil || action.Impact.Shape != "radial" || action.Impact.Origin != "target") {
 			return nil, fmt.Errorf("action %q targeting requires a radial impact with target origin", action.ID)
 		}
 		if action.Impact != nil && action.Impact.Origin == "target" && action.Targeting == nil {
 			return nil, fmt.Errorf("action %q target-origin impact requires targeting", action.ID)
 		}
-		if action.Control.Type == "sustained" && (action.ManaCostPerSecond <= 0 || action.DamageIntervalMs <= 0 || action.Impact == nil || action.Projectile != nil) {
+		if action.Control.Type == "sustained" && (action.ManaCostPerSecond <= 0 || action.DamageIntervalMs <= 0 || action.Impact == nil || action.Impact.Shape == "projectile") {
 			return nil, fmt.Errorf("action %q has invalid sustained profile", action.ID)
-		}
-		var projectile *port.ProjectileProfile
-		if action.Projectile != nil {
-			p := action.Projectile
-			if action.CooldownMs <= 0 || p.Speed <= 0 || p.Range <= 0 || p.Damage <= 0 || p.Radius <= 0 || p.DelayMs < 0 || p.Speed > 100 || p.Range > 1000 || p.Radius > 5 || p.DelayMs > 10000 {
-				return nil, fmt.Errorf("action %q has invalid projectile profile", action.ID)
-			}
-			projectile = &port.ProjectileProfile{Speed: p.Speed, Range: p.Range, Damage: p.Damage, Radius: p.Radius, Delay: time.Duration(p.DelayMs) * time.Millisecond}
 		}
 		if _, exists := catalog.profiles[action.ID]; exists { return nil, fmt.Errorf("duplicate action id %q", action.ID) }
 		catalog.profiles[action.ID] = &port.CombatProfile{
@@ -90,9 +76,9 @@ func LoadCatalog(path string) (*Catalog, error) {
 			Cooldown: time.Duration(action.CooldownMs) * time.Millisecond,
 			ManaCost: action.ManaCost, ManaCostPerSecond: action.ManaCostPerSecond,
 			DamageInterval: time.Duration(action.DamageIntervalMs) * time.Millisecond,
-			BlockedMediums: action.Control.When.Not.Medium, Impact: action.Impact, Targeting: action.Targeting, Projectile: projectile,
+			BlockedMediums: action.Control.When.Not.Medium, Impact: action.Impact, Targeting: action.Targeting,
 		}
-		if action.Control.InputIntent != "" && (action.Impact != nil || action.Targeting != nil || projectile != nil) {
+		if action.Control.InputIntent != "" && (action.Impact != nil || action.Targeting != nil) {
 			if _, exists := catalog.byInputIntent[action.Control.InputIntent]; exists { return nil, fmt.Errorf("duplicate combat input intent %q", action.Control.InputIntent) }
 			catalog.byInputIntent[action.Control.InputIntent] = action.ID
 		}

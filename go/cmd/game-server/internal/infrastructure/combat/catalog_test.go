@@ -9,7 +9,7 @@ import (
 
 func TestLoadActionCombatProfile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "actions.json")
-	data := `{"actions":[{"id":"attack","cooldownMs":500,"control":{"inputIntent":"attack_light","when":{"not":{"medium":["air","submerged_full"]}}},"impact":{"reach":2,"damage":15}},{"id":"kamehameha","cooldownMs":3000,"manaCost":20,"control":{"inputIntent":"attack_projectile"},"projectile":{"speed":18,"range":28,"damage":30,"radius":0.55,"delayMs":1033}}]}`
+	data := `{"actions":[{"id":"attack","cooldownMs":500,"control":{"inputIntent":"attack_light","when":{"not":{"medium":["air","submerged_full"]}}},"impact":{"reach":2,"damage":15}},{"id":"kamehameha","cooldownMs":3000,"manaCost":20,"control":{"inputIntent":"attack_projectile"},"impact":{"shape":"projectile","origin":"caster","speed":18,"reach":28,"damage":30,"radius":0.55,"delayMs":1033}}]}`
 	if err := os.WriteFile(path, []byte(data), 0600); err != nil { t.Fatal(err) }
 	catalog, err := LoadCatalog(path)
 	if err != nil { t.Fatal(err) }
@@ -21,9 +21,9 @@ func TestLoadActionCombatProfile(t *testing.T) {
 		t.Fatalf("projectile input resolved to %q/%+v", id, profile)
 	}
 	projectileProfile := catalog.Get("kamehameha")
-	projectile := projectileProfile.Projectile
-	if projectileProfile.ManaCost != 20 || projectile == nil || projectile.Speed != 18 || projectile.Range != 28 || projectile.Damage != 30 || projectile.Radius != 0.55 || projectile.Delay != 1033*time.Millisecond {
-		t.Fatalf("unexpected projectile profile: %+v", projectileProfile)
+	impact := projectileProfile.Impact
+	if projectileProfile.ManaCost != 20 || impact == nil || impact.Shape != "projectile" || impact.Origin != "caster" || impact.Speed != 18 || impact.Reach != 28 || impact.Damage != 30 || impact.Radius != 0.55 || impact.DelayMs != 1033 {
+		t.Fatalf("unexpected projectile impact profile: %+v", projectileProfile)
 	}
 }
 
