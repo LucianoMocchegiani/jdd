@@ -1,9 +1,3 @@
-/**
- * @file Estado compartido de teclas físicas y virtuales.
- *
- * Los eventos de teclado se capturan una sola vez; controles táctiles actualizan
- * el mismo estado virtual para reutilizar el pipeline normal de intents.
- */
 import { logInputKey } from '@/game/debug/input-flow-debug';
 
 const HELD = new Set<string>();
@@ -33,9 +27,12 @@ const GAME_KEY_CODES = new Set([
   'ShiftRight',
   'KeyF',
   'KeyG',
+  'KeyQ',
+  'KeyE',
   'KeyC',
   'KeyR',
   'KeyT',
+  'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0',
   'Mouse0',
 ]);
 
