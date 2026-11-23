@@ -78,6 +78,14 @@ export function setVirtualKeyHeld(code: string, held: boolean): void {
   else VIRTUAL_HELD.delete(code);
 }
 
+/** Discards held control keys before changing which actions they resolve to. */
+export function clearHeldKeyCodes(codes: readonly string[]): void {
+  for (const code of codes) {
+    HELD.delete(code);
+    VIRTUAL_HELD.delete(code);
+  }
+}
+
 /** @param code - `KeyboardEvent.code` */
 export function isKeyHeld(code: string): boolean {
   return HELD.has(code) || VIRTUAL_HELD.has(code);
