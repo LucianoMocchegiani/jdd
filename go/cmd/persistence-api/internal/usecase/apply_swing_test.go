@@ -14,5 +14,5 @@ func TestActionCombatProfileLoad(t *testing.T) {
 	aura := c.Get("aura_de_ki")
 	if aura == nil || aura.Impact == nil || aura.Impact.Shape != "radial" || aura.Impact.Radius != 3 { t.Fatalf("unexpected aura profile: %+v", aura) }
 	projectile := c.Get("kamehameha")
-	if projectile == nil || projectile.ProjectileDamage != 30 { t.Fatalf("unexpected projectile profile: %+v", projectile) }
+	if projectile == nil || projectile.Impact == nil || projectile.Impact.Shape != "projectile" || projectile.Impact.Damage != 30 { t.Fatalf("unexpected projectile profile: %+v", projectile) }
 }

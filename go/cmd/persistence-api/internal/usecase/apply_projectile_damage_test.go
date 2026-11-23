@@ -19,7 +19,7 @@ func TestProjectileDamagesOnlyTheSolidParticleHit(t *testing.T) {
 			"rock-nearby": {ID: "rock-nearby", Integridad: 10, Dureza: 1},
 		},
 	}
-	service := usecase.NewSwingService(repo, swingCatalog{&domain.CombatProfile{ActionID: "kamehameha", ProjectileDamage: 30}}, &swingEvents{}, nil)
+	service := usecase.NewSwingService(repo, swingCatalog{&domain.CombatProfile{ActionID: "kamehameha", Impact: &domain.ImpactProfile{Shape: "projectile", Damage: 30}}}, &swingEvents{}, nil)
 	out, err := service.ApplySwing(context.Background(), usecase.SwingCommand{
 		BloqueID: "block", PlayerID: "attacker", ActionID: "kamehameha", EntityID: 1, Seq: 1,
 		ParticleID: "rock-hit", ParticleX: 1, ParticleY: -3, ParticleZ: 1,
