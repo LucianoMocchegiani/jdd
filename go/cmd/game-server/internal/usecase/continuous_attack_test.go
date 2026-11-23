@@ -71,7 +71,7 @@ func TestSnapshotRadialTargetsRequireRangeAndClearLineOfSight(t *testing.T) {
 	sess.AddPlayer("behind-wall", 2, 0, 0, 0, 0)
 	sess.AddPlayer("outside", 4, 0, 0, 0, 0)
 	sess.SolidGrid.MergeSolidCells([]string{cellkey.Format(1, 0, 0)})
-	profile := &port.CombatProfile{Impact: &port.DamageProfile{Shape: "radial", Radius: 3, Damage: 5}}
+	profile := &port.CombatProfile{Impact: &port.DamageProfile{Shape: "radial", Radius: 3, Damage: 5, BlockBySolids: true}}
 	cmd := port.SwingCommand{PlayerID: "caster", PosX: 0, PosY: 0, PosZ: 0}
 	targets := snapshotSwingTargets(sess, cmd, profile)
 	if len(targets) != 1 || targets[0].PlayerID != "visible" {
