@@ -34,6 +34,24 @@ func HitsPlayerWithSweptArc(origin Point, yaw float64, target Point, reach, swee
 	return strikeZ >= target.Z-0.3 && strikeZ <= target.Z+playerHitboxHeight+0.3
 }
 
+// HitsWorldCellWithSweptArc tests a solid cell against the same horizontal sword-sweep sector.
+func HitsWorldCellWithSweptArc(origin Point, yaw float64, x, y, z int, reach, sweepDegrees float64) bool {
+	if reach <= 0 || sweepDegrees <= 0 || sweepDegrees > 180 {
+		return false
+	}
+	dx, dy := float64(x)-origin.X, float64(y)-origin.Y
+	forward, lateral := signedPlanarHit(origin, yaw, float64(x), float64(y))
+	distance := math.Hypot(dx, dy)
+	if forward < -0.5 || distance > reach+0.5 || math.Abs(float64(z)-(origin.Z+1)) > 1 {
+		return false
+	}
+	if distance > 0.5 && math.Abs(math.Atan2(lateral, forward)) > sweepDegrees*math.Pi/360+math.Asin(math.Min(1, 0.5/distance)) {
+		return false
+	}
+	return true
+}
+
+// shortcut: fixed unobstructed sector/capsule; replace with swept per-part collision and occlusion when available.
 func HitsPlayer(origin Point, yaw float64, target Point, reach float64) bool {
 	return HitsPlayerWithWidth(origin, yaw, target, reach, defaultImpactWidth)
 }
@@ -53,23 +71,6 @@ func HitsPlayerWithWidth(origin Point, yaw float64, target Point, reach, width f
 	}
 	strikeZ := origin.Z + 1
 	return strikeZ >= target.Z-0.3 && strikeZ <= target.Z+playerHitboxHeight+0.3
-}
-
-// HitsWorldCellWithSweptArc tests a solid cell against the same horizontal sword-sweep sector.
-func HitsWorldCellWithSweptArc(origin Point, yaw float64, x, y, z int, reach, sweepDegrees float64) bool {
-	if reach <= 0 || sweepDegrees <= 0 || sweepDegrees > 180 {
-		return false
-	}
-	dx, dy := float64(x)-origin.X, float64(y)-origin.Y
-	forward, lateral := signedPlanarHit(origin, yaw, float64(x), float64(y))
-	distance := math.Hypot(dx, dy)
-	if forward < -0.5 || distance > reach+0.5 || math.Abs(float64(z)-(origin.Z+1)) > 1 {
-		return false
-	}
-	if distance > 0.5 && math.Abs(math.Atan2(lateral, forward)) > sweepDegrees*math.Pi/360+math.Asin(math.Min(1, 0.5/distance)) {
-		return false
-	}
-	return true
 }
 
 // HitsWorldCell approximates contact with one particle cell in front of the player.
