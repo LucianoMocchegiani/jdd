@@ -16,6 +16,20 @@
       "impact": { "shape": "swept_arc", "origin": "caster", "reach": 2, "sweepDegrees": 120, "damage": 15 }
     },
     {
+      "id": "golpe_pesado",
+      "description": "Golpe pesado de corto alcance en un arco frontal.",
+      "cooldownMs": 1200,
+      "control": {
+        "inputIntent": "attack_heavy",
+        "slot": "body_actions",
+        "type": "one_shot",
+        "when": { "not": { "medium": ["air", "submerged_full"] } },
+        "interrupt": { "blocks": ["run", "walk", "swim", "jump"] }
+      },
+      "appearance": { "state": "attack", "clip": "attack" },
+      "impact": { "shape": "swept_arc", "origin": "caster", "reach": 2.5, "sweepDegrees": 120, "damage": 25 }
+    },
+    {
       "id": "kamehameha",
       "description": "Proyectil de energía autoritativo; se dispara tras la carga de la animación.",
       "cooldownMs": 3000,
@@ -28,6 +42,20 @@
       },
       "appearance": { "state": "attack", "clip": "kamehameha" },
       "impact": { "shape": "projectile", "origin": "caster", "reach": 28, "speed": 18, "damage": 30, "radius": 0.55, "delayMs": 1033 }
+    },
+    {
+      "id": "esfera_rapida",
+      "description": "Proyectil de energía rápido y pequeño.",
+      "cooldownMs": 1200,
+      "manaCost": 10,
+      "control": {
+        "inputIntent": "attack_quick_projectile",
+        "slot": "body_actions",
+        "type": "one_shot",
+        "interrupt": { "blocks": ["run", "walk", "swim", "jump"] }
+      },
+      "appearance": { "state": "attack", "clip": "kamehameha" },
+      "impact": { "shape": "projectile", "origin": "caster", "reach": 18, "speed": 30, "damage": 18, "radius": 0.35 }
     },
     {
       "id": "rayo_de_ki",

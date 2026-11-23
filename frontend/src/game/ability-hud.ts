@@ -13,11 +13,13 @@ const cooldownUntil = new Map<string, number>();
 const actionById = new Map(BODY_ACTIONS.map((action) => [action.id, action]));
 const prettyKey = (code: string): string => code === 'Mouse0' ? 'Click izq.' : code.replace(/^Key/, '');
 const actionName = (id: string): string => id === 'attack' ? 'Ataque'
-  : id === 'kamehameha' ? 'Kamehameha'
-    : id === 'rayo_de_ki' ? 'Rayo de Ki'
-      : id === 'aura_de_ki' ? 'Aura de Ki'
-        : id === 'orbe_explosivo' ? 'Orbe explosivo'
-          : id === 'trueno' ? 'Trueno' : id.replaceAll('_', ' ');
+  : id === 'golpe_pesado' ? 'Golpe pesado'
+    : id === 'esfera_rapida' ? 'Esfera rápida'
+      : id === 'kamehameha' ? 'Kamehameha'
+        : id === 'rayo_de_ki' ? 'Rayo de Ki'
+          : id === 'aura_de_ki' ? 'Aura de Ki'
+            : id === 'orbe_explosivo' ? 'Orbe explosivo'
+              : id === 'trueno' ? 'Trueno' : id.replaceAll('_', ' ');
 
 type HudRow = { item: HTMLButtonElement; clock: HTMLElement; cooldown: HTMLElement; cooldownMs: number; label: string; name: string; key: string };
 
