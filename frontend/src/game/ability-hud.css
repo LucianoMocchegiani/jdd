@@ -17,8 +17,9 @@
   flex-direction: column;
   gap: 8px;
   max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 36px);
   padding: 10px;
-  overflow-x: auto;
+  overflow: auto;
   border: 1px solid rgba(148, 163, 184, 0.3);
   border-radius: 10px;
   background: rgba(15, 23, 42, 0.92);
