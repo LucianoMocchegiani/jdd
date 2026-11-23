@@ -11,6 +11,7 @@ import {
 import type { TerrainStore } from '@/game/terrain/terrain-store';
 
 const TARGET_REQUEST_EVENT = 'area-ability-target';
+const LOADOUT_CHANGED_EVENT = 'ability-loadout-changed';
 type CastAreaSpell = (action: ActionDefinition, target: CellPosition) => void;
 
 /** Maneja la selección local de objetivos y los efectos visuales autoritativos de R/T. */
@@ -80,7 +81,7 @@ export class AreaSpellVisuals {
   }
 }
 
-/** Captura R/T y confirma un objetivo válido del terreno con clic izquierdo. */
+/** Maneja selección del punto objetivo usando la tecla configurada y clic izquierdo. */
 class AreaAbilityTargeting {
   private readonly raycaster = new Raycaster();
   private readonly pointer = new Vector2();
@@ -108,6 +109,7 @@ class AreaAbilityTargeting {
     scene.add(this.marker);
     document.addEventListener('keydown', this.onKeyDown, true);
     window.addEventListener(TARGET_REQUEST_EVENT, this.onTargetRequest);
+    window.addEventListener(LOADOUT_CHANGED_EVENT, this.cancel);
     window.addEventListener('blur', this.cancel);
     canvas.addEventListener('pointermove', this.onPointerMove);
     canvas.addEventListener('click', this.onClick, true);
