@@ -1,3 +1,4 @@
+// Package combat loads combat profiles from the shared action registry.
 package combat
 
 import (
@@ -14,43 +15,69 @@ type catalogFile struct {
 	Actions []struct {
 		ID         string                `json:"id"`
 		Impact     *domain.ImpactProfile `json:"impact"`
-		Projectile *struct { Damage float64 `json:"damage"` } `json:"projectile"`
+		Projectile *struct {
+			Damage float64 `json:"damage"`
+		} `json:"projectile"`
 	} `json:"actions"`
 }
 
+// Catalog stores validated damage profiles by action ID.
 type Catalog struct {
 	mu       sync.RWMutex
 	profiles map[string]*domain.CombatProfile
 }
 
+// LoadCatalog reads action data and rejects profiles with invalid or conflicting damage modes.
 func LoadCatalog(path string) (*Catalog, error) {
 	data, err := os.ReadFile(path)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	var raw catalogFile
-	if err := json.Unmarshal(data, &raw); err != nil { return nil, err }
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, err
+	}
 	c := &Catalog{profiles: make(map[string]*domain.CombatProfile)}
 	for _, action := range raw.Actions {
-		if action.ID == "" { return nil, fmt.Errorf("action without id") }
+		if action.ID == "" {
+			return nil, fmt.Errorf("action without id")
+		}
 		if action.Impact != nil {
 			shape := action.Impact.Shape
-			if shape == "" { shape = "line"; action.Impact.Shape = shape }
-			if action.Impact.Origin == "" { action.Impact.Origin = "caster" }
+			if shape == "" {
+				shape = "line"
+				action.Impact.Shape = shape
+			}
+			if action.Impact.Origin == "" {
+				action.Impact.Origin = "caster"
+			}
 			valid := action.Impact.Damage > 0 && ((shape == "line" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Width >= 0 && action.Impact.Width <= 5) ||
 				(shape == "swept_arc" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Reach <= 10 && action.Impact.SweepDegrees > 0 && action.Impact.SweepDegrees <= 180) ||
 				(shape == "radial" && (action.Impact.Origin == "caster" || action.Impact.Origin == "target") && action.Impact.Radius > 0 && action.Impact.Radius <= 10))
-			if !valid { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
+			if !valid {
+				return nil, fmt.Errorf("action %q has invalid impact", action.ID)
+			}
 		}
 		var projectileDamage float64
-		if action.Projectile != nil { projectileDamage = action.Projectile.Damage; if projectileDamage <= 0 { return nil, fmt.Errorf("action %q has invalid projectile", action.ID) } }
-		if _, exists := c.profiles[action.ID]; exists { return nil, fmt.Errorf("duplicate action id %q", action.ID) }
+		if action.Projectile != nil {
+			projectileDamage = action.Projectile.Damage
+			if projectileDamage <= 0 {
+				return nil, fmt.Errorf("action %q has invalid projectile", action.ID)
+			}
+		}
+		if _, exists := c.profiles[action.ID]; exists {
+			return nil, fmt.Errorf("duplicate action id %q", action.ID)
+		}
 		c.profiles[action.ID] = &domain.CombatProfile{ActionID: action.ID, Impact: action.Impact, ProjectileDamage: projectileDamage}
 	}
 	return c, nil
 }
 
+// Get returns the persistence-side damage profile for an action, or nil if absent.
 func (c *Catalog) Get(actionID string) *domain.CombatProfile {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.profiles[actionID]
 }
+
 var _ port.CombatCatalog = (*Catalog)(nil)

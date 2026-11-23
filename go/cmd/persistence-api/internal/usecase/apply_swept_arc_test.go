@@ -29,7 +29,13 @@ func TestSweptArcDamagesOnlyParticlesAndPlayersInTheFrontSector(t *testing.T) {
 			{PlayerID: "side-player", EntityID: 3, X: 1.5},
 		},
 	})
-	if err != nil { t.Fatal(err) }
-	if len(repo.deleted) != 1 || repo.deleted[0] != "front" || repo.applied["side"] != 0 { t.Fatalf("unexpected particle impact: deleted=%v applied=%v", repo.deleted, repo.applied) }
-	if out.TargetPlayerID != "front-player" || out.EntityDamage != 5 { t.Fatalf("unexpected player damage result: %+v", out) }
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(repo.deleted) != 1 || repo.deleted[0] != "front" || repo.applied["side"] != 0 {
+		t.Fatalf("unexpected particle impact: deleted=%v applied=%v", repo.deleted, repo.applied)
+	}
+	if out.TargetPlayerID != "front-player" || out.EntityDamage != 5 {
+		t.Fatalf("unexpected player damage result: %+v", out)
+	}
 }

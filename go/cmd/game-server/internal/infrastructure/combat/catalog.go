@@ -1,93 +1,111 @@
 package combat
 
-import (
-	"encoding/json"
-	"fmt"
-	"os"
-	"time"
+import "math"
 
-	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
+// Point uses world coordinates where Z is vertical.
+type Point struct {
+	X, Y, Z float64
+}
+
+const (
+	playerHitboxRadius = 0.45
+	playerHitboxHeight = 1.8
+	defaultImpactWidth = 0.65
 )
 
-type actionFile struct {
-	Actions []struct {
-		ID                string  `json:"id"`
-		CooldownMs        int     `json:"cooldownMs"`
-		ManaCost          float64 `json:"manaCost"`
-		ManaCostPerSecond float64 `json:"manaCostPerSecond"`
-		DamageIntervalMs  int     `json:"damageIntervalMs"`
-		Control           struct {
-			InputIntent string `json:"inputIntent"`
-			Type        string `json:"type"`
-			When        struct {
-				Not struct { Medium []string `json:"medium"` } `json:"not"`
-			} `json:"when"`
-		} `json:"control"`
-		Impact     *port.DamageProfile    `json:"impact"`
-		Targeting  *port.TargetingProfile `json:"targeting"`
-		Projectile *struct {
-			Speed   float64 `json:"speed"`
-			Range   float64 `json:"range"`
-			Damage  float64 `json:"damage"`
-			Radius  float64 `json:"radius"`
-			DelayMs int     `json:"delayMs"`
-		} `json:"projectile"`
-	} `json:"actions"`
-}
-
-type Catalog struct {
-	profiles      map[string]*port.CombatProfile
-	byInputIntent map[string]string
-}
-
-func LoadCatalog(path string) (*Catalog, error) {
-	data, err := os.ReadFile(path)
-	if err != nil { return nil, err }
-	var raw actionFile
-	if err := json.Unmarshal(data, &raw); err != nil { return nil, err }
-	catalog := &Catalog{profiles: make(map[string]*port.CombatProfile), byInputIntent: make(map[string]string)}
-	for _, action := range raw.Actions {
-		if action.ID == "" { return nil, fmt.Errorf("action without id") }
-		if action.ManaCost < 0 || action.ManaCostPerSecond < 0 { return nil, fmt.Errorf("action %q has invalid mana cost", action.ID) }
-		if action.Impact != nil {
-			if action.Control.Type != "sustained" && action.CooldownMs <= 0 { return nil, fmt.Errorf("action %q has combat impact without positive cooldownMs", action.ID) }
-			shape := action.Impact.Shape
-			if shape == "" { shape = "line"; action.Impact.Shape = shape }
-			if action.Impact.Origin == "" { action.Impact.Origin = "caster" }
-			valid := action.Impact.Damage > 0 && ((shape == "line" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Width >= 0 && action.Impact.Width <= 5) ||
-				(shape == "swept_arc" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Reach <= 10 && action.Impact.SweepDegrees > 0 && action.Impact.SweepDegrees <= 180) ||
-				(shape == "radial" && (action.Impact.Origin == "caster" || action.Impact.Origin == "target") && action.Impact.Radius > 0 && action.Impact.Radius <= 10))
-			if !valid { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
-		}
-		if action.Targeting != nil && (action.Targeting.Type != "ground_point" || action.Targeting.Range <= 0 || action.Targeting.Range > 100 || (action.Targeting.Effect != "orb" && action.Targeting.Effect != "thunder")) { return nil, fmt.Errorf("action %q has invalid targeting profile", action.ID) }
-		if action.Targeting != nil && (action.Impact == nil || action.Impact.Shape != "radial" || action.Impact.Origin != "target" || action.Projectile != nil) { return nil, fmt.Errorf("action %q targeting requires a radial impact with target origin", action.ID) }
-		if action.Impact != nil && action.Impact.Origin == "target" && action.Targeting == nil { return nil, fmt.Errorf("action %q target-origin impact requires targeting", action.ID) }
-		if action.Control.Type == "sustained" && (action.ManaCostPerSecond <= 0 || action.DamageIntervalMs <= 0 || action.Impact == nil || action.Projectile != nil) { return nil, fmt.Errorf("action %q has invalid sustained profile", action.ID) }
-		var projectile *port.ProjectileProfile
-		if action.Projectile != nil {
-			p := action.Projectile
-			if action.CooldownMs <= 0 || p.Speed <= 0 || p.Range <= 0 || p.Damage <= 0 || p.Radius <= 0 || p.DelayMs < 0 || p.Speed > 100 || p.Range > 1000 || p.Radius > 5 || p.DelayMs > 10000 { return nil, fmt.Errorf("action %q has invalid projectile profile", action.ID) }
-			projectile = &port.ProjectileProfile{Speed: p.Speed, Range: p.Range, Damage: p.Damage, Radius: p.Radius, Delay: time.Duration(p.DelayMs) * time.Millisecond}
-		}
-		if _, exists := catalog.profiles[action.ID]; exists { return nil, fmt.Errorf("duplicate action id %q", action.ID) }
-		catalog.profiles[action.ID] = &port.CombatProfile{
-			InputIntent: action.Control.InputIntent, ControlType: action.Control.Type,
-			Cooldown: time.Duration(action.CooldownMs) * time.Millisecond,
-			ManaCost: action.ManaCost, ManaCostPerSecond: action.ManaCostPerSecond,
-			DamageInterval: time.Duration(action.DamageIntervalMs) * time.Millisecond,
-			BlockedMediums: action.Control.When.Not.Medium, Impact: action.Impact, Targeting: action.Targeting, Projectile: projectile,
-		}
-		if action.Control.InputIntent != "" && (action.Impact != nil || action.Targeting != nil || projectile != nil) {
-			if _, exists := catalog.byInputIntent[action.Control.InputIntent]; exists { return nil, fmt.Errorf("duplicate combat input intent %q", action.Control.InputIntent) }
-			catalog.byInputIntent[action.Control.InputIntent] = action.ID
+// shortcut: horizontal sector checked once on input, not a time-sampled 3D blade path; improve when animation exposes hit windows.
+func HitsPlayerWithSweptArc(origin Point, yaw float64, target Point, reach, sweepDegrees float64) bool {
+	if reach <= 0 || sweepDegrees <= 0 || sweepDegrees > 180 {
+		return false
+	}
+	dx, dy := target.X-origin.X, target.Y-origin.Y
+	forward, lateral := signedPlanarHit(origin, yaw, target.X, target.Y)
+	distance := math.Hypot(dx, dy)
+	if forward < -playerHitboxRadius || distance > reach+playerHitboxRadius {
+		return false
+	}
+	if distance > playerHitboxRadius {
+		allowance := math.Asin(math.Min(1, playerHitboxRadius/distance))
+		if math.Abs(math.Atan2(lateral, forward)) > sweepDegrees*math.Pi/360+allowance {
+			return false
 		}
 	}
-	return catalog, nil
+	strikeZ := origin.Z + 1
+	return strikeZ >= target.Z-0.3 && strikeZ <= target.Z+playerHitboxHeight+0.3
 }
 
-func (c *Catalog) Get(actionID string) *port.CombatProfile { return c.profiles[actionID] }
-func (c *Catalog) GetByInputIntent(intent string) (string, *port.CombatProfile) {
-	id := c.byInputIntent[intent]
-	return id, c.profiles[id]
+// shortcut: fixed unobstructed sector/capsule; replace with swept per-part collision and occlusion when available.
+func HitsPlayer(origin Point, yaw float64, target Point, reach float64) bool {
+	return HitsPlayerWithWidth(origin, yaw, target, reach, defaultImpactWidth)
 }
-var _ port.CombatCatalog = (*Catalog)(nil)
+
+// HitsPlayerWithWidth tests a target against the line attack using the configured lateral width.
+// A zero width keeps the historical default; a negative width is rejected.
+func HitsPlayerWithWidth(origin Point, yaw float64, target Point, reach, width float64) bool {
+	if width < 0 {
+		return false
+	}
+	if width == 0 {
+		width = defaultImpactWidth
+	}
+	forward, lateral := planarHit(origin, yaw, target.X, target.Y)
+	if forward <= 0 || forward > reach+playerHitboxRadius || lateral > width+playerHitboxRadius {
+		return false
+	}
+	strikeZ := origin.Z + 1
+	return strikeZ >= target.Z-0.3 && strikeZ <= target.Z+playerHitboxHeight+0.3
+}
+
+// HitsWorldCellWithSweptArc tests a solid cell against the same horizontal sword-sweep sector.
+func HitsWorldCellWithSweptArc(origin Point, yaw float64, x, y, z int, reach, sweepDegrees float64) bool {
+	if reach <= 0 || sweepDegrees <= 0 || sweepDegrees > 180 {
+		return false
+	}
+	dx, dy := float64(x)-origin.X, float64(y)-origin.Y
+	forward, lateral := signedPlanarHit(origin, yaw, float64(x), float64(y))
+	distance := math.Hypot(dx, dy)
+	if forward < -0.5 || distance > reach+0.5 || math.Abs(float64(z)-(origin.Z+1)) > 1 {
+		return false
+	}
+	if distance > 0.5 && math.Abs(math.Atan2(lateral, forward)) > sweepDegrees*math.Pi/360+math.Asin(math.Min(1, 0.5/distance)) {
+		return false
+	}
+	return true
+}
+
+// HitsWorldCell approximates contact with one particle cell in front of the player.
+func HitsWorldCell(origin Point, yaw float64, x, y, z int, reach float64) bool {
+	return HitsWorldCellWithWidth(origin, yaw, x, y, z, reach, defaultImpactWidth)
+}
+
+// HitsWorldCellWithWidth tests a world cell against the line attack's configured lateral width.
+// A zero width keeps the historical default; a negative width is rejected.
+func HitsWorldCellWithWidth(origin Point, yaw float64, x, y, z int, reach, width float64) bool {
+	if width < 0 {
+		return false
+	}
+	if width == 0 {
+		width = defaultImpactWidth
+	}
+	cell := Point{float64(x), float64(y), float64(z)}
+	forward, lateral := planarHit(origin, yaw, cell.X, cell.Y)
+	return forward > 0 && forward <= reach+0.5 && lateral <= width && math.Abs(cell.Z-(origin.Z+1)) <= 1
+}
+
+// ForwardDistance projects a point onto the attack direction for impact ordering.
+func ForwardDistance(origin Point, yaw, x, y float64) float64 {
+	forward, _ := planarHit(origin, yaw, x, y)
+	return forward
+}
+
+func planarHit(origin Point, yaw, x, y float64) (forward, lateral float64) {
+	forward, lateral = signedPlanarHit(origin, yaw, x, y)
+	return forward, math.Abs(lateral)
+}
+
+func signedPlanarHit(origin Point, yaw, x, y float64) (forward, lateral float64) {
+	dx, dy := x-origin.X, y-origin.Y
+	fx, fy := -math.Sin(yaw), -math.Cos(yaw)
+	rightX, rightY := math.Cos(yaw), -math.Sin(yaw)
+	return dx*fx + dy*fy, dx*rightX + dy*rightY
+}
