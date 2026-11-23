@@ -14,10 +14,12 @@
 #ability-hud {
   position: static;
   display: flex;
+  flex-direction: column;
   gap: 8px;
   max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 36px);
   padding: 10px;
-  overflow-x: auto;
+  overflow: auto;
   border: 1px solid rgba(148, 163, 184, 0.3);
   border-radius: 10px;
   background: rgba(15, 23, 42, 0.92);
@@ -34,6 +36,46 @@
 
 #status {
   bottom: 72px;
+}
+
+.ability-hud__loadouts,
+.ability-hud__actions,
+.ability-hud__catalog,
+.ability-hud__slots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ability-hud__loadouts,
+.ability-hud__actions,
+.ability-hud__catalog {
+  flex-wrap: wrap;
+}
+
+.ability-hud__config,
+.ability-hud__edit,
+.ability-hud__catalog-item {
+  min-width: 28px;
+  min-height: 28px;
+  padding: 4px 7px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 5px;
+  background: #1e293b;
+  color: #e2e8f0;
+  font: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.ability-hud__config.active,
+.ability-hud__slot.selected {
+  border-color: #60a5fa;
+  background: #1e3a5f;
+}
+
+.ability-hud__edit {
+  margin-left: auto;
 }
 
 .ability-hud__item {
@@ -54,6 +96,10 @@
 }
 
 .ability-hud__item:focus-visible,
+.ability-hud__config:focus-visible,
+.ability-hud__edit:focus-visible,
+.ability-hud__catalog-item:focus-visible,
+.ability-hud__slot select:focus-visible,
 .mobile-controls__button:focus-visible {
   outline: 2px solid #60a5fa;
   outline-offset: 3px;
@@ -147,6 +193,52 @@
 
 .ability-hud__item.is-cooling-down .ability-hud__cooldown {
   color: #fbbf24;
+}
+
+.ability-hud__editor {
+  display: grid;
+  gap: 7px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  pointer-events: auto;
+}
+
+.ability-hud__editor strong {
+  font-size: 10px;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+.ability-hud__slots {
+  flex-wrap: wrap;
+}
+
+.ability-hud__slot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 5px;
+}
+
+.ability-hud__slot kbd {
+  color: #93c5fd;
+  font: 600 10px ui-monospace, monospace;
+}
+
+.ability-hud__slot select {
+  max-width: 110px;
+  padding: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 4px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font: inherit;
+}
+
+.ability-hud__catalog-item {
+  font-size: 10px;
 }
 
 @keyframes ability-cooldown-spin {
@@ -252,5 +344,9 @@ body.character-studio-mode #mobile-controls {
 
   .ability-hud__item {
     min-width: 60px;
+  }
+
+  .ability-hud__slots {
+    align-items: stretch;
   }
 }

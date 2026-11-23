@@ -8,6 +8,7 @@ import { logInputKey } from '@/game/debug/input-flow-debug';
 
 const HELD = new Set<string>();
 const VIRTUAL_HELD = new Set<string>();
+const SUPPRESSED_UNTIL_KEYUP = new Set<string>();
 let attached = false;
 
 /** `true` si el foco está en un campo editable (no capturar teclas de juego). */
@@ -33,9 +34,12 @@ const GAME_KEY_CODES = new Set([
   'ShiftRight',
   'KeyF',
   'KeyG',
+  'KeyQ',
+  'KeyE',
   'KeyC',
   'KeyR',
   'KeyT',
+  'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0',
   'Mouse0',
 ]);
 
@@ -46,11 +50,13 @@ export function attachKeyboardInput(): void {
   document.addEventListener('keydown', (event) => {
     if (isTextInputFocused()) return;
     if (GAME_KEY_CODES.has(event.code)) event.preventDefault();
+    if (SUPPRESSED_UNTIL_KEYUP.has(event.code)) return;
     const wasNew = !HELD.has(event.code);
     HELD.add(event.code);
     if (wasNew) logInputKey('down', event.code, getHeldKeyCodes());
   }, { capture: true });
   document.addEventListener('keyup', (event) => {
+    SUPPRESSED_UNTIL_KEYUP.delete(event.code);
     if (isTextInputFocused()) return;
     const had = HELD.delete(event.code);
     if (had) logInputKey('up', event.code, getHeldKeyCodes());
@@ -64,14 +70,15 @@ export function attachKeyboardInput(): void {
     ) {
       HELD.clear();
       VIRTUAL_HELD.clear();
+      SUPPRESSED_UNTIL_KEYUP.clear();
     }
   }, { capture: true });
   window.addEventListener('blur', () => {
-    if (HELD.size > 0 || VIRTUAL_HELD.size > 0) {
-      HELD.clear();
-      VIRTUAL_HELD.clear();
-      logInputKey('blur', '(cleared)', []);
-    }
+    const hadHeldKeys = HELD.size > 0 || VIRTUAL_HELD.size > 0;
+    HELD.clear();
+    VIRTUAL_HELD.clear();
+    SUPPRESSED_UNTIL_KEYUP.clear();
+    if (hadHeldKeys) logInputKey('blur', '(cleared)', []);
   });
 }
 
@@ -79,6 +86,15 @@ export function attachKeyboardInput(): void {
 export function setVirtualKeyHeld(code: string, held: boolean): void {
   if (held) VIRTUAL_HELD.add(code);
   else VIRTUAL_HELD.delete(code);
+}
+
+/** Discards held control keys before changing which actions they resolve to. */
+export function clearHeldKeyCodes(codes: readonly string[]): void {
+  for (const code of codes) {
+    if (HELD.has(code)) SUPPRESSED_UNTIL_KEYUP.add(code);
+    HELD.delete(code);
+    VIRTUAL_HELD.delete(code);
+  }
 }
 
 /** @param code - `KeyboardEvent.code` */
