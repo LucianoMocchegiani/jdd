@@ -209,11 +209,14 @@ export function mountAbilityHud(root: HTMLElement): void {
   }, true);
   window.addEventListener(COOLDOWN_EVENT, (event) => {
     const actionId = (event as CustomEvent<{ actionId: string }>).detail?.actionId;
-    const row = actionId ? rows.get(actionId) : undefined;
-    if (!row || row.cooldownMs <= 0) return;
-    cooldownUntil.set(actionId, performance.now() + row.cooldownMs);
-    startCooldown(row, row.cooldownMs);
-    announcement.textContent = `${row.name}: Enfriando`;
+    const cooldownMs = actionId ? actionById.get(actionId)?.cooldownMs ?? 0 : 0;
+    if (!actionId || cooldownMs <= 0) return;
+    cooldownUntil.set(actionId, performance.now() + cooldownMs);
+    const row = rows.get(actionId);
+    if (row) {
+      startCooldown(row, cooldownMs);
+      announcement.textContent = `${row.name}: Enfriando`;
+    }
   });
   root.addEventListener('animationend', (event) => {
     const clock = event.target;
