@@ -5,11 +5,12 @@ import { clearHeldKeyCodes } from '@/game/input/keyboard-state';
 const STORAGE_KEY = 'jdd.ability-loadouts.v1';
 export const LOADOUT_KEYS = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0'] as const;
 export const CONTROL_SLOTS = ['KeyF', 'KeyG', 'KeyQ', 'KeyE', 'KeyR', 'KeyT'] as const;
+const DEFAULT_LOADOUT = ['attack', 'kamehameha', 'rayo_de_ki', 'aura_de_ki', 'orbe_explosivo', 'trueno'];
 const actions = new Map(BODY_ACTIONS.map((action) => [action.id, action]));
 type Loadout = Array<string | null>;
 
 function defaults(): Loadout[] {
-  return Array.from({ length: LOADOUT_KEYS.length }, () => CONTROL_SLOTS.map((_, index) => BODY_ACTIONS[index]?.id ?? null));
+  return Array.from({ length: LOADOUT_KEYS.length }, () => [...DEFAULT_LOADOUT]);
 }
 
 function readSavedLoadouts(): Loadout[] {

@@ -111,6 +111,14 @@ func TestHandleInputStartsNewOneShotActionIntents(t *testing.T) {
 			if tc.profile.ManaCost > 0 && player.Mana != 100-tc.profile.ManaCost {
 				t.Fatalf("mana=%v", player.Mana)
 			}
+			if tc.profile.Impact.Shape == "projectile" {
+				states := sess.AdvanceProjectiles(0)
+				if len(states) != 1 || !states[0].Active {
+					t.Fatalf("fast projectile was not spawned: %+v", states)
+				}
+			} else if publisher.calls != 1 {
+				t.Fatalf("heavy strike was not queued: calls=%d", publisher.calls)
+			}
 		})
 	}
 }
