@@ -4,7 +4,7 @@ import { hasNewAttackIntent, NetworkInputSender } from './input-sender.ts';
 
 test('tracks all one-shot attack edges together', () => {
   const wasActive = { attack_light: false, attack_heavy: false, attack_projectile: false, attack_quick_projectile: false };
-  const packed = { attack_light: true, attack_heavy: true, attack_projectile: true, attack_quick_projectile: true };
+  const packed = { attack_light: true, attack_heavy: true, attack_projectile: true, attack_quick_projectile: true } as const;
   assert.equal(hasNewAttackIntent(packed, wasActive), true);
   assert.deepEqual(wasActive, { attack_light: true, attack_heavy: true, attack_projectile: true, attack_quick_projectile: true });
   assert.equal(hasNewAttackIntent(packed, wasActive), false);
