@@ -52,16 +52,9 @@ type ImpactProfile struct {
 	Damage        float64 `json:"damage"`
 }
 
-// AreaProfile is retained for reading legacy action data during migration.
-type AreaProfile struct {
-	Radius float64 `json:"radius"`
-	Damage float64 `json:"damage"`
-}
-
 // CombatProfile is the persistence-side damage configuration for one action.
 type CombatProfile struct {
 	ActionID         string
 	Impact           *ImpactProfile
-	Area             *AreaProfile
 	ProjectileDamage float64
 }

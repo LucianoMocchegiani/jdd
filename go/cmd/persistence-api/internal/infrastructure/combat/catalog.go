@@ -15,7 +15,6 @@ type catalogFile struct {
 	Actions []struct {
 		ID         string                `json:"id"`
 		Impact     *domain.ImpactProfile `json:"impact"`
-		Area       *domain.AreaProfile   `json:"area"`
 		Projectile *struct { Damage float64 `json:"damage"` } `json:"projectile"`
 	} `json:"actions"`
 }
@@ -43,19 +42,13 @@ func LoadCatalog(path string) (*Catalog, error) {
 				(shape == "radial" && (action.Impact.Origin == "caster" || action.Impact.Origin == "target") && action.Impact.Radius > 0 && action.Impact.Radius <= 10))
 			if !valid { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
 		}
-		if action.Area != nil && (action.Area.Radius <= 0 || action.Area.Radius > 10 || action.Area.Damage <= 0) {
-			return nil, fmt.Errorf("action %q has invalid legacy area", action.ID)
-		}
-		if action.Area != nil && (action.Impact != nil || action.Projectile != nil) {
-			return nil, fmt.Errorf("action %q cannot combine legacy area and impact/projectile profiles", action.ID)
-		}
 		var projectileDamage float64
 		if action.Projectile != nil {
 			projectileDamage = action.Projectile.Damage
 			if projectileDamage <= 0 { return nil, fmt.Errorf("action %q has invalid projectile", action.ID) }
 		}
 		if _, exists := c.profiles[action.ID]; exists { return nil, fmt.Errorf("duplicate action id %q", action.ID) }
-		c.profiles[action.ID] = &domain.CombatProfile{ActionID: action.ID, Impact: action.Impact, Area: action.Area, ProjectileDamage: projectileDamage}
+		c.profiles[action.ID] = &domain.CombatProfile{ActionID: action.ID, Impact: action.Impact, ProjectileDamage: projectileDamage}
 	}
 	return c, nil
 }

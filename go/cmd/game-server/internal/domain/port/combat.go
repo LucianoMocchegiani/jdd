@@ -16,16 +16,8 @@ type DamageProfile struct {
 
 // TargetingProfile configures how a player selects an impact point.
 type TargetingProfile struct {
-	Type   string `json:"type"`
+	Type   string  `json:"type"`
 	Range  float64 `json:"range"`
-	Effect string `json:"effect"`
-}
-
-// AreaProfile configures the legacy area-cast behavior.
-type AreaProfile struct {
-	Range  float64 `json:"range"`
-	Radius float64 `json:"radius"`
-	Damage float64 `json:"damage"`
 	Effect string  `json:"effect"`
 }
 
@@ -49,7 +41,6 @@ type CombatProfile struct {
 	BlockedMediums    []string
 	Impact            *DamageProfile
 	Targeting         *TargetingProfile
-	Area              *AreaProfile
 	Projectile        *ProjectileProfile
 }
 

@@ -24,9 +24,8 @@ type actionFile struct {
 				Not struct { Medium []string `json:"medium"` } `json:"not"`
 			} `json:"when"`
 		} `json:"control"`
-		Impact     *port.DamageProfile `json:"impact"`
+		Impact     *port.DamageProfile    `json:"impact"`
 		Targeting  *port.TargetingProfile `json:"targeting"`
-		Area       *port.AreaProfile   `json:"area"`
 		Projectile *struct {
 			Speed   float64 `json:"speed"`
 			Range   float64 `json:"range"`
@@ -73,10 +72,6 @@ func LoadCatalog(path string) (*Catalog, error) {
 		if action.Impact != nil && action.Impact.Origin == "target" && action.Targeting == nil {
 			return nil, fmt.Errorf("action %q target-origin impact requires targeting", action.ID)
 		}
-		if action.Area != nil && (action.CooldownMs <= 0 || action.Area.Range <= 0 || action.Area.Range > 100 || action.Area.Radius <= 0 || action.Area.Radius > 10 || action.Area.Damage <= 0 || (action.Area.Effect != "orb" && action.Area.Effect != "thunder")) {
-			return nil, fmt.Errorf("action %q has invalid area profile", action.ID)
-		}
-		if action.Area != nil && (action.Impact != nil || action.Projectile != nil) { return nil, fmt.Errorf("action %q cannot combine area, impact and projectile profiles", action.ID) }
 		if action.Control.Type == "sustained" && (action.ManaCostPerSecond <= 0 || action.DamageIntervalMs <= 0 || action.Impact == nil || action.Projectile != nil) {
 			return nil, fmt.Errorf("action %q has invalid sustained profile", action.ID)
 		}
@@ -94,9 +89,9 @@ func LoadCatalog(path string) (*Catalog, error) {
 			Cooldown: time.Duration(action.CooldownMs) * time.Millisecond,
 			ManaCost: action.ManaCost, ManaCostPerSecond: action.ManaCostPerSecond,
 			DamageInterval: time.Duration(action.DamageIntervalMs) * time.Millisecond,
-			BlockedMediums: action.Control.When.Not.Medium, Impact: action.Impact, Targeting: action.Targeting, Area: action.Area, Projectile: projectile,
+			BlockedMediums: action.Control.When.Not.Medium, Impact: action.Impact, Targeting: action.Targeting, Projectile: projectile,
 		}
-		if action.Control.InputIntent != "" && (action.Impact != nil || action.Area != nil || action.Targeting != nil || projectile != nil) {
+		if action.Control.InputIntent != "" && (action.Impact != nil || action.Targeting != nil || projectile != nil) {
 			if _, exists := catalog.byInputIntent[action.Control.InputIntent]; exists { return nil, fmt.Errorf("duplicate combat input intent %q", action.Control.InputIntent) }
 			catalog.byInputIntent[action.Control.InputIntent] = action.ID
 		}
