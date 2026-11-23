@@ -150,16 +150,31 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 	impacts := make([]swingImpact, 0, len(candidates)+len(cmd.Targets))
 	for i := range candidates {
 		p := candidates[i]
-		if isSolidParticle(p) && jdcombat.HitsWorldCellWithWidth(origin, cmd.Yaw, p.CeldaX, p.CeldaY, p.CeldaZ, impact.Reach, impact.Width) {
+		hit := false
+		if isSolidParticle(p) {
+			if impact.Shape == "swept_arc" {
+				hit = jdcombat.HitsWorldCellWithSweptArc(origin, cmd.Yaw, p.CeldaX, p.CeldaY, p.CeldaZ, impact.Reach, impact.SweepDegrees)
+			} else {
+				hit = jdcombat.HitsWorldCellWithWidth(origin, cmd.Yaw, p.CeldaX, p.CeldaY, p.CeldaZ, impact.Reach, impact.Width)
+			}
+		}
+		if hit {
 			impacts = append(impacts, swingImpact{forward: jdcombat.ForwardDistance(origin, cmd.Yaw, float64(p.CeldaX), float64(p.CeldaY)), particle: &p})
 		}
 	}
 	for i := range cmd.Targets {
 		target := cmd.Targets[i]
-		if target.PlayerID == "" || target.PlayerID == cmd.PlayerID || !jdcombat.HitsPlayerWithWidth(origin, cmd.Yaw, jdcombat.Point{X: target.X, Y: target.Y, Z: target.Z}, impact.Reach, impact.Width) {
+		if target.PlayerID == "" || target.PlayerID == cmd.PlayerID {
 			continue
 		}
-		impacts = append(impacts, swingImpact{forward: jdcombat.ForwardDistance(origin, cmd.Yaw, target.X, target.Y), player: &target})
+		point := jdcombat.Point{X: target.X, Y: target.Y, Z: target.Z}
+		hit := jdcombat.HitsPlayerWithWidth(origin, cmd.Yaw, point, impact.Reach, impact.Width)
+		if impact.Shape == "swept_arc" {
+			hit = jdcombat.HitsPlayerWithSweptArc(origin, cmd.Yaw, point, impact.Reach, impact.SweepDegrees)
+		}
+		if hit {
+			impacts = append(impacts, swingImpact{forward: jdcombat.ForwardDistance(origin, cmd.Yaw, target.X, target.Y), player: &target})
+		}
 	}
 	sort.SliceStable(impacts, func(i, j int) bool {
 		a, b := impacts[i], impacts[j]

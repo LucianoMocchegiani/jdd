@@ -26,6 +26,8 @@ func snapshotSwingTargets(sess *entity.BlockSession, cmd port.SwingCommand, prof
 			radius := profile.Impact.Radius + 0.45
 			hit = dx*dx+dy*dy+dz*dz <= radius*radius &&
 				(!profile.Impact.BlockBySolids || hasRadialLineOfSight(sess, origin, point))
+		} else if profile.Impact.Shape == "swept_arc" {
+			hit = jdcombat.HitsPlayerWithSweptArc(origin, cmd.Yaw, point, profile.Impact.Reach, profile.Impact.SweepDegrees)
 		} else {
 			hit = jdcombat.HitsPlayerWithWidth(origin, cmd.Yaw, point, profile.Impact.Reach, profile.Impact.Width)
 		}

@@ -1,3 +1,4 @@
+// Package domain — Modelos de dominio persistence-api.
 package domain
 
 // ParticleNear is a particle's location and physical state from a nearby-particle query.
@@ -49,6 +50,7 @@ type ImpactProfile struct {
 	Reach         float64 `json:"reach,omitempty"`
 	Width         float64 `json:"width,omitempty"`
 	Radius        float64 `json:"radius,omitempty"`
+	SweepDegrees  float64 `json:"sweepDegrees,omitempty"`
 	Damage        float64 `json:"damage"`
 }
 

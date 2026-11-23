@@ -39,6 +39,7 @@ func LoadCatalog(path string) (*Catalog, error) {
 			if shape == "" { shape = "line"; action.Impact.Shape = shape }
 			if action.Impact.Origin == "" { action.Impact.Origin = "caster" }
 			valid := action.Impact.Damage > 0 && ((shape == "line" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Width >= 0 && action.Impact.Width <= 5) ||
+				(shape == "swept_arc" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Reach <= 10 && action.Impact.SweepDegrees > 0 && action.Impact.SweepDegrees <= 180) ||
 				(shape == "radial" && (action.Impact.Origin == "caster" || action.Impact.Origin == "target") && action.Impact.Radius > 0 && action.Impact.Radius <= 10))
 			if !valid { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
 		}
@@ -59,5 +60,4 @@ func (c *Catalog) Get(actionID string) *domain.CombatProfile {
 	defer c.mu.RUnlock()
 	return c.profiles[actionID]
 }
-
 var _ port.CombatCatalog = (*Catalog)(nil)
