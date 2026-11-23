@@ -112,7 +112,7 @@ func TestHandleInputStartsNewOneShotActionIntents(t *testing.T) {
 				t.Fatalf("mana=%v", player.Mana)
 			}
 			if tc.profile.Impact.Shape == "projectile" {
-				states := sess.AdvanceProjectiles(0)
+				states := sess.AdvanceProjectiles(0.1)
 				if len(states) != 1 || !states[0].Active {
 					t.Fatalf("fast projectile was not spawned: %+v", states)
 				}
