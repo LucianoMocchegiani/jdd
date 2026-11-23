@@ -15,7 +15,6 @@ type catalogFile struct {
 	Actions []struct {
 		ID         string                `json:"id"`
 		Impact     *domain.ImpactProfile `json:"impact"`
-		Area       *domain.AreaProfile   `json:"area"`
 		Projectile *struct { Damage float64 `json:"damage"` } `json:"projectile"`
 	} `json:"actions"`
 }
@@ -35,14 +34,13 @@ func LoadCatalog(path string) (*Catalog, error) {
 	c := &Catalog{profiles: make(map[string]*domain.CombatProfile)}
 	for _, action := range raw.Actions {
 		if action.ID == "" { return nil, fmt.Errorf("action without id") }
-		if action.Impact != nil && (action.Impact.Reach <= 0 || action.Impact.Damage <= 0 || action.Impact.Width < 0 || action.Impact.Width > 5) {
-			return nil, fmt.Errorf("action %q has invalid impact", action.ID)
-		}
-		if action.Area != nil && (action.Area.Radius <= 0 || action.Area.Radius > 10 || action.Area.Damage <= 0) {
-			return nil, fmt.Errorf("action %q has invalid area", action.ID)
-		}
-		if action.Area != nil && (action.Impact != nil || action.Projectile != nil) {
-			return nil, fmt.Errorf("action %q cannot combine area and line/projectile profiles", action.ID)
+		if action.Impact != nil {
+			shape := action.Impact.Shape
+			if shape == "" { shape = "line"; action.Impact.Shape = shape }
+			if action.Impact.Origin == "" { action.Impact.Origin = "caster" }
+			valid := action.Impact.Damage > 0 && ((shape == "line" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Width >= 0 && action.Impact.Width <= 5) ||
+				(shape == "radial" && (action.Impact.Origin == "caster" || action.Impact.Origin == "target") && action.Impact.Radius > 0 && action.Impact.Radius <= 10))
+			if !valid { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
 		}
 		var projectileDamage float64
 		if action.Projectile != nil {
@@ -50,7 +48,7 @@ func LoadCatalog(path string) (*Catalog, error) {
 			if projectileDamage <= 0 { return nil, fmt.Errorf("action %q has invalid projectile", action.ID) }
 		}
 		if _, exists := c.profiles[action.ID]; exists { return nil, fmt.Errorf("duplicate action id %q", action.ID) }
-		c.profiles[action.ID] = &domain.CombatProfile{ActionID: action.ID, Impact: action.Impact, Area: action.Area, ProjectileDamage: projectileDamage}
+		c.profiles[action.ID] = &domain.CombatProfile{ActionID: action.ID, Impact: action.Impact, ProjectileDamage: projectileDamage}
 	}
 	return c, nil
 }

@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "id": "aura_de_ki",
+  "label": "Aura de Ki",
+  "duration": 1,
+  "loop": true,
+  "fps": 30,
+  "tracks": [
+    { "boneId": "cintura", "keys": [
+      { "t": 0, "rot": [0, 0, 0.06] },
+      { "t": 0.5, "rot": [0, 0, -0.06] },
+      { "t": 1, "rot": [0, 0, 0.06] }
+    ] },
+    { "boneId": "hombro-derecho", "keys": [
+      { "t": 0, "rot": [0, 0, 0.72] },
+      { "t": 0.5, "rot": [0, 0, 0.82] },
+      { "t": 1, "rot": [0, 0, 0.72] }
+    ] },
+    { "boneId": "hombro-izquierdo", "keys": [
+      { "t": 0, "rot": [0, 0, 0.72] },
+      { "t": 0.5, "rot": [0, 0, 0.82] },
+      { "t": 1, "rot": [0, 0, 0.72] }
+    ] },
+    { "boneId": "codo-derecho", "keys": [
+      { "t": 0, "rot": [0, 0, 0.08] },
+      { "t": 0.5, "rot": [0, 0, 0.18] },
+      { "t": 1, "rot": [0, 0, 0.08] }
+    ] },
+    { "boneId": "codo-izquierdo", "keys": [
+      { "t": 0, "rot": [0, 0, -0.08] },
+      { "t": 0.5, "rot": [0, 0, -0.18] },
+      { "t": 1, "rot": [0, 0, -0.08] }
+    ] }
+  ]
+}

@@ -5,7 +5,7 @@ import { recordInputSent } from '@/game/debug/input-stats-debug';
 
 const NETWORKED_INTENTS = [
   'move_forward', 'move_backward', 'move_left', 'move_right', 'run_forward', 'jump',
-  'attack_light', 'attack_projectile', 'continuous_attack',
+  'attack_light', 'attack_projectile', 'continuous_attack', 'continuous_aura',
 ] as const;
 type IntentWireMode = 'omit' | 'clear' | 'active';
 type AttackIntent = 'attack_light' | 'attack_projectile';

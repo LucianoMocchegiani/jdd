@@ -8,7 +8,7 @@ import (
 	"github.com/juego-de-dioses/jd/cmd/persistence-api/internal/usecase"
 )
 
-func TestAreaSwingDamagesOnlyParticlesInsideConfiguredRadius(t *testing.T) {
+func TestAreaSwingDamagesParticlesAroundConfiguredImpactTarget(t *testing.T) {
 	repo := &swingRepo{
 		near: []domain.ParticleNear{
 			{ID: "inside", CeldaX: 0, CeldaY: 0, CeldaZ: 0, TipoFisico: "solido"},
@@ -22,7 +22,7 @@ func TestAreaSwingDamagesOnlyParticlesInsideConfiguredRadius(t *testing.T) {
 	svc := usecase.NewSwingService(repo, swingCatalog{
 		&domain.CombatProfile{
 			ActionID: "orbe_explosivo",
-			Area:     &domain.AreaProfile{Radius: 2, Damage: 20},
+			Impact:   &domain.ImpactProfile{Shape: "radial", Origin: "target", Radius: 2, Damage: 20},
 		},
 	}, &swingEvents{}, nil)
 
@@ -34,6 +34,6 @@ func TestAreaSwingDamagesOnlyParticlesInsideConfiguredRadius(t *testing.T) {
 		t.Fatal(err)
 	}
 	if repo.applied["inside"] != 80 || repo.applied["outside"] != 0 {
-		t.Fatalf("area damage applied to unexpected particles: %v", repo.applied)
+		t.Fatalf("target-origin radial impact damaged unexpected particles: %v", repo.applied)
 	}
 }

@@ -4,11 +4,13 @@ import { defaultBipedDocument } from '@/poc/character-studio/studio-document';
 import { StudioRenderer } from '@/poc/character-studio/studio-renderer';
 import type { StudioAnimationClip, StudioDocument } from '@/poc/character-studio/types';
 import { DEFAULT_PALETTE } from '@/poc/shared';
+import { BODY_ACTIONS } from '@/game-data/actions';
 import { PARTICLE_SIZE_RATIO } from '@/game/terrain/particle-geometry';
+import auraDeKiClipRaw from '@/game/player/animations/aura_de_ki.json?raw';
 import rayoDeKiClipRaw from '@/game/player/animations/rayo_de_ki.json?raw';
 import orbeExplosivoClipRaw from '@/game/player/animations/orbe_explosivo.json?raw';
 import truenoClipRaw from '@/game/player/animations/trueno.json?raw';
-import { Box3, CylinderGeometry, Mesh, MeshBasicMaterial, MeshStandardMaterial, Vector3, type Scene } from 'three';
+import { Box3, CylinderGeometry, Mesh, MeshBasicMaterial, MeshStandardMaterial, RingGeometry, SphereGeometry, Vector3, type Scene } from 'three';
 
 const UNIT_ELEMENT_BOUNDS = new Box3(new Vector3(-0.5, -0.5, -0.5), new Vector3(0.5, 0.5, 0.5));
 
@@ -39,6 +41,15 @@ export class PlayerCharacterVisual {
   private beamActive = false;
   private beamLength = 28;
   private beamSeq = 0;
+  private readonly auraRadius = BODY_ACTIONS.find((action) => action.id === 'aura_de_ki')?.impact?.radius ?? 3;
+  private readonly auraRing = new Mesh(
+    new RingGeometry(0.75, 1, 48),
+    new MeshBasicMaterial({ color: 0x55ddff, transparent: true, opacity: 0.55, side: 2, depthWrite: false }),
+  );
+  private readonly auraGlow = new Mesh(
+    new SphereGeometry(1, 16, 12),
+    new MeshBasicMaterial({ color: 0x55ddff, transparent: true, opacity: 0.12, wireframe: true, depthWrite: false }),
+  );
   private readonly beam = new Mesh(
     new CylinderGeometry(0.18, 0.3, 1, 10),
     new MeshBasicMaterial({ color: 0x55ddff, transparent: true, opacity: 0.88, depthWrite: false }),
@@ -46,11 +57,15 @@ export class PlayerCharacterVisual {
 
   constructor(scene: Scene, private readonly cellSize: number) {
     this.renderer = new StudioRenderer(scene, cellSize);
+    this.clips.set('aura_de_ki', clipFromJson(auraDeKiClipRaw));
     this.clips.set('rayo_de_ki', clipFromJson(rayoDeKiClipRaw));
     this.clips.set('orbe_explosivo', clipFromJson(orbeExplosivoClipRaw));
     this.clips.set('trueno', clipFromJson(truenoClipRaw));
+    this.auraRing.rotation.x = -Math.PI / 2;
+    this.auraRing.visible = false;
+    this.auraGlow.visible = false;
     this.beam.visible = false;
-    scene.add(this.beam);
+    scene.add(this.auraRing, this.auraGlow, this.beam);
   }
 
   update(
@@ -107,6 +122,17 @@ export class PlayerCharacterVisual {
       const radius = (0.2 + 0.04 * Math.sin(this.time * 18)) * this.cellSize;
       this.beam.scale.set(radius, length, radius);
     }
+    const auraActive = requested === 'aura_de_ki';
+    this.auraRing.visible = this.auraGlow.visible = auraActive;
+    if (auraActive) {
+      const pulse = 0.94 + 0.06 * Math.sin(this.time * 12);
+      this.auraRing.position.set(x * this.cellSize, (z - 0.43) * this.cellSize, y * this.cellSize);
+      this.auraRing.scale.setScalar(this.auraRadius * this.cellSize * pulse);
+      this.auraGlow.position.set(x * this.cellSize, (z + 0.85) * this.cellSize, y * this.cellSize);
+      this.auraGlow.scale.set(this.auraRadius * this.cellSize * 0.75, this.cellSize * 0.9, this.auraRadius * this.cellSize * 0.75);
+      (this.auraRing.material as MeshBasicMaterial).opacity = 0.4 + 0.2 * pulse;
+      (this.auraGlow.material as MeshBasicMaterial).opacity = 0.08 + 0.07 * pulse;
+    }
     const color = this.damageFlashUntilMs > performance.now() ? 0xff5555 : tint;
     for (const mesh of this.renderer.getPickMeshes()) {
       const layer = String(mesh.userData.bucketKey).split(':')[0]! as keyof typeof DEFAULT_PALETTE;
@@ -142,8 +168,10 @@ export class PlayerCharacterVisual {
   /** Libera el renderer al desaparecer una réplica remota. */
   dispose(): void {
     this.renderer.dispose();
-    this.beam.parent?.remove(this.beam);
-    this.beam.geometry.dispose();
-    (this.beam.material as MeshBasicMaterial).dispose();
+    for (const mesh of [this.auraRing, this.auraGlow, this.beam]) {
+      mesh.parent?.remove(mesh);
+      mesh.geometry.dispose();
+      (mesh.material as MeshBasicMaterial).dispose();
+    }
   }
 }

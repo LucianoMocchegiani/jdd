@@ -116,7 +116,7 @@ class AreaAbilityTargeting {
 
   /** Proyecta el cursor sobre celdas sólidas dentro del alcance y oculta objetivos inválidos. */
   update(player: CellPosition): void {
-    if (!this.action?.area || isCameraInspectMode()) {
+    if (!this.action?.targeting || isCameraInspectMode()) {
       this.cancel();
       return;
     }
@@ -131,7 +131,7 @@ class AreaAbilityTargeting {
     if (ray.direction.y >= 0) return;
 
     const playerPosition = new Vector3(player.x * this.cellSize, player.z * this.cellSize, player.y * this.cellSize);
-    const maxDistance = this.camera.position.distanceTo(playerPosition) + this.action.area.range * this.cellSize;
+    const maxDistance = this.camera.position.distanceTo(playerPosition) + this.action.targeting.range * this.cellSize;
     const step = this.cellSize * 0.1;
     for (let distance = 0; distance <= maxDistance; distance += step) {
       ray.at(distance, this.rayPoint);
@@ -145,11 +145,11 @@ class AreaAbilityTargeting {
       const worldZ = ray.origin.z + ray.direction.z * surfaceDistance;
       if (Math.abs(worldX / this.cellSize - cellX) > 0.46 || Math.abs(worldZ / this.cellSize - cellY) > 0.46) continue;
       const target = { x: worldX / this.cellSize, y: worldZ / this.cellSize, z: surfaceY / this.cellSize };
-      if (Math.hypot(target.x - player.x, target.y - player.y, target.z - player.z) > this.action.area.range) return;
+      if (Math.hypot(target.x - player.x, target.y - player.y, target.z - player.z) > this.action.targeting.range) return;
       this.target = target;
       this.marker.position.set(worldX, surfaceY + 0.025 * this.cellSize, worldZ);
-      this.marker.scale.setScalar(this.action.area.radius * this.cellSize);
-      (this.marker.material as MeshBasicMaterial).color.set(this.action.area.effect === 'thunder' ? 0xa78bfa : 0x55ddff);
+      this.marker.scale.setScalar((this.action.impact?.radius ?? 1) * this.cellSize);
+      (this.marker.material as MeshBasicMaterial).color.set(this.action.targeting.effect === 'thunder' ? 0xa78bfa : 0x55ddff);
       this.marker.visible = true;
       return;
     }
@@ -170,7 +170,7 @@ class AreaAbilityTargeting {
       return;
     }
     if (event.repeat) return;
-    const action = BODY_ACTIONS.find((candidate) => candidate.area && INTENT_KEY_CODES[candidate.control.inputIntent]?.includes(event.code));
+    const action = BODY_ACTIONS.find((candidate) => candidate.targeting && INTENT_KEY_CODES[candidate.control.inputIntent]?.includes(event.code));
     if (!action || isCameraInspectMode()) return;
     event.preventDefault();
     this.activate(action);
@@ -178,7 +178,7 @@ class AreaAbilityTargeting {
 
   private readonly onTargetRequest = (event: Event): void => {
     const id = (event as CustomEvent<{ actionId?: string }>).detail?.actionId;
-    const action = BODY_ACTIONS.find((candidate) => candidate.id === id && candidate.area);
+    const action = BODY_ACTIONS.find((candidate) => candidate.id === id && candidate.targeting);
     if (action && !isCameraInspectMode()) this.activate(action);
   };
 

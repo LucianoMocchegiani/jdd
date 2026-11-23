@@ -209,7 +209,7 @@ export async function bootstrapApp(
             pendingLocalActionClip = selectRemoteClip({
               medium: event.medium, vx: event.vx, vy: event.vy, vz: event.vz,
               intents: event.intents, continuous_attack_active: event.continuous_attack_active,
-              action_id: event.action_id,
+              continuous_action_id: event.continuous_action_id, action_id: event.action_id,
             });
             window.dispatchEvent(new CustomEvent('ability-cooldown-start', { detail: { actionId: event.action_id } }));
           }
@@ -228,7 +228,7 @@ export async function bootstrapApp(
     } else if (event.type === 'join_ok') {
       playerActive = true;
       setPlayerVisible(true);
-      statusEl.textContent = `${formatBackendOkStatus(health.status, catalog.statusSuffix)} · ${bloqueNombre} · ${terrain.getParticles().length} partículas · clic canvas · WASD · C cámara · F/G/Q/R/T habilidades`;
+      statusEl.textContent = `${formatBackendOkStatus(health.status, catalog.statusSuffix)} · ${bloqueNombre} · ${terrain.getParticles().length} partículas · clic canvas · WASD · C cámara · F/G/Q/E/R/T habilidades`;
     } else if (event.type === 'join_error') {
       playerActive = false;
       setPlayerVisible(false);
@@ -287,6 +287,7 @@ export async function bootstrapApp(
         medium: localVisualState.medium, vx: localVisualState.vx, vy: localVisualState.vy,
         vz: localVisualState.vz, intents: localVisualState.intents,
         continuous_attack_active: localVisualState.continuous_attack_active,
+        continuous_action_id: localVisualState.continuous_action_id,
       }) : null);
       localCharacter?.update(deltaTime, clip, pos.x, pos.y, pos.z, facing?.yaw ?? 0, null);
       pendingLocalActionClip = null;

@@ -67,7 +67,13 @@ func TestHandleInputDoesNotCastAreaAbilityWithoutTarget(t *testing.T) {
 		Sessions: store,
 		SwingPub: publisher,
 		Combat: inputAttackCatalog{
-			"orbe_explosivo": {InputIntent: "target_orbe", Cooldown: time.Second, ManaCost: 20, Area: &port.AreaProfile{Range: 18, Radius: 3, Damage: 20, Effect: "orb"}},
+			"orbe_explosivo": {
+				InputIntent: "target_orbe",
+				Cooldown:   time.Second,
+				ManaCost:   20,
+				Targeting:  &port.TargetingProfile{Type: "ground_point", Range: 18, Effect: "orb"},
+				Impact:     &port.DamageProfile{Shape: "radial", Origin: "target", Radius: 3, Damage: 20},
+			},
 		},
 	}
 	input := usecase.InputPayload{BloqueID: "block", EcoID: 1, PlayerID: "player", Seq: 1, Intents: map[string]bool{"target_orbe": true}}

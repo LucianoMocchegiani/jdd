@@ -2,25 +2,25 @@ package domain
 
 // ParticleNear is a particle's location and physical state from a nearby-particle query.
 type ParticleNear struct {
-	ID        string
-	BloqueID  string
-	CeldaX    int
-	CeldaY    int
-	CeldaZ    int
+	ID         string
+	BloqueID   string
+	CeldaX     int
+	CeldaY     int
+	CeldaZ     int
 	TipoFisico string
-	Extraida  bool
+	Extraida   bool
 }
 
 // ParticleWithDureza contains persisted integrity and hardness for damage calculation.
 type ParticleWithDureza struct {
-	ID             string
-	BloqueID       string
-	CeldaX         int
-	CeldaY         int
-	CeldaZ         int
+	ID              string
+	BloqueID        string
+	CeldaX          int
+	CeldaY          int
+	CeldaZ          int
 	TipoParticulaID string
-	Integridad     float64
-	Dureza         float64
+	Integridad      float64
+	Dureza          float64
 }
 
 // IntegrityTransition describes one transition in a particle's integrity state.
@@ -41,23 +41,20 @@ type DamageResult struct {
 // CellPos is an integer cell coordinate in the world grid.
 type CellPos struct { X, Y, Z int }
 
-// ImpactProfile configures damage, reach, and lateral width for a line impact.
+// ImpactProfile defines the geometry, origin, and damage for one combat pulse.
 type ImpactProfile struct {
-	Reach  float64 `json:"reach"`
-	Width  float64 `json:"width"`
-	Damage float64 `json:"damage"`
-}
-
-// AreaProfile configures particle damage applied within a radius.
-type AreaProfile struct {
-	Radius float64 `json:"radius"`
-	Damage float64 `json:"damage"`
+	Shape         string  `json:"shape,omitempty"`
+	Origin        string  `json:"origin,omitempty"`
+	BlockBySolids bool    `json:"blockBySolids,omitempty"`
+	Reach         float64 `json:"reach,omitempty"`
+	Width         float64 `json:"width,omitempty"`
+	Radius        float64 `json:"radius,omitempty"`
+	Damage        float64 `json:"damage"`
 }
 
 // CombatProfile is the persistence-side damage configuration for one action.
 type CombatProfile struct {
-	ActionID        string
-	Impact          *ImpactProfile
-	Area            *AreaProfile
+	ActionID         string
+	Impact           *ImpactProfile
 	ProjectileDamage float64
 }

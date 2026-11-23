@@ -50,6 +50,12 @@ type SwingCommand struct {
 	ParticleZ  int                 `json:"particle_z"`
 }
 
+type SwingPlayerHit struct {
+	PlayerID string  `json:"player_id"`
+	EntityID int     `json:"entity_id"`
+	Damage   float64 `json:"damage"`
+}
+
 type SwingOutcome struct {
 	OK             bool
 	Duplicate      bool
@@ -60,6 +66,7 @@ type SwingOutcome struct {
 	TargetPlayerID string
 	TargetEntityID int
 	EntityDamage   float64
+	PlayerHits     []SwingPlayerHit
 	BeamLength     float64
 	Truncated      bool
 }
@@ -126,11 +133,11 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 	if cmd.ParticleID != "" {
 		return s.applyProjectileParticleHit(ctx, cmd, profile)
 	}
-	if profile.Area != nil {
-		return s.applyAreaSwing(ctx, cmd, profile)
-	}
 	if profile.Impact == nil {
 		return SwingOutcome{OK: true, ActionID: cmd.ActionID}, nil
+	}
+	if profile.Impact.Shape == "radial" {
+		return s.applyRadialImpact(ctx, cmd, profile)
 	}
 
 	impact := profile.Impact
@@ -217,41 +224,6 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 	return s.publishSwingOutcome(ctx, cmd, SwingOutcome{OK: true, ActionID: cmd.ActionID, Hits: hits, DestroyedCount: destroyed, TargetPlayerID: targetPlayerID, TargetEntityID: targetEntityID, EntityDamage: entityDamage, BeamLength: beamLength, Truncated: truncated})
 }
 
-func (s *SwingService) applyAreaSwing(ctx context.Context, cmd SwingCommand, profile *domain.CombatProfile) (SwingOutcome, error) {
-	if cmd.AreaTarget == nil || !finiteSwingCoordinate(cmd.AreaTarget.X) || !finiteSwingCoordinate(cmd.AreaTarget.Y) || !finiteSwingCoordinate(cmd.AreaTarget.Z) {
-		return SwingOutcome{Error: "invalid_area_target", ActionID: cmd.ActionID}, nil
-	}
-	center, radius := cmd.AreaTarget, profile.Area.Radius
-	candidates, err := s.Repo.GetParticlesNear(ctx, cmd.BloqueID, center.X, center.Y, center.Z, int(math.Ceil(radius))+1)
-	if err != nil {
-		return SwingOutcome{}, err
-	}
-	var hits []domain.DamageResult
-	for _, p := range candidates {
-		dx, dy, dz := float64(p.CeldaX)-center.X, float64(p.CeldaY)-center.Y, float64(p.CeldaZ)-center.Z
-		if !isSolidParticle(p) || dx*dx+dy*dy+dz*dz > radius*radius {
-			continue
-		}
-		if len(hits) >= MaxWorldHitsPerSwing {
-			return s.publishSwingOutcome(ctx, cmd, SwingOutcome{OK: true, ActionID: cmd.ActionID, Hits: hits, Truncated: true})
-		}
-		res, err := ApplyParticleDamage(ctx, s.Repo, ApplyDamageInput{BloqueID: cmd.BloqueID, ParticleID: p.ID, Damage: profile.Area.Damage, WeaponType: cmd.ActionID, RateLimiter: s.RateLimit})
-		if err != nil {
-			return SwingOutcome{}, fmt.Errorf("apply area particle %s: %w", p.ID, err)
-		}
-		if res == nil {
-			return SwingOutcome{}, fmt.Errorf("apply area particle %s: empty damage result", p.ID)
-		}
-		hits = append(hits, *res)
-		s.publishParticleDestruction(ctx, cmd.BloqueID, res)
-	}
-	destroyed := 0
-	for _, hit := range hits {
-		if hit.Destroyed { destroyed++ }
-	}
-	return s.publishSwingOutcome(ctx, cmd, SwingOutcome{OK: true, ActionID: cmd.ActionID, Hits: hits, DestroyedCount: destroyed})
-}
-
 func finiteSwingCoordinate(v float64) bool { return !math.IsNaN(v) && !math.IsInf(v, 0) }
 
 func (s *SwingService) applyProjectileParticleHit(ctx context.Context, cmd SwingCommand, profile *domain.CombatProfile) (SwingOutcome, error) {
@@ -295,7 +267,7 @@ func buildSwingResultJSON(cmd SwingCommand, out SwingOutcome) (string, error) {
 	}
 	payload := map[string]interface{}{
 		"type": "swing_result", "seq": cmd.Seq, "entity_id": cmd.EntityID, "player_id": cmd.PlayerID, "eco_id": cmd.EcoID,
-		"action_id": cmd.ActionID, "bloque_id": cmd.BloqueID, "hits": hitPayload,
+		"action_id": cmd.ActionID, "bloque_id": cmd.BloqueID, "hits": hitPayload, "player_hits": out.PlayerHits,
 		"target_player_id": out.TargetPlayerID, "target_entity_id": out.TargetEntityID,
 		"entity_damage": out.EntityDamage, "beam_length": out.BeamLength, "truncated": out.Truncated,
 	}

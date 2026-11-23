@@ -1,4 +1,3 @@
-// Tests: Casos de uso REST y combate.
 package usecase_test
 
 import (
@@ -12,6 +11,8 @@ func TestActionCombatProfileLoad(t *testing.T) {
 	if err != nil { t.Skip("shared action data not in cwd:", err) }
 	p := c.Get("attack")
 	if p == nil || p.Impact == nil || p.Impact.Reach != 2 || p.Impact.Damage != 15 { t.Fatalf("unexpected profile: %+v", p) }
+	aura := c.Get("aura_de_ki")
+	if aura == nil || aura.Impact == nil || aura.Impact.Shape != "radial" || aura.Impact.Radius != 3 { t.Fatalf("unexpected aura profile: %+v", aura) }
 	projectile := c.Get("kamehameha")
 	if projectile == nil || projectile.ProjectileDamage != 30 { t.Fatalf("unexpected projectile profile: %+v", projectile) }
 }

@@ -6,9 +6,9 @@ import (
 	"testing"
 )
 
-func TestLoadAreaAction(t *testing.T) {
+func TestLoadTargetedRadialImpactSeparatesTargetingFromDamage(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "actions.json")
-	data := `{"actions":[{"id":"orbe_explosivo","cooldownMs":3000,"manaCost":20,"control":{"inputIntent":"target_orbe","type":"one_shot"},"area":{"range":18,"radius":3,"damage":20,"effect":"orb"}}]}`
+	data := `{"actions":[{"id":"orbe_explosivo","cooldownMs":3000,"manaCost":20,"control":{"inputIntent":"target_orbe","type":"one_shot"},"targeting":{"type":"ground_point","range":18,"effect":"orb"},"impact":{"shape":"radial","origin":"target","radius":3,"damage":20}}]}`
 	if err := os.WriteFile(path, []byte(data), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -18,10 +18,11 @@ func TestLoadAreaAction(t *testing.T) {
 		t.Fatal(err)
 	}
 	profile := catalog.Get("orbe_explosivo")
-	if profile == nil || profile.Area == nil || profile.Area.Range != 18 || profile.Area.Radius != 3 || profile.Area.Damage != 20 || profile.Area.Effect != "orb" {
-		t.Fatalf("unexpected area profile: %+v", profile)
+	if profile == nil || profile.Targeting == nil || profile.Targeting.Range != 18 || profile.Targeting.Effect != "orb" ||
+		profile.Impact == nil || profile.Impact.Shape != "radial" || profile.Impact.Origin != "target" || profile.Impact.Radius != 3 || profile.Impact.Damage != 20 {
+		t.Fatalf("unexpected targeted impact profile: %+v", profile)
 	}
 	if id, _ := catalog.GetByInputIntent("target_orbe"); id != "orbe_explosivo" {
-		t.Fatalf("area input mapped to %q", id)
+		t.Fatalf("targeting input mapped to %q", id)
 	}
 }
