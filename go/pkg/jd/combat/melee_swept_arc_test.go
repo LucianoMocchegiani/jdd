@@ -1,13 +1,16 @@
 package combat
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestSweptArcCoversOnlyFrontSector(t *testing.T) {
 	origin := Point{}
 	if !HitsPlayerWithSweptArc(origin, 0, Point{X: 0, Y: -2, Z: 0}, 2, 120) {
 		t.Fatal("player in front should be hit")
 	}
-	if HitsPlayerWithSweptArc(origin, 0, Point{X: 2, Y: 0, Z: 0}, 2, 120) {
+	if HitsPlayerWithSweptArc(origin, 0, Point{X: 1.5, Y: 0, Z: 0}, 2, 120) {
 		t.Fatal("player to the side should not be hit")
 	}
 	if HitsPlayerWithSweptArc(origin, 0, Point{X: 0, Y: 2, Z: 0}, 2, 120) {
@@ -18,5 +21,8 @@ func TestSweptArcCoversOnlyFrontSector(t *testing.T) {
 	}
 	if HitsWorldCellWithSweptArc(origin, 0, 2, 0, 1, 2, 120) {
 		t.Fatal("particle to the side should not be hit")
+	}
+	if HitsPlayerWithSweptArc(origin, math.Pi, Point{X: 0, Y: 2, Z: 0}, 2, 120) {
+		t.Fatal("invalid sweep orientation unexpectedly hit")
 	}
 }

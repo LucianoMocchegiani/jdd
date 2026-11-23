@@ -15,7 +15,7 @@ func TestSweptArcDamagesOnlyParticlesAndPlayersInTheFrontSector(t *testing.T) {
 			{ID: "side", CeldaX: 2, CeldaZ: 1, TipoFisico: "solido"},
 		},
 		particles: map[string]domain.ParticleWithDureza{
-			"front": {ID: "front", Integridad: 100, Dureza: 1},
+			"front": {ID: "front", Integridad: 10, Dureza: 1},
 			"side": {ID: "side", Integridad: 100, Dureza: 1},
 		},
 	}
@@ -26,10 +26,10 @@ func TestSweptArcDamagesOnlyParticlesAndPlayersInTheFrontSector(t *testing.T) {
 		BloqueID: "block", PlayerID: "caster", ActionID: "attack", EntityID: 1, Seq: 1,
 		Targets: []usecase.SwingPlayerTarget{
 			{PlayerID: "front-player", EntityID: 2, Y: -2},
-			{PlayerID: "side-player", EntityID: 3, X: 3},
+			{PlayerID: "side-player", EntityID: 3, X: 1.5},
 		},
 	})
 	if err != nil { t.Fatal(err) }
-	if repo.applied["front"] != 85 || repo.applied["side"] != 0 { t.Fatalf("unexpected particle damage: %v", repo.applied) }
-	if out.TargetPlayerID != "front-player" || out.EntityDamage != 0 { t.Fatalf("unexpected player damage result: %+v", out) }
+	if len(repo.deleted) != 1 || repo.deleted[0] != "front" || repo.applied["side"] != 0 { t.Fatalf("unexpected particle impact: deleted=%v applied=%v", repo.deleted, repo.applied) }
+	if out.TargetPlayerID != "front-player" || out.EntityDamage != 5 { t.Fatalf("unexpected player damage result: %+v", out) }
 }
