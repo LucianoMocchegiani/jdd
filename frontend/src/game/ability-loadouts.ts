@@ -52,6 +52,7 @@ function changed(): void {
   }
   clearHeldKeyCodes(CONTROL_SLOTS);
   applyActiveLoadout();
+  window.dispatchEvent(new Event('ability-loadout-changed'));
   listeners.forEach((listener) => listener());
 }
 
