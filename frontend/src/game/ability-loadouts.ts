@@ -16,9 +16,16 @@ function readSavedLoadouts(): Loadout[] {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
     if (!Array.isArray(saved) || saved.length !== LOADOUT_KEYS.length) return defaults();
-    return saved.map((loadout) => Array.isArray(loadout) && loadout.length === CONTROL_SLOTS.length
-      ? loadout.map((id) => id === null || (typeof id === 'string' && actions.has(id)) ? id : null)
-      : defaults()[0]!);
+    return saved.map((loadout) => {
+      if (!Array.isArray(loadout) || loadout.length !== CONTROL_SLOTS.length) return defaults()[0]!;
+      const used = new Set<string>();
+      return loadout.map((id) => {
+        if (id === null) return null;
+        if (typeof id !== 'string' || !actions.has(id) || used.has(id)) return null;
+        used.add(id);
+        return id;
+      });
+    });
   } catch {
     return defaults();
   }
