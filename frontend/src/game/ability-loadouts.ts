@@ -1,5 +1,6 @@
 import { BODY_ACTIONS } from '@/game-data/actions';
 import { INTENT_KEY_CODES } from '@/ecs/domains/input/input-system';
+import { clearHeldKeyCodes } from '@/game/input/keyboard-state';
 
 const STORAGE_KEY = 'jdd.ability-loadouts.v1';
 export const LOADOUT_KEYS = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0'] as const;
@@ -42,6 +43,7 @@ function changed(): void {
   } catch {
     // El juego sigue usando el perfil activo aunque el navegador no permita persistirlo.
   }
+  clearHeldKeyCodes(CONTROL_SLOTS);
   applyActiveLoadout();
   listeners.forEach((listener) => listener());
 }
@@ -60,7 +62,12 @@ export function selectLoadout(index: number): void {
 export function assignAction(slot: number, actionId: string | null): void {
   if (!Number.isInteger(slot) || slot < 0 || slot >= CONTROL_SLOTS.length) return;
   if (actionId !== null && !actions.has(actionId)) return;
-  loadouts[activeLoadout]![slot] = actionId;
+  const loadout = loadouts[activeLoadout]!;
+  if (actionId !== null) {
+    const previousSlot = loadout.indexOf(actionId);
+    if (previousSlot >= 0) loadout[previousSlot] = null;
+  }
+  loadout[slot] = actionId;
   changed();
 }
 
