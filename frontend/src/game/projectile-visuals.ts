@@ -1,4 +1,5 @@
 import { Mesh, MeshBasicMaterial, Scene, SphereGeometry } from 'three';
+import { BODY_ACTIONS } from '@/game-data/actions';
 import type { ProjectileStateEvent } from '@/types/world-events';
 
 /** Renderiza los estados autoritativos enviados por el game-server. */
@@ -19,7 +20,8 @@ export class ProjectileVisuals {
     let mesh = this.meshes.get(event.id);
     if (!mesh) {
       mesh = new Mesh(this.geometry, this.material);
-      mesh.scale.setScalar(0.55 * this.cellSize);
+      const radius = BODY_ACTIONS.find((action) => action.id === event.action_id)?.impact?.radius ?? 0.55;
+      mesh.scale.setScalar(radius * this.cellSize);
       this.scene.add(mesh);
       this.meshes.set(event.id, mesh);
     }
