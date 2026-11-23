@@ -58,6 +58,20 @@
       "impact": { "shape": "projectile", "origin": "caster", "reach": 18, "speed": 30, "damage": 18, "radius": 0.35 }
     },
     {
+      "id": "onda_de_choque",
+      "description": "Onda instantánea de energía que daña alrededor del personaje.",
+      "cooldownMs": 2000,
+      "manaCost": 10,
+      "control": {
+        "inputIntent": "attack_shockwave",
+        "slot": "body_actions",
+        "type": "one_shot",
+        "when": { "not": { "medium": ["air", "submerged_full"] } }
+      },
+      "appearance": { "state": "attack", "clip": "attack" },
+      "impact": { "shape": "radial", "origin": "caster", "blockBySolids": true, "radius": 3.5, "damage": 15 }
+    },
+    {
       "id": "rayo_de_ki",
       "description": "Rayo canalizado sostenido que daña partículas y objetivos en secuencia.",
       "manaCostPerSecond": 5,

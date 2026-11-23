@@ -1,13 +1,3 @@
-/**
- * @file Captura de teclado/ratón y traducción a intents del cliente.
- *
- * No decide resultados de acciones ni simula movimiento. Traduce el estado de
- * hardware a nombres estables en `InputComponent`; `NetworkInputSender` los envía
- * al servidor, que resuelve movimiento y acciones.
- *
- * Los listeners viven en `keyboard-state.ts` (un solo attach en `main.ts`).
- * Este sistema solo **lee** el estado HELD cada frame.
- */
 import { InputComponent } from '@/ecs/components/input';
 import { System } from '@/ecs/core';
 import { logInputIntents } from '@/game/debug/input-flow-debug';
@@ -17,7 +7,7 @@ import { getHeldKeyCodes, isKeyHeld } from '@/game/input/keyboard-state';
 
 const BLOCKED_IN_INSPECT = new Set([
   'move_forward', 'move_backward', 'move_left', 'move_right', 'run_forward',
-  'jump', 'attack_light', 'attack_heavy', 'attack_projectile', 'attack_quick_projectile', 'continuous_attack', 'continuous_aura', 'target_orbe', 'target_trueno',
+  'jump', 'attack_light', 'attack_heavy', 'attack_projectile', 'attack_quick_projectile', 'attack_shockwave', 'continuous_attack', 'continuous_aura', 'target_orbe', 'target_trueno',
 ]);
 
 /** Mapa de intents locales a códigos `KeyboardEvent.code`, también usado por el HUD. */
@@ -34,6 +24,7 @@ export const INTENT_KEY_CODES: Record<string, readonly string[]> = {
   attack_heavy: [],
   attack_projectile: ['KeyG'],
   attack_quick_projectile: [],
+  attack_shockwave: [],
   target_orbe: ['KeyR'],
   target_trueno: ['KeyT'],
 };

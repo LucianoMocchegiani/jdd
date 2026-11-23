@@ -93,6 +93,7 @@ func TestHandleInputStartsNewOneShotActionIntents(t *testing.T) {
 	}{
 		{"attack_heavy", "golpe_pesado", &port.CombatProfile{InputIntent: "attack_heavy", Cooldown: 1200 * time.Millisecond, Impact: &port.DamageProfile{Shape: "swept_arc", Origin: "caster", Reach: 2.5, SweepDegrees: 120, Damage: 25}}},
 		{"attack_quick_projectile", "esfera_rapida", &port.CombatProfile{InputIntent: "attack_quick_projectile", Cooldown: 1200 * time.Millisecond, ManaCost: 10, Impact: &port.DamageProfile{Shape: "projectile", Origin: "caster", Reach: 18, Speed: 30, Radius: 0.35, Damage: 18}}},
+		{"attack_shockwave", "onda_de_choque", &port.CombatProfile{InputIntent: "attack_shockwave", Cooldown: 2 * time.Second, ManaCost: 10, Impact: &port.DamageProfile{Shape: "radial", Origin: "caster", BlockBySolids: true, Radius: 3.5, Damage: 15}}},
 	} {
 		t.Run(tc.actionID, func(t *testing.T) {
 			store := memory.NewSessionStore()
@@ -117,7 +118,7 @@ func TestHandleInputStartsNewOneShotActionIntents(t *testing.T) {
 					t.Fatalf("fast projectile was not spawned: %+v", states)
 				}
 			} else if publisher.calls != 1 {
-				t.Fatalf("heavy strike was not queued: calls=%d", publisher.calls)
+				t.Fatalf("impact action was not queued: calls=%d", publisher.calls)
 			}
 		})
 	}
