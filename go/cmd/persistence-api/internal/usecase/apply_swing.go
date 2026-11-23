@@ -246,9 +246,7 @@ func (s *SwingService) applyProjectileParticleHit(ctx context.Context, cmd Swing
 		return SwingOutcome{Error: "invalid_projectile_hit", ActionID: cmd.ActionID}, nil
 	}
 	candidates, err := s.Repo.GetParticlesNear(ctx, cmd.BloqueID, float64(cmd.ParticleX), float64(cmd.ParticleY), float64(cmd.ParticleZ), 1)
-	if err != nil {
-		return SwingOutcome{}, err
-	}
+	if err != nil { return SwingOutcome{}, err }
 	var target *domain.ParticleNear
 	for i := range candidates {
 		p := candidates[i]
@@ -260,32 +258,20 @@ func (s *SwingService) applyProjectileParticleHit(ctx context.Context, cmd Swing
 	var hits []domain.DamageResult
 	if target != nil {
 		result, err := ApplyParticleDamage(ctx, s.Repo, ApplyDamageInput{BloqueID: cmd.BloqueID, ParticleID: target.ID, Damage: profile.ProjectileDamage, WeaponType: cmd.ActionID, RateLimiter: s.RateLimit})
-		if err != nil {
-			return SwingOutcome{}, fmt.Errorf("apply projectile particle %s: %w", target.ID, err)
-		}
-		if result == nil {
-			return SwingOutcome{}, fmt.Errorf("apply projectile particle %s: empty damage result", target.ID)
-		}
+		if err != nil { return SwingOutcome{}, fmt.Errorf("apply projectile particle %s: %w", target.ID, err) }
+		if result == nil { return SwingOutcome{}, fmt.Errorf("apply projectile particle %s: empty damage result", target.ID) }
 		hits = append(hits, *result)
 		s.publishParticleDestruction(ctx, cmd.BloqueID, result)
 	}
 	destroyed := 0
-	for _, hit := range hits {
-		if hit.Destroyed {
-			destroyed++
-		}
-	}
+	for _, hit := range hits { if hit.Destroyed { destroyed++ } }
 	return s.publishSwingOutcome(ctx, cmd, SwingOutcome{OK: true, ActionID: cmd.ActionID, Hits: hits, DestroyedCount: destroyed})
 }
 
 func (s *SwingService) publishSwingOutcome(ctx context.Context, cmd SwingCommand, out SwingOutcome) (SwingOutcome, error) {
 	payload, err := buildSwingResultJSON(cmd, out)
-	if err != nil {
-		return out, err
-	}
-	if err := s.Events.PublishSwingResult(ctx, payload); err != nil {
-		return out, fmt.Errorf("publish swing result: %w", err)
-	}
+	if err != nil { return out, err }
+	if err := s.Events.PublishSwingResult(ctx, payload); err != nil { return out, fmt.Errorf("publish swing result: %w", err) }
 	return out, nil
 }
 
