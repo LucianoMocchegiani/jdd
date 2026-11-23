@@ -21,9 +21,7 @@ type actionFile struct {
 			InputIntent string `json:"inputIntent"`
 			Type        string `json:"type"`
 			When        struct {
-				Not struct {
-					Medium []string `json:"medium"`
-				} `json:"not"`
+				Not struct { Medium []string `json:"medium"` } `json:"not"`
 			} `json:"when"`
 		} `json:"control"`
 		Impact     *port.DamageProfile    `json:"impact"`
@@ -47,39 +45,24 @@ type Catalog struct {
 // LoadCatalog reads action data and rejects invalid or duplicate combat profiles.
 func LoadCatalog(path string) (*Catalog, error) {
 	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
+	if err != nil { return nil, err }
 	var raw actionFile
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return nil, err
-	}
+	if err := json.Unmarshal(data, &raw); err != nil { return nil, err }
 	catalog := &Catalog{profiles: make(map[string]*port.CombatProfile), byInputIntent: make(map[string]string)}
 	for _, action := range raw.Actions {
-		if action.ID == "" {
-			return nil, fmt.Errorf("action without id")
-		}
-		if action.ManaCost < 0 || action.ManaCostPerSecond < 0 {
-			return nil, fmt.Errorf("action %q has invalid mana cost", action.ID)
-		}
+		if action.ID == "" { return nil, fmt.Errorf("action without id") }
+		if action.ManaCost < 0 || action.ManaCostPerSecond < 0 { return nil, fmt.Errorf("action %q has invalid mana cost", action.ID) }
 		if action.Impact != nil {
 			if action.Control.Type != "sustained" && action.CooldownMs <= 0 {
 				return nil, fmt.Errorf("action %q has combat impact without positive cooldownMs", action.ID)
 			}
 			shape := action.Impact.Shape
-			if shape == "" {
-				shape = "line"
-				action.Impact.Shape = shape
-			}
-			if action.Impact.Origin == "" {
-				action.Impact.Origin = "caster"
-			}
+			if shape == "" { shape = "line"; action.Impact.Shape = shape }
+			if action.Impact.Origin == "" { action.Impact.Origin = "caster" }
 			valid := action.Impact.Damage > 0 && ((shape == "line" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Width >= 0 && action.Impact.Width <= 5) ||
 				(shape == "swept_arc" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Reach <= 10 && action.Impact.SweepDegrees > 0 && action.Impact.SweepDegrees <= 180) ||
 				(shape == "radial" && (action.Impact.Origin == "caster" || action.Impact.Origin == "target") && action.Impact.Radius > 0 && action.Impact.Radius <= 10))
-			if !valid {
-				return nil, fmt.Errorf("action %q has invalid impact", action.ID)
-			}
+			if !valid { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
 		}
 		if action.Targeting != nil && (action.Targeting.Type != "ground_point" || action.Targeting.Range <= 0 || action.Targeting.Range > 100 || (action.Targeting.Effect != "orb" && action.Targeting.Effect != "thunder")) {
 			return nil, fmt.Errorf("action %q has invalid targeting profile", action.ID)
@@ -101,9 +84,7 @@ func LoadCatalog(path string) (*Catalog, error) {
 			}
 			projectile = &port.ProjectileProfile{Speed: p.Speed, Range: p.Range, Damage: p.Damage, Radius: p.Radius, Delay: time.Duration(p.DelayMs) * time.Millisecond}
 		}
-		if _, exists := catalog.profiles[action.ID]; exists {
-			return nil, fmt.Errorf("duplicate action id %q", action.ID)
-		}
+		if _, exists := catalog.profiles[action.ID]; exists { return nil, fmt.Errorf("duplicate action id %q", action.ID) }
 		catalog.profiles[action.ID] = &port.CombatProfile{
 			InputIntent: action.Control.InputIntent, ControlType: action.Control.Type,
 			Cooldown: time.Duration(action.CooldownMs) * time.Millisecond,
@@ -112,9 +93,7 @@ func LoadCatalog(path string) (*Catalog, error) {
 			BlockedMediums: action.Control.When.Not.Medium, Impact: action.Impact, Targeting: action.Targeting, Projectile: projectile,
 		}
 		if action.Control.InputIntent != "" && (action.Impact != nil || action.Targeting != nil || projectile != nil) {
-			if _, exists := catalog.byInputIntent[action.Control.InputIntent]; exists {
-				return nil, fmt.Errorf("duplicate combat input intent %q", action.Control.InputIntent)
-			}
+			if _, exists := catalog.byInputIntent[action.Control.InputIntent]; exists { return nil, fmt.Errorf("duplicate combat input intent %q", action.Control.InputIntent) }
 			catalog.byInputIntent[action.Control.InputIntent] = action.ID
 		}
 	}
@@ -129,5 +108,4 @@ func (c *Catalog) GetByInputIntent(intent string) (string, *port.CombatProfile) 
 	id := c.byInputIntent[intent]
 	return id, c.profiles[id]
 }
-
 var _ port.CombatCatalog = (*Catalog)(nil)
