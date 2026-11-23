@@ -38,7 +38,7 @@ export function mountAbilityHud(root: HTMLElement): void {
   let rows = new Map<string, HudRow>();
   let editing = false;
   let selectedSlot = 0;
-  let announcement: HTMLElement;
+  let announcement = document.createElement('span');
 
   const startCooldown = (row: HudRow, remainingMs: number): void => {
     row.clock.style.setProperty('--cooldown-duration', `${remainingMs}ms`);
@@ -82,7 +82,7 @@ export function mountAbilityHud(root: HTMLElement): void {
     getLoadout().forEach((id, slot) => {
       const action = id ? actionById.get(id) : undefined;
       if (!action) return;
-      const keyText = prettyKey(CONTROL_SLOTS[slot]!);
+      const keyText = `${prettyKey(CONTROL_SLOTS[slot]!)}${slot === 0 ? ' / Click izq.' : ''}`;
       const cooldownMs = action.cooldownMs ?? 0;
       const nameText = actionName(action.id);
       const item = document.createElement('button');
@@ -138,6 +138,7 @@ export function mountAbilityHud(root: HTMLElement): void {
     if (editing) {
       const editor = document.createElement('section');
       editor.className = 'ability-hud__editor';
+      editor.setAttribute('aria-label', 'Editar configuración de controles');
       const title = document.createElement('strong');
       title.textContent = 'Arrastrá una habilidad a un control o elegila en la lista.';
       editor.append(title);
