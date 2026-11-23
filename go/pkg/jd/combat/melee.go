@@ -13,7 +13,27 @@ const (
 	defaultImpactWidth = 0.65
 )
 
-// shortcut: fixed unobstructed sector/capsule; replace with swept per-part collision and occlusion when available.
+// shortcut: horizontal sector checked once on input, not a time-sampled 3D blade path; improve when animation exposes hit windows.
+func HitsPlayerWithSweptArc(origin Point, yaw float64, target Point, reach, sweepDegrees float64) bool {
+	if reach <= 0 || sweepDegrees <= 0 || sweepDegrees > 180 {
+		return false
+	}
+	dx, dy := target.X-origin.X, target.Y-origin.Y
+	forward, lateral := signedPlanarHit(origin, yaw, target.X, target.Y)
+	distance := math.Hypot(dx, dy)
+	if forward < -playerHitboxRadius || distance > reach+playerHitboxRadius {
+		return false
+	}
+	if distance > playerHitboxRadius {
+		allowance := math.Asin(math.Min(1, playerHitboxRadius/distance))
+		if math.Abs(math.Atan2(lateral, forward)) > sweepDegrees*math.Pi/360+allowance {
+			return false
+		}
+	}
+	strikeZ := origin.Z + 1
+	return strikeZ >= target.Z-0.3 && strikeZ <= target.Z+playerHitboxHeight+0.3
+}
+
 func HitsPlayer(origin Point, yaw float64, target Point, reach float64) bool {
 	return HitsPlayerWithWidth(origin, yaw, target, reach, defaultImpactWidth)
 }
@@ -30,27 +50,6 @@ func HitsPlayerWithWidth(origin Point, yaw float64, target Point, reach, width f
 	forward, lateral := planarHit(origin, yaw, target.X, target.Y)
 	if forward <= 0 || forward > reach+playerHitboxRadius || lateral > width+playerHitboxRadius {
 		return false
-	}
-	strikeZ := origin.Z + 1
-	return strikeZ >= target.Z-0.3 && strikeZ <= target.Z+playerHitboxHeight+0.3
-}
-
-// HitsPlayerWithSweptArc tests a front-facing horizontal sword-sweep sector.
-func HitsPlayerWithSweptArc(origin Point, yaw float64, target Point, reach, sweepDegrees float64) bool {
-	if reach <= 0 || sweepDegrees <= 0 || sweepDegrees > 180 {
-		return false
-	}
-	dx, dy := target.X-origin.X, target.Y-origin.Y
-	forward, lateral := signedPlanarHit(origin, yaw, target.X, target.Y)
-	distance := math.Hypot(dx, dy)
-	if forward < -playerHitboxRadius || distance > reach+playerHitboxRadius {
-		return false
-	}
-	if distance > playerHitboxRadius {
-		allowance := math.Asin(math.Min(1, playerHitboxRadius/distance))
-		if math.Abs(math.Atan2(lateral, forward)) > sweepDegrees*math.Pi/360+allowance {
-			return false
-		}
 	}
 	strikeZ := origin.Z + 1
 	return strikeZ >= target.Z-0.3 && strikeZ <= target.Z+playerHitboxHeight+0.3
