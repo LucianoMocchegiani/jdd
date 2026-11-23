@@ -51,12 +51,13 @@ type ImpactProfile struct {
 	Width         float64 `json:"width,omitempty"`
 	Radius        float64 `json:"radius,omitempty"`
 	SweepDegrees  float64 `json:"sweepDegrees,omitempty"`
+	Speed         float64 `json:"speed,omitempty"`
+	DelayMs       int     `json:"delayMs,omitempty"`
 	Damage        float64 `json:"damage"`
 }
 
 // CombatProfile is the persistence-side damage configuration for one action.
 type CombatProfile struct {
-	ActionID         string
-	Impact           *ImpactProfile
-	ProjectileDamage float64
+	ActionID string
+	Impact   *ImpactProfile
 }

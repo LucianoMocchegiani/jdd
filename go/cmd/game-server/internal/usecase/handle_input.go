@@ -50,8 +50,7 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 						if in.Intents[intent] && !p.Intents[intent] &&
 							(s.Conditions == nil || !s.Conditions.BlocksIntent(p.Conditions, intent)) {
 							if id, profile := catalog.GetByInputIntent(intent); profile != nil &&
-								profile.ControlType != "sustained" &&
-								(profile.Impact != nil || profile.Projectile != nil) {
+								profile.ControlType != "sustained" && profile.Impact != nil {
 								actionID = id
 								break
 							}
@@ -130,7 +129,7 @@ type SwingPayload struct {
 	Seq      int
 }
 
-// HandleSwing validates and enqueues one line attack or projectile action.
+// HandleSwing validates and enqueues one impact action.
 func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bool) {
 	if in.PlayerID == "" {
 		return buildError("swing_error", "missing_player_id"), true
@@ -143,7 +142,7 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 		return buildError("swing_error", "not_configured"), true
 	}
 	profile := s.Combat.Get(in.ActionID)
-	if profile == nil || (profile.Impact == nil && profile.Projectile == nil) || profile.ControlType == "sustained" {
+	if profile == nil || profile.Impact == nil || profile.ControlType == "sustained" {
 		return buildError("swing_error", "unknown_action"), true
 	}
 
@@ -163,9 +162,9 @@ func (s *Services) HandleSwing(in SwingPayload) (responseJSON string, isError bo
 	return s.executeOneShotAction(sess, in.PlayerID, in.ActionID, in.Seq, profile,
 		func(reservation entity.ActionSwingReservation) string {
 			pose := reservation.SwingReservation
-			if profile.Projectile != nil {
-				p := profile.Projectile
-				if !sess.SpawnProjectile(in.PlayerID, in.ActionID, pose, p.Speed, p.Range, p.Damage, p.Radius, p.Delay) {
+			if profile.Impact.Shape == "projectile" {
+				p := profile.Impact
+				if !sess.SpawnProjectile(in.PlayerID, in.ActionID, pose, p.Speed, p.Reach, p.Damage, p.Radius, time.Duration(p.DelayMs)*time.Millisecond) {
 					return "projectile_rejected"
 				}
 				return ""

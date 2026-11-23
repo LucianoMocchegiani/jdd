@@ -1,4 +1,4 @@
-// Package usecase — Casos de uso REST y combate.
+// Package usecase applies configurable impact damage.
 package usecase
 
 import (
@@ -131,9 +131,12 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 		return SwingOutcome{OK: true, Duplicate: true, ActionID: cmd.ActionID}, nil
 	}
 	if cmd.ParticleID != "" {
+		if profile.Impact == nil || profile.Impact.Shape != "projectile" {
+			return SwingOutcome{Error: "invalid_projectile_hit", ActionID: cmd.ActionID}, nil
+		}
 		return s.applyProjectileParticleHit(ctx, cmd, profile)
 	}
-	if profile.Impact == nil {
+	if profile.Impact == nil || profile.Impact.Shape == "projectile" {
 		return SwingOutcome{OK: true, ActionID: cmd.ActionID}, nil
 	}
 	if profile.Impact.Shape == "radial" {
@@ -242,7 +245,7 @@ func (s *SwingService) ApplySwing(ctx context.Context, cmd SwingCommand) (SwingO
 func finiteSwingCoordinate(v float64) bool { return !math.IsNaN(v) && !math.IsInf(v, 0) }
 
 func (s *SwingService) applyProjectileParticleHit(ctx context.Context, cmd SwingCommand, profile *domain.CombatProfile) (SwingOutcome, error) {
-	if profile.ProjectileDamage <= 0 {
+	if profile.Impact == nil || profile.Impact.Shape != "projectile" || profile.Impact.Damage <= 0 {
 		return SwingOutcome{Error: "invalid_projectile_hit", ActionID: cmd.ActionID}, nil
 	}
 	candidates, err := s.Repo.GetParticlesNear(ctx, cmd.BloqueID, float64(cmd.ParticleX), float64(cmd.ParticleY), float64(cmd.ParticleZ), 1)
@@ -257,7 +260,7 @@ func (s *SwingService) applyProjectileParticleHit(ctx context.Context, cmd Swing
 	}
 	var hits []domain.DamageResult
 	if target != nil {
-		result, err := ApplyParticleDamage(ctx, s.Repo, ApplyDamageInput{BloqueID: cmd.BloqueID, ParticleID: target.ID, Damage: profile.ProjectileDamage, WeaponType: cmd.ActionID, RateLimiter: s.RateLimit})
+		result, err := ApplyParticleDamage(ctx, s.Repo, ApplyDamageInput{BloqueID: cmd.BloqueID, ParticleID: target.ID, Damage: profile.Impact.Damage, WeaponType: cmd.ActionID, RateLimiter: s.RateLimit})
 		if err != nil { return SwingOutcome{}, fmt.Errorf("apply projectile particle %s: %w", target.ID, err) }
 		if result == nil { return SwingOutcome{}, fmt.Errorf("apply projectile particle %s: empty damage result", target.ID) }
 		hits = append(hits, *result)

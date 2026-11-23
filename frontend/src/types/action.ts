@@ -15,19 +15,21 @@ export interface ActionAppearance { state?: string; clip?: string; }
 export interface ActionDamage { reach: number; damage: number; }
 /** Impact geometry and origin are independent of the action cycle and targeting input. */
 export interface ActionImpact {
-  shape?: 'line' | 'radial';
+  shape?: 'line' | 'radial' | 'swept_arc' | 'projectile';
   origin?: 'caster' | 'target';
   blockBySolids?: boolean;
   reach?: number;
   width?: number;
   radius?: number;
+  sweepDegrees?: number;
+  speed?: number;
+  delayMs?: number;
   damage?: number;
   entityDamage?: ActionDamage;
   applyConditions?: readonly ConditionApplyRef[];
 }
 /** Client-side target selection; impact geometry and damage remain server-owned. */
 export interface ActionTargeting { type: 'ground_point'; range: number; effect: 'orb' | 'thunder'; }
-export interface ActionProjectile { speed: number; range: number; damage: number; radius: number; delayMs?: number; }
 /** Definición compartida de una acción y sus datos de control, coste, presentación e impacto. */
 export interface ActionDefinition {
   id: string;
@@ -41,5 +43,4 @@ export interface ActionDefinition {
   appearance?: ActionAppearance;
   impact?: ActionImpact;
   targeting?: ActionTargeting;
-  projectile?: ActionProjectile;
 }

@@ -13,9 +13,8 @@ import (
 
 type catalogFile struct {
 	Actions []struct {
-		ID         string                `json:"id"`
-		Impact     *domain.ImpactProfile `json:"impact"`
-		Projectile *struct { Damage float64 `json:"damage"` } `json:"projectile"`
+		ID     string                `json:"id"`
+		Impact *domain.ImpactProfile `json:"impact"`
 	} `json:"actions"`
 }
 
@@ -25,7 +24,7 @@ type Catalog struct {
 	profiles map[string]*domain.CombatProfile
 }
 
-// LoadCatalog reads action data and rejects profiles with invalid or conflicting damage modes.
+// LoadCatalog reads action data and rejects invalid or conflicting damage profiles.
 func LoadCatalog(path string) (*Catalog, error) {
 	data, err := os.ReadFile(path)
 	if err != nil { return nil, err }
@@ -40,16 +39,12 @@ func LoadCatalog(path string) (*Catalog, error) {
 			if action.Impact.Origin == "" { action.Impact.Origin = "caster" }
 			valid := action.Impact.Damage > 0 && ((shape == "line" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Width >= 0 && action.Impact.Width <= 5) ||
 				(shape == "swept_arc" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Reach <= 10 && action.Impact.SweepDegrees > 0 && action.Impact.SweepDegrees <= 180) ||
-				(shape == "radial" && (action.Impact.Origin == "caster" || action.Impact.Origin == "target") && action.Impact.Radius > 0 && action.Impact.Radius <= 10))
+				(shape == "radial" && (action.Impact.Origin == "caster" || action.Impact.Origin == "target") && action.Impact.Radius > 0 && action.Impact.Radius <= 10) ||
+				(shape == "projectile" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Reach <= 1000 && action.Impact.Speed > 0 && action.Impact.Speed <= 100 && action.Impact.Radius > 0 && action.Impact.Radius <= 5 && action.Impact.DelayMs >= 0 && action.Impact.DelayMs <= 10000))
 			if !valid { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
 		}
-		var projectileDamage float64
-		if action.Projectile != nil {
-			projectileDamage = action.Projectile.Damage
-			if projectileDamage <= 0 { return nil, fmt.Errorf("action %q has invalid projectile", action.ID) }
-		}
 		if _, exists := c.profiles[action.ID]; exists { return nil, fmt.Errorf("duplicate action id %q", action.ID) }
-		c.profiles[action.ID] = &domain.CombatProfile{ActionID: action.ID, Impact: action.Impact, ProjectileDamage: projectileDamage}
+		c.profiles[action.ID] = &domain.CombatProfile{ActionID: action.ID, Impact: action.Impact}
 	}
 	return c, nil
 }
@@ -60,4 +55,5 @@ func (c *Catalog) Get(actionID string) *domain.CombatProfile {
 	defer c.mu.RUnlock()
 	return c.profiles[actionID]
 }
+
 var _ port.CombatCatalog = (*Catalog)(nil)

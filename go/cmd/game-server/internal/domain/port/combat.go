@@ -12,6 +12,8 @@ type DamageProfile struct {
 	Width         float64 `json:"width,omitempty"`
 	Radius        float64 `json:"radius,omitempty"`
 	SweepDegrees  float64 `json:"sweepDegrees,omitempty"`
+	Speed         float64 `json:"speed,omitempty"`
+	DelayMs       int     `json:"delayMs,omitempty"`
 	Damage        float64 `json:"damage"`
 }
 
@@ -20,15 +22,6 @@ type TargetingProfile struct {
 	Type   string  `json:"type"`
 	Range  float64 `json:"range"`
 	Effect string  `json:"effect"`
-}
-
-// ProjectileProfile configures projectile movement, collision, damage, and optional delay.
-type ProjectileProfile struct {
-	Speed  float64
-	Range  float64
-	Damage float64
-	Radius float64
-	Delay  time.Duration
 }
 
 // CombatProfile contains server-owned rules for one action, not client-supplied combat values.
@@ -42,7 +35,6 @@ type CombatProfile struct {
 	BlockedMediums    []string
 	Impact            *DamageProfile
 	Targeting         *TargetingProfile
-	Projectile        *ProjectileProfile
 }
 
 // CombatCatalog resolves trusted combat rules from the shared action registry.

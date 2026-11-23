@@ -2,6 +2,7 @@ package usecase_test
 
 import (
 	"encoding/json"
+	"math"
 	"testing"
 	"time"
 
@@ -15,7 +16,7 @@ type projectileSwingPublisher struct{}
 
 func (projectileSwingPublisher) PublishSwing(port.SwingCommand) error { return nil }
 
-func TestHandleSwingSpendsConfiguredProjectileMana(t *testing.T) {
+func TestHandleSwingSpendsConfiguredProjectileManaAndPreservesMotion(t *testing.T) {
 	store := memory.NewSessionStore()
 	sess := store.GetOrCreate("block", 1)
 	sess.AddPlayer("player", 3, 4, 5, 1.25, 0)
@@ -25,7 +26,7 @@ func TestHandleSwingSpendsConfiguredProjectileMana(t *testing.T) {
 		Combat: combatCatalog{"kamehameha": {
 			Cooldown: 3 * time.Second,
 			ManaCost: 20,
-			Projectile: &port.ProjectileProfile{Speed: 18, Range: 28, Damage: 30, Radius: 0.55, Delay: time.Second},
+			Impact: &port.DamageProfile{Shape: "projectile", Origin: "caster", Speed: 18, Reach: 28, Damage: 30, Radius: 0.55, DelayMs: 1000},
 		}},
 	}
 	response, failed := svc.HandleSwing(usecase.SwingPayload{BloqueID: "block", EcoID: 1, PlayerID: "player", ActionID: "kamehameha", Seq: 1})
@@ -40,9 +41,16 @@ func TestHandleSwingSpendsConfiguredProjectileMana(t *testing.T) {
 	if player.Mana != 80 {
 		t.Fatalf("mana after projectile = %v, want 80", player.Mana)
 	}
-	_, failed = svc.HandleSwing(usecase.SwingPayload{BloqueID: "block", EcoID: 1, PlayerID: "player", ActionID: "kamehameha", Seq: 2})
-	if !failed {
+	if _, failed := svc.HandleSwing(usecase.SwingPayload{BloqueID: "block", EcoID: 1, PlayerID: "player", ActionID: "kamehameha", Seq: 2}); !failed {
 		t.Fatal("projectile should be rejected during cooldown")
+	}
+	states := sess.AdvanceProjectiles(1.1)
+	if len(states) != 1 || !states[0].Active {
+		t.Fatalf("projectile did not continue after configured delay: %+v", states)
+	}
+	wantX := 3 - math.Sin(1.25)*2.6
+	if math.Abs(states[0].X-wantX) > 1e-9 {
+		t.Fatalf("projectile x = %v, want %v (spawn offset + configured speed)", states[0].X, wantX)
 	}
 }
 
@@ -57,7 +65,7 @@ func TestHandleSwingRejectsInsufficientManaWithoutConsumingCooldown(t *testing.T
 		Combat: combatCatalog{"kamehameha": {
 			Cooldown: 3 * time.Second,
 			ManaCost: 20,
-			Projectile: &port.ProjectileProfile{Speed: 18, Range: 28, Damage: 30, Radius: 0.55, Delay: time.Second},
+			Impact: &port.DamageProfile{Shape: "projectile", Origin: "caster", Speed: 18, Reach: 28, Damage: 30, Radius: 0.55, DelayMs: 1000},
 		}},
 	}
 	payload := usecase.SwingPayload{BloqueID: "block", EcoID: 1, PlayerID: "player", ActionID: "kamehameha", Seq: 1}
