@@ -1,18 +1,29 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { hasNewAttackIntent } from './input-sender.ts';
+import { hasNewAttackIntent, NetworkInputSender } from './input-sender.ts';
 
-test('tracks F and G edges together when both become active', () => {
-  const wasActive = { attack_light: false, attack_projectile: false };
-  assert.equal(hasNewAttackIntent({ attack_light: true, attack_projectile: true }, wasActive), true);
-  assert.deepEqual(wasActive, { attack_light: true, attack_projectile: true });
-  assert.equal(hasNewAttackIntent({ attack_light: true, attack_projectile: true }, wasActive), false);
+test('tracks all one-shot attack edges together', () => {
+  const wasActive = { attack_light: false, attack_heavy: false, attack_projectile: false, attack_quick_projectile: false };
+  const packed = { attack_light: true, attack_heavy: true, attack_projectile: true, attack_quick_projectile: true } as const;
+  assert.equal(hasNewAttackIntent(packed, wasActive), true);
+  assert.deepEqual(wasActive, { attack_light: true, attack_heavy: true, attack_projectile: true, attack_quick_projectile: true });
+  assert.equal(hasNewAttackIntent(packed, wasActive), false);
 });
 
-test('re-pressing either attack after release creates a new edge', () => {
-  const wasActive = { attack_light: false, attack_projectile: false };
-  assert.equal(hasNewAttackIntent({ attack_light: true }, wasActive), true);
-  assert.equal(hasNewAttackIntent({}, wasActive), false);
-  assert.equal(hasNewAttackIntent({ attack_light: true }, wasActive), true);
-  assert.equal(hasNewAttackIntent({ attack_projectile: true }, wasActive), true);
+test('re-pressing any one-shot attack after release creates a new edge', () => {
+  const wasActive = { attack_light: false, attack_heavy: false, attack_projectile: false, attack_quick_projectile: false };
+  for (const intent of ['attack_light', 'attack_heavy', 'attack_projectile', 'attack_quick_projectile'] as const) {
+    assert.equal(hasNewAttackIntent({ [intent]: true }, wasActive), true);
+    assert.equal(hasNewAttackIntent({}, wasActive), false);
+  }
+});
+
+test('sends newly added one-shot intents in input packets', () => {
+  const sent: Array<{ intents?: Record<string, true> }> = [];
+  const client = { send: (command: { intents?: Record<string, true> }) => { sent.push(command); return true; } } as never;
+  const sender = new NetworkInputSender(client, 'block', 'player');
+  for (const intent of ['attack_heavy', 'attack_quick_projectile'] as const) {
+    sender.tick(0, { [intent]: true }, 0);
+    assert.deepEqual(sent.at(-1)?.intents, { [intent]: true });
+  }
 });

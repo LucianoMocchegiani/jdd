@@ -24,6 +24,7 @@ type inputActionCatalog interface {
 	GetByInputIntent(intent string) (string, *port.CombatProfile)
 }
 
+var oneShotActionIntents = [...]string{"attack_light", "attack_projectile", "attack_heavy", "attack_quick_projectile"}
 var sustainedActionIntents = [...]string{"continuous_attack", "continuous_aura"}
 
 // HandleInput applies a fresh input snapshot and starts one-shot or sustained actions on intent edges.
@@ -46,7 +47,7 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 		if in.Intents != nil {
 			if in.Seq > 0 {
 				if catalog, ok := s.Combat.(inputActionCatalog); ok {
-					for _, intent := range []string{"attack_light", "attack_projectile"} {
+					for _, intent := range oneShotActionIntents {
 						if in.Intents[intent] && !p.Intents[intent] &&
 							(s.Conditions == nil || !s.Conditions.BlocksIntent(p.Conditions, intent)) {
 							if id, profile := catalog.GetByInputIntent(intent); profile != nil &&
