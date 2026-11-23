@@ -68,12 +68,11 @@ export function attachKeyboardInput(): void {
     }
   }, { capture: true });
   window.addEventListener('blur', () => {
-    if (HELD.size > 0 || VIRTUAL_HELD.size > 0) {
-      HELD.clear();
-      VIRTUAL_HELD.clear();
-      SUPPRESSED_UNTIL_KEYUP.clear();
-      logInputKey('blur', '(cleared)', []);
-    }
+    const hadHeldKeys = HELD.size > 0 || VIRTUAL_HELD.size > 0;
+    HELD.clear();
+    VIRTUAL_HELD.clear();
+    SUPPRESSED_UNTIL_KEYUP.clear();
+    if (hadHeldKeys) logInputKey('blur', '(cleared)', []);
   });
 }
 
