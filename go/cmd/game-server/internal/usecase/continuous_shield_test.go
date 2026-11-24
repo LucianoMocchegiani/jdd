@@ -20,6 +20,6 @@ func TestContinuousRadialShieldDrainsManaWithoutPublishingDamage(t *testing.T) {
 		Defense: &port.DefenseProfile{Shape: "radial", Absorption: 50, Duration: 5 * time.Second}}
 	if !session.CreateKiShield("player", "radial", 50, 0, 5*time.Second, time.Now()) { t.Fatal("shield creation failed") }
 	svc := &Services{Combat: continuousShieldCatalog{"escudo_radial_de_ki": profile}}
-	if _, published := svc.advanceContinuousAttack(session, player, 0.1, time.Now()); published { t.Fatal("defensive action published a damage pulse") }
+	if _, published, remove := svc.advanceContinuousAttack(session, player, 0.1, time.Now(), true); published || remove { t.Fatal("active shield tick must not publish damage or remove shield") }
 	if player.Mana != 99.5 || len(session.KiShieldStates(time.Now())) != 1 { t.Fatalf("sustained shield state: mana=%v shields=%v", player.Mana, session.KiShieldStates(time.Now())) }
 }
