@@ -81,10 +81,13 @@ func LoadCatalog(path string) (*Catalog, error) {
 				return nil, fmt.Errorf("action %q has invalid defense profile", action.ID)
 			}
 		}
-		if action.Targeting != nil && (action.Targeting.Type != "ground_point" || action.Targeting.Range <= 0 || action.Targeting.Range > 100 || (action.Targeting.Effect != "orb" && action.Targeting.Effect != "thunder")) {
+		if action.Targeting != nil && (action.Targeting.Type != "ground_point" || action.Targeting.Range <= 0 || action.Targeting.Range > 100 || (action.Targeting.Effect != "orb" && action.Targeting.Effect != "thunder" && action.Targeting.Effect != "teleport")) {
 			return nil, fmt.Errorf("action %q has invalid targeting profile", action.ID)
 		}
-		if action.Targeting != nil && (action.Impact == nil || action.Impact.Shape != "radial" || action.Impact.Origin != "target") {
+		if action.Targeting != nil && action.Targeting.Effect == "teleport" && (action.Impact != nil || action.ManaCost <= 0) {
+			return nil, fmt.Errorf("action %q has invalid teleport profile", action.ID)
+		}
+		if action.Targeting != nil && action.Targeting.Effect != "teleport" && (action.Impact == nil || action.Impact.Shape != "radial" || action.Impact.Origin != "target") {
 			return nil, fmt.Errorf("action %q targeting requires a radial impact with target origin", action.ID)
 		}
 		if action.Impact != nil && action.Impact.Origin == "target" && action.Targeting == nil {

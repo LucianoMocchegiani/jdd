@@ -156,6 +156,13 @@
       "control": { "inputIntent": "target_trueno", "slot": "body_actions", "type": "one_shot" },
       "targeting": { "type": "ground_point", "range": 18, "effect": "thunder" },
       "impact": { "shape": "radial", "origin": "target", "radius": 2, "damage": 25 }
+    },
+    {
+      "id": "teletransporte",
+      "description": "Te teletransporta al punto seleccionado si hay espacio libre.",
+      "manaCost": 20,
+      "control": { "inputIntent": "target_teleport", "slot": "body_actions", "type": "one_shot" },
+      "targeting": { "type": "ground_point", "range": 18, "effect": "teleport" }
     }
   ]
 }
