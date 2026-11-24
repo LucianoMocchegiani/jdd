@@ -13,7 +13,6 @@ export interface ActionInterrupt { blocks?: readonly string[]; canBeInterruptedB
 export interface ActionControl { inputIntent: string; slot: ActionSlot; type: ActionType; when?: ActionWhen; interrupt?: ActionInterrupt; }
 export interface ActionAppearance { state?: string; clip?: string; }
 export interface ActionDamage { reach: number; damage: number; }
-/** Impact geometry and origin are independent of the action cycle and targeting input. */
 export interface ActionImpact {
   shape?: 'line' | 'radial' | 'swept_arc' | 'projectile';
   origin?: 'caster' | 'target';
@@ -28,7 +27,7 @@ export interface ActionImpact {
   entityDamage?: ActionDamage;
   applyConditions?: readonly ConditionApplyRef[];
 }
-/** Client-side target selection; impact geometry and damage remain server-owned. */
+export interface ActionDefense { shape: 'cone'; absorption: number; durationMs: number; angleDegrees: number; }
 export interface ActionTargeting { type: 'ground_point'; range: number; effect: 'orb' | 'thunder'; }
 /** Definición compartida de una acción y sus datos de control, coste, presentación e impacto. */
 export interface ActionDefinition {
@@ -42,5 +41,6 @@ export interface ActionDefinition {
   movement?: ActionMovement;
   appearance?: ActionAppearance;
   impact?: ActionImpact;
+  defense?: ActionDefense;
   targeting?: ActionTargeting;
 }

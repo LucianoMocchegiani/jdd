@@ -72,6 +72,20 @@
       "impact": { "shape": "radial", "origin": "caster", "blockBySolids": true, "radius": 3.5, "damage": 15 }
     },
     {
+      "id": "escudo_de_ki",
+      "description": "Crea delante del personaje un escudo en cono que absorbe hasta 50 puntos durante 5 segundos.",
+      "cooldownMs": 10000,
+      "manaCost": 10,
+      "control": {
+        "inputIntent": "attack_ki_shield",
+        "slot": "body_actions",
+        "type": "one_shot",
+        "when": { "not": { "medium": ["air", "submerged_full"] } }
+      },
+      "appearance": { "state": "attack", "clip": "attack" },
+      "defense": { "shape": "cone", "absorption": 50, "durationMs": 5000, "angleDegrees": 120 }
+    },
+    {
       "id": "rayo_de_ki",
       "description": "Rayo canalizado sostenido que daña partículas y objetivos en secuencia.",
       "manaCostPerSecond": 5,

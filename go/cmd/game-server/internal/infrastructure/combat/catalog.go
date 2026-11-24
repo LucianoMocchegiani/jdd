@@ -25,6 +25,12 @@ type actionFile struct {
 			} `json:"when"`
 		} `json:"control"`
 		Impact    *port.DamageProfile    `json:"impact"`
+		Defense   *struct {
+			Shape        string  `json:"shape"`
+			Absorption   float64 `json:"absorption"`
+			DurationMs   int     `json:"durationMs"`
+			AngleDegrees float64 `json:"angleDegrees"`
+		} `json:"defense"`
 		Targeting *port.TargetingProfile `json:"targeting"`
 	} `json:"actions"`
 }
@@ -58,6 +64,9 @@ func LoadCatalog(path string) (*Catalog, error) {
 				(shape == "projectile" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Reach <= 1000 && action.Impact.Speed > 0 && action.Impact.Speed <= 100 && action.Impact.Radius > 0 && action.Impact.Radius <= 5 && action.Impact.DelayMs >= 0 && action.Impact.DelayMs <= 10000))
 			if !valid { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
 		}
+		if action.Defense != nil && (action.Defense.Shape != "cone" || action.Defense.Absorption <= 0 || action.Defense.Absorption > 1000 || action.Defense.DurationMs <= 0 || action.Defense.DurationMs > 10000 || action.Defense.AngleDegrees <= 0 || action.Defense.AngleDegrees > 180 || action.CooldownMs <= 0) {
+			return nil, fmt.Errorf("action %q has invalid defense profile", action.ID)
+		}
 		if action.Targeting != nil && (action.Targeting.Type != "ground_point" || action.Targeting.Range <= 0 || action.Targeting.Range > 100 || (action.Targeting.Effect != "orb" && action.Targeting.Effect != "thunder")) {
 			return nil, fmt.Errorf("action %q has invalid targeting profile", action.ID)
 		}
@@ -71,14 +80,18 @@ func LoadCatalog(path string) (*Catalog, error) {
 			return nil, fmt.Errorf("action %q has invalid sustained profile", action.ID)
 		}
 		if _, exists := catalog.profiles[action.ID]; exists { return nil, fmt.Errorf("duplicate action id %q", action.ID) }
-		catalog.profiles[action.ID] = &port.CombatProfile{
+		profile := &port.CombatProfile{
 			InputIntent: action.Control.InputIntent, ControlType: action.Control.Type,
 			Cooldown: time.Duration(action.CooldownMs) * time.Millisecond,
 			ManaCost: action.ManaCost, ManaCostPerSecond: action.ManaCostPerSecond,
 			DamageInterval: time.Duration(action.DamageIntervalMs) * time.Millisecond,
 			BlockedMediums: action.Control.When.Not.Medium, Impact: action.Impact, Targeting: action.Targeting,
 		}
-		if action.Control.InputIntent != "" && (action.Impact != nil || action.Targeting != nil) {
+		if action.Defense != nil {
+			profile.Defense = &port.DefenseProfile{Shape: action.Defense.Shape, Absorption: action.Defense.Absorption, Duration: time.Duration(action.Defense.DurationMs) * time.Millisecond, DurationMs: action.Defense.DurationMs, AngleDegrees: action.Defense.AngleDegrees}
+		}
+		catalog.profiles[action.ID] = profile
+		if action.Control.InputIntent != "" && (action.Impact != nil || action.Targeting != nil || action.Defense != nil) {
 			if _, exists := catalog.byInputIntent[action.Control.InputIntent]; exists { return nil, fmt.Errorf("duplicate combat input intent %q", action.Control.InputIntent) }
 			catalog.byInputIntent[action.Control.InputIntent] = action.ID
 		}
