@@ -30,6 +30,19 @@
       "impact": { "shape": "swept_arc", "origin": "caster", "reach": 2.5, "sweepDegrees": 120, "damage": 25 }
     },
     {
+      "id": "esquive_rapido",
+      "description": "Impulso corto en la dirección de movimiento o, si estás quieto, hacia donde mirás.",
+      "cooldownMs": 2000,
+      "control": {
+        "inputIntent": "attack_dodge",
+        "slot": "body_actions",
+        "type": "one_shot",
+        "when": { "not": { "medium": ["air", "submerged_partial", "submerged_full"] } }
+      },
+      "movement": { "dashDistance": 2, "dashDurationMs": 180 },
+      "appearance": { "state": "run", "clip": "run" }
+    },
+    {
       "id": "kamehameha",
       "description": "Proyectil de energía autoritativo; se dispara tras la carga de la animación.",
       "cooldownMs": 3000,

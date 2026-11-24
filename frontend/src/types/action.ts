@@ -1,4 +1,3 @@
-import type { ConditionApplyRef } from '@/types/condition';
 import type { Medium } from '@/types/medium';
 
 export type ActionSlot = 'constant_displacements' | 'impulse_displacements' | 'body_actions' | 'full_body_action';
@@ -8,7 +7,13 @@ export interface ActionWhen {
   conditions?: readonly string[];
   not?: { medium?: Medium | Medium[]; conditions?: readonly string[] };
 }
-export interface ActionMovement { speedMultiplier?: number; impulseZ?: number; preserveVelocityXY?: boolean; }
+export interface ActionMovement {
+  speedMultiplier?: number;
+  impulseZ?: number;
+  preserveVelocityXY?: boolean;
+  dashDistance?: number;
+  dashDurationMs?: number;
+}
 export interface ActionInterrupt { blocks?: readonly string[]; canBeInterruptedBy?: readonly string[]; }
 export interface ActionControl { inputIntent: string; slot: ActionSlot; type: ActionType; when?: ActionWhen; interrupt?: ActionInterrupt; }
 export interface ActionAppearance { state?: string; clip?: string; }

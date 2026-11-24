@@ -1,3 +1,7 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { isNewActionSequence, selectRemoteClip } from './remote-animation.ts';
+
 /** Estado autoritativo usado para elegir el clip de animación presentado en el cliente. */
 export interface RemoteAnimationState {
   medium: string;
@@ -22,21 +26,13 @@ export function selectRemoteClip(state: RemoteAnimationState): string | null {
   if (state.continuous_action_id === 'escudo_radial_de_ki' || state.intents?.continuous_ki_shield || state.action_id === 'escudo_radial_de_ki') return 'escudo_radial_de_ki';
   if (state.continuous_action_id === 'aura_de_ki' || state.intents?.continuous_aura || state.action_id === 'aura_de_ki') return 'aura_de_ki';
   if (state.continuous_attack_active || state.intents?.continuous_attack) return 'rayo_de_ki';
+  if (state.action_id === 'esquive_rapido') return 'run';
   if (state.action_id === 'attack' || state.action_id === 'golpe_pesado' || state.action_id === 'onda_de_choque' || state.action_id === 'escudo_de_ki') return 'attack';
   if (state.action_id === 'kamehameha' || state.action_id === 'esfera_rapida') return 'kamehameha';
   if (state.action_id === 'orbe_explosivo' || state.action_id === 'trueno') return state.action_id;
-  const moving =
-    MOVE_INTENTS.some((intent) => state.intents?.[intent]) || Math.hypot(state.vx, state.vy) > 0.05;
-
-  if (state.medium === 'submerged_partial' || state.medium === 'submerged_full') {
-    return moving ? 'swim' : null;
-  }
-  if (state.medium === 'air') {
-    if (moving) return 'fly';
-    return state.vz > 0.05 ? 'jump' : null;
-  }
-  if (moving) {
-    return state.intents?.run_forward || state.intents?.run_backward ? 'run' : 'walk';
-  }
+  const moving = MOVE_INTENTS.some((intent) => state.intents?.[intent]) || Math.hypot(state.vx, state.vy) > 0.05;
+  if (state.medium === 'submerged_partial' || state.medium === 'submerged_full') return moving ? 'swim' : null;
+  if (state.medium === 'air') return moving ? 'fly' : state.vz > 0.05 ? 'jump' : null;
+  if (moving) return state.intents?.run_forward || state.intents?.run_backward ? 'run' : 'walk';
   return null;
 }
