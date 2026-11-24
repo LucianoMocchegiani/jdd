@@ -10,7 +10,11 @@ import (
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/wshub"
 )
 
-type DestroyedEvent struct { BloqueID string; ParticleID string; X, Y, Z int }
+type DestroyedEvent struct {
+	BloqueID string
+	ParticleID string
+	X, Y, Z int
+}
 type SwingPlayerDamage struct { PlayerID string `json:"player_id"`; EntityID int `json:"entity_id"`; Damage float64 `json:"damage"` }
 type SwingResultEvent struct {
 	BloqueID string
@@ -50,14 +54,12 @@ func (s *Services) HandleSwingResult(ev SwingResultEvent) {
 	}
 	s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) { if c.PlayerID == ev.PlayerID { wshub.SafeWrite(c, ev.RawJSON) } })
 }
-
 func validEntityID(id int) bool { return id > 0 && uint64(id) <= uint64(^uint32(0)) }
 func finitePositiveDamage(damage float64) bool { return damage > 0 && !math.IsInf(damage, 0) && !math.IsNaN(damage) }
 func applyPlayerDamage(sess *entity.BlockSession, sourceID, playerID string, entityID int, damage float64) {
 	sess.ApplyPlayerDamageFrom(sourceID, playerID, entityID, damage, time.Now())
 }
-
 func buildParticleDestroyedWS(ev DestroyedEvent) string {
-	b, _ := json.Marshal(map[string]interface{}{"type": "particle_destroyed", "particle_id": ev.ParticleID, "bloque_id": ev.BloqueID, "position": map[string]int{"x": ev.X, "y": ev.Y, "z": ev.Z}})
+	b, _ := json.Marshal(map[string]interface{}{"type":"particle_destroyed","particle_id":ev.ParticleID,"bloque_id":ev.BloqueID,"position":map[string]int{"x":ev.X,"y":ev.Y,"z":ev.Z}})
 	return string(b)
 }
