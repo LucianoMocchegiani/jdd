@@ -1,6 +1,5 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
-import { parseInboundMessage } from './ws-dispatcher.ts';
+import type { RealtimeInboundMessage, SessionEvent, WorldEvent, SwingResultPlayerHit } from '@/types/world-events';
+import { parseTerrainWsMessage } from '@/game/network/parse-terrain-ws';
 
 test('parses successful swing acknowledgements and rejects invalid sequences', () => {
   assert.deepEqual(parseInboundMessage({
@@ -19,6 +18,19 @@ test('parses the active sustained action for remote aura animation', () => {
   });
   assert.equal(parsed?.type, 'player_state');
   if (parsed?.type === 'player_state') assert.equal(parsed.continuous_action_id, 'aura_de_ki');
+});
+
+test('parses shield state needed by client visuals', () => {
+  const parsed = parseInboundMessage({
+    type: 'player_state', server_tick: 1, player_id: 'p', bloque_id: 'b',
+    x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, yaw: 0,
+    shield_active: true, shield_remaining: 35,
+  });
+  assert.equal(parsed?.type, 'player_state');
+  if (parsed?.type === 'player_state') {
+    assert.equal(parsed.shield_active, true);
+    assert.equal(parsed.shield_remaining, 35);
+  }
 });
 
 test('validates multi-player swing result targets', () => {

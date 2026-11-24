@@ -21,7 +21,7 @@ export function isNewActionSequence(previous: number | null, next: number): bool
 export function selectRemoteClip(state: RemoteAnimationState): string | null {
   if (state.continuous_action_id === 'aura_de_ki' || state.intents?.continuous_aura || state.action_id === 'aura_de_ki') return 'aura_de_ki';
   if (state.continuous_attack_active || state.intents?.continuous_attack) return 'rayo_de_ki';
-  if (state.action_id === 'attack' || state.action_id === 'golpe_pesado' || state.action_id === 'onda_de_choque') return 'attack';
+  if (state.action_id === 'attack' || state.action_id === 'golpe_pesado' || state.action_id === 'onda_de_choque' || state.action_id === 'escudo_de_ki') return 'attack';
   if (state.action_id === 'kamehameha' || state.action_id === 'esfera_rapida') return 'kamehameha';
   if (state.action_id === 'orbe_explosivo' || state.action_id === 'trueno') return state.action_id;
   const moving =

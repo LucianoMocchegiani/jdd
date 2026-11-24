@@ -90,6 +90,8 @@ export function parseInboundMessage(raw: unknown): RealtimeInboundMessage | null
       in_combat: typeof msg.in_combat === 'boolean' ? msg.in_combat : undefined,
       continuous_attack_active: typeof msg.continuous_attack_active === 'boolean' ? msg.continuous_attack_active : undefined,
       continuous_action_id: typeof msg.continuous_action_id === 'string' ? msg.continuous_action_id : undefined,
+      shield_active: typeof msg.shield_active === 'boolean' ? msg.shield_active : undefined,
+      shield_remaining: finiteNumber(msg.shield_remaining) && msg.shield_remaining >= 0 ? msg.shield_remaining : undefined,
     };
   }
   if (type === 'swing_result') {

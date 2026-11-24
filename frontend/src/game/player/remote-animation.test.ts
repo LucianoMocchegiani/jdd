@@ -10,6 +10,7 @@ test('remote clips follow authoritative action and movement state', () => {
   assert.equal(selectRemoteClip({ ...base, action_id: 'attack' }), 'attack');
   assert.equal(selectRemoteClip({ ...base, action_id: 'golpe_pesado' }), 'attack');
   assert.equal(selectRemoteClip({ ...base, action_id: 'onda_de_choque' }), 'attack');
+  assert.equal(selectRemoteClip({ ...base, action_id: 'escudo_de_ki' }), 'attack');
   assert.equal(selectRemoteClip({ ...base, action_id: 'kamehameha' }), 'kamehameha');
   assert.equal(selectRemoteClip({ ...base, action_id: 'esfera_rapida' }), 'kamehameha');
   assert.equal(selectRemoteClip({ ...base, action_id: 'orbe_explosivo' }), 'orbe_explosivo');
