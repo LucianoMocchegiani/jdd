@@ -15,11 +15,12 @@ const prettyKey = (code: string): string => code === 'Mouse0' ? 'Click izq.' : c
 const actionName = (id: string): string => id === 'attack' ? 'Ataque'
   : id === 'golpe_pesado' ? 'Golpe pesado'
     : id === 'esfera_rapida' ? 'Esfera rápida'
-      : id === 'kamehameha' ? 'Kamehameha'
-        : id === 'rayo_de_ki' ? 'Rayo de Ki'
-          : id === 'aura_de_ki' ? 'Aura de Ki'
-            : id === 'orbe_explosivo' ? 'Orbe explosivo'
-              : id === 'trueno' ? 'Trueno' : id.replaceAll('_', ' ');
+      : id === 'onda_de_choque' ? 'Onda de choque'
+        : id === 'kamehameha' ? 'Kamehameha'
+          : id === 'rayo_de_ki' ? 'Rayo de Ki'
+            : id === 'aura_de_ki' ? 'Aura de Ki'
+              : id === 'orbe_explosivo' ? 'Orbe explosivo'
+                : id === 'trueno' ? 'Trueno' : id.replaceAll('_', ' ');
 
 type HudRow = { item: HTMLButtonElement; clock: HTMLElement; cooldown: HTMLElement; cooldownMs: number; label: string; name: string; key: string };
 

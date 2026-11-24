@@ -3,6 +3,7 @@ package usecase
 import (
 	"encoding/json"
 	"math"
+	"time"
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
@@ -66,18 +67,20 @@ func (s *Services) HandleAreaSpell(in AreaSpellPayload) (string, bool) {
 			}
 			return ""
 		}, func() {
-			var playerIDs []string
+			var targets []struct {
+				playerID string
+				entityID uint32
+			}
 			sess.ForEachPlayer(func(p *entity.Player) {
 				if p.ID != in.PlayerID && p.Health > 0 && insideArea(p, in.Target, profile.Impact.Radius) {
-					playerIDs = append(playerIDs, p.ID)
+					targets = append(targets, struct {
+						playerID string
+						entityID uint32
+					}{p.ID, p.EntityID})
 				}
 			})
-			for _, id := range playerIDs {
-				sess.UpdatePlayer(id, func(p *entity.Player) {
-					if p.Health > 0 && insideArea(p, in.Target, profile.Impact.Radius) {
-						p.Health = math.Max(0, p.Health-profile.Impact.Damage)
-					}
-				})
+			for _, target := range targets {
+				sess.ApplyPlayerDamageFrom(in.PlayerID, target.playerID, int(target.entityID), profile.Impact.Damage, time.Now())
 			}
 			if s.Hub != nil {
 				wire, _ := json.Marshal(map[string]interface{}{

@@ -28,6 +28,7 @@ export interface ActionImpact {
   entityDamage?: ActionDamage;
   applyConditions?: readonly ConditionApplyRef[];
 }
+export interface ActionDefense { shape: 'cone' | 'radial'; absorption: number; durationMs: number; angleDegrees?: number; }
 /** Client-side target selection; impact geometry and damage remain server-owned. */
 export interface ActionTargeting { type: 'ground_point'; range: number; effect: 'orb' | 'thunder'; }
 /** Definición compartida de una acción y sus datos de control, coste, presentación e impacto. */
@@ -42,5 +43,6 @@ export interface ActionDefinition {
   movement?: ActionMovement;
   appearance?: ActionAppearance;
   impact?: ActionImpact;
+  defense?: ActionDefense;
   targeting?: ActionTargeting;
 }
