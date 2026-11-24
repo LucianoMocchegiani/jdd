@@ -17,6 +17,10 @@ func RunPlayerTick(p *entity.Player, grid *collision.SolidGridCache, cfg *sessio
 }
 
 func RunPlayerTickWithEffects(p *entity.Player, grid *collision.SolidGridCache, cfg *session.Config, mediumRules *jdmedium.Resolver, dt float64, intents map[string]bool, speedMultiplier float64) {
+	if p.DashRemaining > 0 {
+		runDashTick(p, grid, mediumRules, cfg, dt)
+		return
+	}
 	speed := cfg.PlayerMoveSpeedCells * speedMultiplier
 	if p.Medium == "ground" && intents["run_forward"] && intents["move_forward"] {
 		speed *= runSpeedMultiplier
@@ -45,6 +49,45 @@ func RunPlayerTickWithEffects(p *entity.Player, grid *collision.SolidGridCache, 
 		p.Z = math.Floor(p.Z)
 	}
 	ResolvePlayerContact(p, grid, cfg, mediumRules)
+}
+
+// StartPlanarDash applies a short impulse using movement input, or facing when idle.
+func StartPlanarDash(p *entity.Player, distance, duration float64) bool {
+	if p.Medium != "ground" || distance <= 0 || duration <= 0 || p.DashRemaining > 0 {
+		return false
+	}
+	dx, dy := computePlanarVelocityFromIntents(p.Intents, 1, p.Yaw)
+	if math.Hypot(dx, dy) < 1e-6 {
+		dx, dy = cameraPlanarForwardUnit(p.Yaw)
+	}
+	p.DashVX, p.DashVY = dx*distance/duration, dy*distance/duration
+	p.DashRemaining = duration
+	return true
+}
+
+func runDashTick(p *entity.Player, grid *collision.SolidGridCache, mediumRules *jdmedium.Resolver, cfg *session.Config, dt float64) {
+	dashDT := math.Min(dt, p.DashRemaining)
+	p.VX, p.VY = p.DashVX, p.DashVY
+	if !moveDashAxis(p, grid, "x", p.VX*dashDT) { p.DashVX, p.VX = 0, 0 }
+	if !moveDashAxis(p, grid, "y", p.VY*dashDT) { p.DashVY, p.VY = 0, 0 }
+	p.DashRemaining -= dt
+	if p.DashRemaining <= 0 || (p.DashVX == 0 && p.DashVY == 0) {
+		p.DashRemaining, p.DashVX, p.DashVY = 0, 0, 0
+		p.VX, p.VY = 0, 0
+	}
+	ResolvePlayerContact(p, grid, cfg, mediumRules)
+}
+
+func moveDashAxis(p *entity.Player, grid *collision.SolidGridCache, axis string, delta float64) bool {
+	steps := int(math.Ceil(math.Abs(delta) / 0.25))
+	if steps == 0 { return true }
+	step := delta / float64(steps)
+	for i := 0; i < steps; i++ {
+		beforeX, beforeY := p.X, p.Y
+		tryMoveAxis(p, grid, axis, step)
+		if p.X == beforeX && p.Y == beforeY { return false }
+	}
+	return true
 }
 
 func ResolvePlayerContact(p *entity.Player, grid *collision.SolidGridCache, cfg *session.Config, rules *jdmedium.Resolver) {

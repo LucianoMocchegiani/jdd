@@ -26,6 +26,8 @@ type Player struct {
 	ContinuousAttackID     string
 	ContinuousAttackSeq    int
 	ContinuousAttackElapsed float64
+	DashRemaining          float64
+	DashVX, DashVY         float64
 	Health                 float64
 	MaxHealth              float64
 	Mana                   float64

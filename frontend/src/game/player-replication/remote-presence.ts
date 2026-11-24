@@ -45,7 +45,7 @@ export class RemotePresence {
     if (event.player_id === this.localPlayerId || this.leftPlayerIds.has(event.player_id) || !event.bloque_id) return;
 
     const animationState = {
-      medium: event.medium, vx: event.vx, vy: event.vy, vz: event.vz, intents: event.intents,
+      medium: event.medium, vx: event.vx, vy: event.vy, vz: event.vz, yaw: event.yaw, intents: event.intents,
       continuous_attack_active: event.continuous_attack_active,
       continuous_action_id: event.continuous_action_id,
     };

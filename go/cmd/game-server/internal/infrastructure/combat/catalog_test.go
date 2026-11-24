@@ -38,3 +38,18 @@ func TestLoadSustainedKiBeamProfile(t *testing.T) {
 		t.Fatalf("unexpected sustained profile: %+v", p)
 	}
 }
+
+func TestLoadDashMovementProfile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "actions.json")
+	data := `{"actions":[{"id":"esquive_rapido","cooldownMs":2000,"control":{"inputIntent":"attack_dodge","type":"one_shot"},"movement":{"dashDistance":8,"dashDurationMs":280}}]}`
+	if err := os.WriteFile(path, []byte(data), 0600); err != nil { t.Fatal(err) }
+	catalog, err := LoadCatalog(path)
+	if err != nil { t.Fatal(err) }
+	p := catalog.Get("esquive_rapido")
+	if p == nil || p.Movement == nil || p.Movement.DashDistance != 8 || p.Movement.DashDuration != 280*time.Millisecond || p.Cooldown != 2*time.Second {
+		t.Fatalf("unexpected dash profile: %+v", p)
+	}
+	if id, byIntent := catalog.GetByInputIntent("attack_dodge"); id != "esquive_rapido" || byIntent != p {
+		t.Fatalf("dash intent resolved to %q/%+v", id, byIntent)
+	}
+}

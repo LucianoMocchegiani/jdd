@@ -6,8 +6,22 @@ import type { StudioAnimationClip, StudioDocument } from '@/poc/character-studio
 import { DEFAULT_PALETTE } from '@/poc/shared';
 import { BODY_ACTIONS } from '@/game-data/actions';
 import { PARTICLE_SIZE_RATIO } from '@/game/terrain/particle-geometry';
+import { resolveRemoteClipId } from '@/game/player/remote-animation';
 import auraDeKiClipRaw from '@/game/player/animations/aura_de_ki.json?raw';
 import escudoRadialClipRaw from '@/game/player/animations/escudo_radial_de_ki.json?raw';
+import esquiveRapidoClipRaw from '@/game/player/animations/esquive_rapido.json?raw';
+import walkForwardClipRaw from '@/game/player/animations/walk_forward.json?raw';
+import walkBackwardClipRaw from '@/game/player/animations/walk_backward.json?raw';
+import walkLeftClipRaw from '@/game/player/animations/walk_left.json?raw';
+import walkRightClipRaw from '@/game/player/animations/walk_right.json?raw';
+import runForwardClipRaw from '@/game/player/animations/run_forward.json?raw';
+import runBackwardClipRaw from '@/game/player/animations/run_backward.json?raw';
+import runLeftClipRaw from '@/game/player/animations/run_left.json?raw';
+import runRightClipRaw from '@/game/player/animations/run_right.json?raw';
+import dodgeForwardClipRaw from '@/game/player/animations/esquive_rapido_forward.json?raw';
+import dodgeBackwardClipRaw from '@/game/player/animations/esquive_rapido_backward.json?raw';
+import dodgeLeftClipRaw from '@/game/player/animations/esquive_rapido_left.json?raw';
+import dodgeRightClipRaw from '@/game/player/animations/esquive_rapido_right.json?raw';
 import rayoDeKiClipRaw from '@/game/player/animations/rayo_de_ki.json?raw';
 import orbeExplosivoClipRaw from '@/game/player/animations/orbe_explosivo.json?raw';
 import truenoClipRaw from '@/game/player/animations/trueno.json?raw';
@@ -60,6 +74,11 @@ export class PlayerCharacterVisual {
     this.renderer = new StudioRenderer(scene, cellSize);
     this.clips.set('aura_de_ki', clipFromJson(auraDeKiClipRaw));
     this.clips.set('escudo_radial_de_ki', clipFromJson(escudoRadialClipRaw));
+    this.clips.set('esquive_rapido', clipFromJson(esquiveRapidoClipRaw));
+    for (const raw of [walkForwardClipRaw, walkBackwardClipRaw, walkLeftClipRaw, walkRightClipRaw, runForwardClipRaw, runBackwardClipRaw, runLeftClipRaw, runRightClipRaw, dodgeForwardClipRaw, dodgeBackwardClipRaw, dodgeLeftClipRaw, dodgeRightClipRaw]) {
+      const clip = clipFromJson(raw);
+      this.clips.set(clip.id, clip);
+    }
     this.clips.set('rayo_de_ki', clipFromJson(rayoDeKiClipRaw));
     this.clips.set('orbe_explosivo', clipFromJson(orbeExplosivoClipRaw));
     this.clips.set('trueno', clipFromJson(truenoClipRaw));
@@ -70,21 +89,12 @@ export class PlayerCharacterVisual {
     scene.add(this.auraRing, this.auraGlow, this.beam);
   }
 
-  update(
-    deltaTime: number,
-    requestedClip: string | null,
-    x: number,
-    y: number,
-    z: number,
-    yaw: number,
-    tint: number | null,
-  ): void {
+  update(deltaTime: number, requestedClip: string | null, x: number, y: number, z: number, yaw: number, tint: number | null): void {
     const current = this.clips.get(this.clipId)!;
-    const requested = requestedClip === 'run' ? 'walk' : requestedClip;
-    const requestedAnimation = requested ? this.clips.get(requested) : undefined;
-    const keepOneShot =
-      !current.loop && this.time < current.duration && (!requestedAnimation || requestedAnimation.loop);
-    const nextId = keepOneShot ? this.clipId : requestedAnimation ? requested! : 'idle';
+    const resolvedClipId = resolveRemoteClipId(requestedClip, this.clips);
+    const requestedAnimation = resolvedClipId ? this.clips.get(resolvedClipId) : undefined;
+    const keepOneShot = !current.loop && this.time < current.duration && (!requestedAnimation || requestedAnimation.loop);
+    const nextId = keepOneShot ? this.clipId : requestedAnimation ? resolvedClipId! : 'idle';
 
     if (nextId !== this.clipId) {
       this.clipId = nextId;
@@ -107,7 +117,7 @@ export class PlayerCharacterVisual {
       yaw: visualYaw,
       showBones: false,
     });
-    const beamActive = requested === 'rayo_de_ki';
+    const beamActive = requestedClip === 'rayo_de_ki';
     if (beamActive && !this.beamActive) this.beamLength = 28;
     this.beamActive = beamActive;
     this.beam.visible = beamActive;
@@ -124,7 +134,7 @@ export class PlayerCharacterVisual {
       const radius = (0.2 + 0.04 * Math.sin(this.time * 18)) * this.cellSize;
       this.beam.scale.set(radius, length, radius);
     }
-    const auraActive = requested === 'aura_de_ki';
+    const auraActive = requestedClip === 'aura_de_ki';
     this.auraRing.visible = this.auraGlow.visible = auraActive;
     if (auraActive) {
       const pulse = 0.94 + 0.06 * Math.sin(this.time * 12);
@@ -138,25 +148,20 @@ export class PlayerCharacterVisual {
     const color = this.damageFlashUntilMs > performance.now() ? 0xff5555 : tint;
     for (const mesh of this.renderer.getPickMeshes()) {
       const layer = String(mesh.userData.bucketKey).split(':')[0]! as keyof typeof DEFAULT_PALETTE;
-      (mesh.material as MeshStandardMaterial).color.setHex(
-        color ?? DEFAULT_PALETTE[layer] ?? DEFAULT_PALETTE.flesh,
-      );
+      (mesh.material as MeshStandardMaterial).color.setHex(color ?? DEFAULT_PALETTE[layer] ?? DEFAULT_PALETTE.flesh);
     }
   }
 
-  /** Actualiza el alcance del rayo con el resultado autoritativo de un pulso. */
   setBeamLength(length: number, seq: number): void {
     if (!Number.isFinite(length) || length < 0 || !Number.isSafeInteger(seq) || seq <= this.beamSeq) return;
     this.beamSeq = seq;
     this.beamLength = Math.min(length, 28);
   }
 
-  /** Mantiene un destello breve cuando el servidor confirma daño recibido. */
   flashDamage(): void {
     this.damageFlashUntilMs = performance.now() + 180;
   }
 
-  /** Ajusta transparencia para usar el rig como fantasma de depuración. */
   setOpacity(opacity: number): void {
     for (const mesh of this.renderer.getPickMeshes()) {
       const material = mesh.material as MeshStandardMaterial;
@@ -167,7 +172,6 @@ export class PlayerCharacterVisual {
     }
   }
 
-  /** Libera el renderer al desaparecer una réplica remota. */
   dispose(): void {
     this.renderer.dispose();
     for (const mesh of [this.auraRing, this.auraGlow, this.beam]) {
