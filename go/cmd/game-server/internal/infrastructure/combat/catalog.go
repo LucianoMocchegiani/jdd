@@ -64,8 +64,14 @@ func LoadCatalog(path string) (*Catalog, error) {
 				(shape == "projectile" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Reach <= 1000 && action.Impact.Speed > 0 && action.Impact.Speed <= 100 && action.Impact.Radius > 0 && action.Impact.Radius <= 5 && action.Impact.DelayMs >= 0 && action.Impact.DelayMs <= 10000))
 			if !valid { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
 		}
-		if action.Defense != nil && (action.Defense.Shape != "cone" || action.Defense.Absorption <= 0 || action.Defense.Absorption > 1000 || action.Defense.DurationMs <= 0 || action.Defense.DurationMs > 10000 || action.Defense.AngleDegrees <= 0 || action.Defense.AngleDegrees > 180 || action.CooldownMs <= 0 || action.Impact != nil || action.Targeting != nil || action.Control.Type == "sustained") {
-			return nil, fmt.Errorf("action %q has invalid defense profile", action.ID)
+		if action.Defense != nil {
+			d := action.Defense
+			validShape := (d.Shape == "cone" && d.AngleDegrees > 0 && d.AngleDegrees <= 180) || (d.Shape == "radial" && d.AngleDegrees == 0)
+			validCycle := (action.Control.Type == "sustained" && action.ManaCostPerSecond > 0 && action.CooldownMs == 0 && action.ManaCost == 0) ||
+				(action.Control.Type != "sustained" && action.CooldownMs > 0 && action.ManaCostPerSecond == 0)
+			if !validShape || d.Absorption <= 0 || d.Absorption > 1000 || d.DurationMs <= 0 || d.DurationMs > 10000 || !validCycle || action.Impact != nil || action.Targeting != nil {
+				return nil, fmt.Errorf("action %q has invalid defense profile", action.ID)
+			}
 		}
 		if action.Targeting != nil && (action.Targeting.Type != "ground_point" || action.Targeting.Range <= 0 || action.Targeting.Range > 100 || (action.Targeting.Effect != "orb" && action.Targeting.Effect != "thunder")) {
 			return nil, fmt.Errorf("action %q has invalid targeting profile", action.ID)
@@ -76,8 +82,10 @@ func LoadCatalog(path string) (*Catalog, error) {
 		if action.Impact != nil && action.Impact.Origin == "target" && action.Targeting == nil {
 			return nil, fmt.Errorf("action %q target-origin impact requires targeting", action.ID)
 		}
-		if action.Control.Type == "sustained" && (action.ManaCostPerSecond <= 0 || action.DamageIntervalMs <= 0 || action.Impact == nil || action.Impact.Shape == "projectile") {
-			return nil, fmt.Errorf("action %q has invalid sustained profile", action.ID)
+		if action.Control.Type == "sustained" {
+			validSustained := action.ManaCostPerSecond > 0 && ((action.Defense != nil && action.Defense.Shape == "radial" && action.Impact == nil) ||
+				(action.Defense == nil && action.DamageIntervalMs > 0 && action.Impact != nil && action.Impact.Shape != "projectile"))
+			if !validSustained { return nil, fmt.Errorf("action %q has invalid sustained profile", action.ID) }
 		}
 		if _, exists := catalog.profiles[action.ID]; exists { return nil, fmt.Errorf("duplicate action id %q", action.ID) }
 		profile := &port.CombatProfile{
@@ -99,10 +107,7 @@ func LoadCatalog(path string) (*Catalog, error) {
 	return catalog, nil
 }
 
-// Get returns the server-owned profile for an action, or nil when it is unknown.
 func (c *Catalog) Get(actionID string) *port.CombatProfile { return c.profiles[actionID] }
-
-// GetByInputIntent resolves the action associated with a combat input intent.
 func (c *Catalog) GetByInputIntent(intent string) (string, *port.CombatProfile) {
 	id := c.byInputIntent[intent]
 	return id, c.profiles[id]
