@@ -1,3 +1,4 @@
+import type { ConditionApplyRef } from '@/types/condition';
 import type { Medium } from '@/types/medium';
 
 export type ActionSlot = 'constant_displacements' | 'impulse_displacements' | 'body_actions' | 'full_body_action';
