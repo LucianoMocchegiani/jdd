@@ -10,7 +10,18 @@ import { resolveRemoteClipId } from '@/game/player/remote-animation';
 import auraDeKiClipRaw from '@/game/player/animations/aura_de_ki.json?raw';
 import escudoRadialClipRaw from '@/game/player/animations/escudo_radial_de_ki.json?raw';
 import esquiveRapidoClipRaw from '@/game/player/animations/esquive_rapido.json?raw';
-import directionalPlayerClipsRaw from '@/game/player/animations/directional_player_clips.json?raw';
+import walkForwardClipRaw from '@/game/player/animations/walk_forward.json?raw';
+import walkBackwardClipRaw from '@/game/player/animations/walk_backward.json?raw';
+import walkLeftClipRaw from '@/game/player/animations/walk_left.json?raw';
+import walkRightClipRaw from '@/game/player/animations/walk_right.json?raw';
+import runForwardClipRaw from '@/game/player/animations/run_forward.json?raw';
+import runBackwardClipRaw from '@/game/player/animations/run_backward.json?raw';
+import runLeftClipRaw from '@/game/player/animations/run_left.json?raw';
+import runRightClipRaw from '@/game/player/animations/run_right.json?raw';
+import dodgeForwardClipRaw from '@/game/player/animations/esquive_rapido_forward.json?raw';
+import dodgeBackwardClipRaw from '@/game/player/animations/esquive_rapido_backward.json?raw';
+import dodgeLeftClipRaw from '@/game/player/animations/esquive_rapido_left.json?raw';
+import dodgeRightClipRaw from '@/game/player/animations/esquive_rapido_right.json?raw';
 import rayoDeKiClipRaw from '@/game/player/animations/rayo_de_ki.json?raw';
 import orbeExplosivoClipRaw from '@/game/player/animations/orbe_explosivo.json?raw';
 import truenoClipRaw from '@/game/player/animations/trueno.json?raw';
@@ -64,8 +75,10 @@ export class PlayerCharacterVisual {
     this.clips.set('aura_de_ki', clipFromJson(auraDeKiClipRaw));
     this.clips.set('escudo_radial_de_ki', clipFromJson(escudoRadialClipRaw));
     this.clips.set('esquive_rapido', clipFromJson(esquiveRapidoClipRaw));
-    const directionalClips = (JSON.parse(directionalPlayerClipsRaw) as { clips: StudioAnimationClip[] }).clips;
-    for (const clip of directionalClips) this.clips.set(clip.id, clipFromJson(JSON.stringify(clip)));
+    for (const raw of [walkForwardClipRaw, walkBackwardClipRaw, walkLeftClipRaw, walkRightClipRaw, runForwardClipRaw, runBackwardClipRaw, runLeftClipRaw, runRightClipRaw, dodgeForwardClipRaw, dodgeBackwardClipRaw, dodgeLeftClipRaw, dodgeRightClipRaw]) {
+      const clip = clipFromJson(raw);
+      this.clips.set(clip.id, clip);
+    }
     this.clips.set('rayo_de_ki', clipFromJson(rayoDeKiClipRaw));
     this.clips.set('orbe_explosivo', clipFromJson(orbeExplosivoClipRaw));
     this.clips.set('trueno', clipFromJson(truenoClipRaw));
