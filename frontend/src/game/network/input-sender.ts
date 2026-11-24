@@ -5,7 +5,7 @@ import { recordInputSent } from '@/game/debug/input-stats-debug';
 
 const NETWORKED_INTENTS = [
   'move_forward', 'move_backward', 'move_left', 'move_right', 'run_forward', 'jump',
-  'attack_light', 'attack_heavy', 'attack_projectile', 'attack_quick_projectile', 'attack_shockwave', 'attack_ki_shield', 'continuous_attack', 'continuous_aura',
+  'attack_light', 'attack_heavy', 'attack_projectile', 'attack_quick_projectile', 'attack_shockwave', 'attack_ki_shield', 'continuous_attack', 'continuous_aura', 'continuous_ki_shield',
 ] as const;
 const ONE_SHOT_ATTACK_INTENTS = ['attack_light', 'attack_heavy', 'attack_projectile', 'attack_quick_projectile', 'attack_shockwave', 'attack_ki_shield'] as const;
 type AttackIntent = typeof ONE_SHOT_ATTACK_INTENTS[number];

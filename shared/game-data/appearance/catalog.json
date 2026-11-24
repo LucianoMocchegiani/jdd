@@ -8,7 +8,8 @@
     "attack": { "durationMs": 400 },
     "kamehameha": { "durationMs": 2000 },
     "rayo_de_ki": { "durationMs": 0 },
-    "aura_de_ki": { "durationMs": 0 }
+    "aura_de_ki": { "durationMs": 0 },
+    "escudo_radial_de_ki": { "durationMs": 0 }
   },
   "defaultDurationMs": 350
 }

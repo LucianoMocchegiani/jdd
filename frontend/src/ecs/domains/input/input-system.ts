@@ -7,7 +7,7 @@ import { getHeldKeyCodes, isKeyHeld } from '@/game/input/keyboard-state';
 
 const BLOCKED_IN_INSPECT = new Set([
   'move_forward', 'move_backward', 'move_left', 'move_right', 'run_forward',
-  'jump', 'attack_light', 'attack_heavy', 'attack_projectile', 'attack_quick_projectile', 'attack_shockwave', 'attack_ki_shield', 'continuous_attack', 'continuous_aura', 'target_orbe', 'target_trueno',
+  'jump', 'attack_light', 'attack_heavy', 'attack_projectile', 'attack_quick_projectile', 'attack_shockwave', 'attack_ki_shield', 'continuous_attack', 'continuous_aura', 'continuous_ki_shield', 'target_orbe', 'target_trueno',
 ]);
 
 /** Mapa de intents locales a códigos `KeyboardEvent.code`, también usado por el HUD. */
@@ -20,6 +20,7 @@ export const INTENT_KEY_CODES: Record<string, readonly string[]> = {
   jump: ['Space'],
   continuous_attack: ['KeyQ'],
   continuous_aura: ['KeyE'],
+  continuous_ki_shield: [],
   attack_light: ['KeyF', 'Mouse0'],
   attack_heavy: [],
   attack_projectile: ['KeyG'],

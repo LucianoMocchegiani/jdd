@@ -114,6 +114,19 @@
       "impact": { "shape": "radial", "origin": "caster", "blockBySolids": true, "radius": 3, "damage": 5 }
     },
     {
+      "id": "escudo_radial_de_ki",
+      "description": "Escudo radial continuo que absorbe hasta 50 puntos por un máximo de 5 segundos.",
+      "manaCostPerSecond": 5,
+      "control": {
+        "inputIntent": "continuous_ki_shield",
+        "slot": "body_actions",
+        "type": "sustained",
+        "when": { "not": { "medium": ["air", "submerged_full"] } }
+      },
+      "appearance": { "state": "attack", "clip": "escudo_radial_de_ki" },
+      "defense": { "shape": "radial", "absorption": 50, "durationMs": 5000 }
+    },
+    {
       "id": "orbe_explosivo",
       "description": "Invoca un orbe que explota en el punto seleccionado.",
       "cooldownMs": 3000,

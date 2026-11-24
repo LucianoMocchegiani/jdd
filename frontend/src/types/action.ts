@@ -1,6 +1,3 @@
-import type { ConditionApplyRef } from '@/types/condition';
-import type { Medium } from '@/types/medium';
-
 export type ActionSlot = 'constant_displacements' | 'impulse_displacements' | 'body_actions' | 'full_body_action';
 export type ActionType = 'sustained' | 'one_shot';
 export interface ActionWhen {
@@ -28,7 +25,7 @@ export interface ActionImpact {
   entityDamage?: ActionDamage;
   applyConditions?: readonly ConditionApplyRef[];
 }
-export interface ActionDefense { shape: 'cone'; absorption: number; durationMs: number; angleDegrees: number; }
+export interface ActionDefense { shape: 'cone' | 'radial'; absorption: number; durationMs: number; angleDegrees?: number; }
 /** Client-side target selection; impact geometry and damage remain server-owned. */
 export interface ActionTargeting { type: 'ground_point'; range: number; effect: 'orb' | 'thunder'; }
 /** Definición compartida de una acción y sus datos de control, coste, presentación e impacto. */
