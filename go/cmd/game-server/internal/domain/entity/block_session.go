@@ -23,6 +23,7 @@ type BlockSession struct {
 	nextEntity     uint32
 	nextProjectile uint64
 	projectiles    []Projectile
+	kiShields      map[string]*KiShield
 }
 
 type TypeInfo struct {
@@ -61,7 +62,7 @@ type ProjectileState struct {
 }
 
 func NewBlockSession(bloqueID string, ecoID int) *BlockSession {
-	return &BlockSession{BloqueID: bloqueID, EcoID: ecoID, Players: make(map[string]*Player), SolidGrid: collision.NewSolidGrid(), TypesByName: make(map[string]TypeInfo), nextEntity: 1}
+	return &BlockSession{BloqueID: bloqueID, EcoID: ecoID, Players: make(map[string]*Player), SolidGrid: collision.NewSolidGrid(), TypesByName: make(map[string]TypeInfo), nextEntity: 1, kiShields: make(map[string]*KiShield)}
 }
 
 func (s *BlockSession) PlayerCount() int {
@@ -92,6 +93,7 @@ func (s *BlockSession) RemovePlayer(playerID string) bool {
 		return false
 	}
 	delete(s.Players, playerID)
+	delete(s.kiShields, playerID)
 	return true
 }
 
@@ -275,7 +277,7 @@ func (s *BlockSession) projectileHitPlayer(projectile *Projectile) bool {
 		if dx*dx+dy*dy > r*r {
 			continue
 		}
-		target.Health = math.Max(0, target.Health-projectile.Damage)
+		s.applyShieldDamageLocked(s.Players[projectile.OwnerID], id, target, projectile.Damage, time.Now())
 		return true
 	}
 	return false
@@ -292,10 +294,7 @@ func (s *BlockSession) ApplyMeleeDamage(attackerID string, origin jdcombat.Point
 		if id == attackerID || target.Health <= 0 || !jdcombat.HitsPlayer(origin, yaw, jdcombat.Point{X: target.X, Y: target.Y, Z: target.Z}, reach) {
 			continue
 		}
-		target.Health -= damage
-		if target.Health < 0 {
-			target.Health = 0
-		}
+		s.applyShieldDamageLocked(attacker, id, target, damage, time.Now())
 	}
 }
 

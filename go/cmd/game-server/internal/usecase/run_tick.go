@@ -31,7 +31,9 @@ func (s *Services) RunTick(deltaSec float64) {
 		}
 		s.MaybeRefreshTerrain(sess)
 		now := time.Now()
+		activeShields := sess.KiShieldStates(now)
 		continuousCommands := make([]port.SwingCommand, 0)
+		var shieldsToRemove []string
 		sess.ForEachPlayer(func(p *entity.Player) {
 			p.RegenerateMana(deltaSec, now)
 			systems.ResolvePlayerContact(p, sess.SolidGrid, s.SessionCfg, s.Medium)
@@ -44,10 +46,16 @@ func (s *Services) RunTick(deltaSec float64) {
 				speed = s.Conditions.MovementSpeedMultiplier(p.Conditions)
 			}
 			systems.RunPlayerTickWithEffects(p, sess.SolidGrid, s.SessionCfg, s.Medium, deltaSec, intents, speed)
-			if cmd, ok := s.advanceContinuousAttack(sess, p, deltaSec, now); ok {
+			_, shieldActive := activeShields[p.ID]
+			if cmd, ok, removeShield := s.advanceContinuousAttack(sess, p, deltaSec, now, shieldActive); ok {
 				continuousCommands = append(continuousCommands, cmd)
+			} else if removeShield {
+				shieldsToRemove = append(shieldsToRemove, p.ID)
 			}
 		})
+		for _, id := range shieldsToRemove {
+			sess.RemoveKiShield(id)
+		}
 		for _, cmd := range continuousCommands {
 			profile := s.Combat.Get(cmd.ActionID)
 			if profile != nil && profile.Impact != nil {
@@ -105,7 +113,9 @@ func BuildTickPlayerStates(sess *entity.BlockSession, tick int) []string {
 func buildPlayerStates(sess *entity.BlockSession, tick int, publishActions bool) []string {
 	var out []string
 	now := time.Now()
+	shields := sess.KiShieldStates(now)
 	sess.ForEachPlayer(func(p *entity.Player) {
+		shield, shieldActive := shields[p.ID]
 		payload := map[string]interface{}{
 			"type": "player_state", "server_tick": tick, "player_id": p.ID, "bloque_id": sess.BloqueID,
 			"x": p.X, "y": p.Y, "z": p.Z, "vx": p.VX, "vy": p.VY, "vz": p.VZ,
@@ -115,6 +125,10 @@ func buildPlayerStates(sess *entity.BlockSession, tick int, publishActions bool)
 			"in_combat": p.InCombat(now), "conditions": jdconditions.IDs(p.Conditions),
 			"condition_damage_total": p.ConditionDamageTotal,
 			"continuous_attack_active": p.ContinuousAttackID != "", "continuous_action_id": p.ContinuousAttackID,
+			"shield_active": shieldActive,
+		}
+		if shieldActive {
+			payload["shield_remaining"], payload["shield_shape"] = shield.Remaining, shield.Shape
 		}
 		if p.Pitch != 0 {
 			payload["pitch"] = p.Pitch

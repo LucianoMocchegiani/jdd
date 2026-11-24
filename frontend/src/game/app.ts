@@ -16,6 +16,7 @@ import { PresenceHandler } from '@/game/network/presence-handler';
 import { HealthHud } from '@/game/health-hud';
 import { ProjectileVisuals } from '@/game/projectile-visuals';
 import { AreaSpellVisuals } from '@/game/area-abilities';
+import { ShockwaveVisuals } from '@/game/shockwave-visuals';
 import { isNewActionSequence, selectRemoteClip } from '@/game/player/remote-animation';
 import type { PlayerCharacterVisual } from '@/game/player/player-character-visual';
 import type { PlayerStateEvent, SessionEvent } from '@/types/world-events';
@@ -112,6 +113,7 @@ export async function bootstrapApp(
   terrain = new TerrainStore(bloqueId, cellSize);
   const projectileVisuals = new ProjectileVisuals(scene, cellSize);
   const areaSpellVisuals = new AreaSpellVisuals(scene, cellSize);
+  const shockwaveVisuals = new ShockwaveVisuals(scene, cellSize);
   spawnZ = 8;
   terrain.onViewportLoaded(() => {
     rebuildTerrainMeshes();
@@ -190,6 +192,7 @@ export async function bootstrapApp(
       else remotePresence.setBeamLength(event.player_id, event.beam_length, event.seq);
     }
     if (event.type === 'player_state') {
+      shockwaveVisuals.apply(event);
       ingestLocalPlayerState(event, playerId);
       recordObservedPlayerState(event);
       if (event.player_id === playerId) {
@@ -313,6 +316,7 @@ export async function bootstrapApp(
       }
     }
     areaSpellVisuals.update(deltaTime, pos ? { x: pos.x, y: pos.y, z: pos.z } : undefined);
+    shockwaveVisuals.update(deltaTime);
     worldRealtime.drainInboundQueue();
     remotePresence.update();
     healthHud.update(localHealth, localMaxHealth, localMana, localMaxMana, localInCombat, activeConditionIds, remotePresence.getHealthIndicators(), camera, cellSize);

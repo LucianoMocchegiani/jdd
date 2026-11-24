@@ -24,7 +24,7 @@ export interface PlayerStateEvent {
   action_id?: string; action_seq?: number; action_t0_ms?: number; entity_id?: number;
   intents?: Record<string, true>; input_seq?: number; health?: number; max_health?: number;
   mana?: number; max_mana?: number; in_combat?: boolean; continuous_attack_active?: boolean;
-  continuous_action_id?: string; receivedAtMs?: number;
+  continuous_action_id?: string; shield_active?: boolean; shield_remaining?: number; shield_shape?: 'cone' | 'radial'; receivedAtMs?: number;
 }
 export type PresenceEvent = JoinOkEvent | JoinErrorEvent | PlayerJoinedEvent | PlayerLeftEvent | PlayerStateEvent;
 export interface InputCommand { type: 'input'; bloque_id: string; player_id: string; seq: number; intents?: Record<string, true>; yaw: number; pitch?: number; }

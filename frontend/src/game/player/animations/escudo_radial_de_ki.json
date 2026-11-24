@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "id": "escudo_radial_de_ki",
+  "label": "Escudo radial de Ki",
+  "duration": 1,
+  "loop": true,
+  "fps": 30,
+  "tracks": [
+    { "boneId": "cintura", "keys": [
+      { "t": 0, "rot": [0, 0, -0.04] },
+      { "t": 0.5, "rot": [0, 0, 0.04] },
+      { "t": 1, "rot": [0, 0, -0.04] }
+    ] },
+    { "boneId": "hombro-derecho", "keys": [
+      { "t": 0, "rot": [0, 0, 0.95] },
+      { "t": 0.5, "rot": [0, 0, 1.05] },
+      { "t": 1, "rot": [0, 0, 0.95] }
+    ] },
+    { "boneId": "hombro-izquierdo", "keys": [
+      { "t": 0, "rot": [0, 0, 0.95] },
+      { "t": 0.5, "rot": [0, 0, 1.05] },
+      { "t": 1, "rot": [0, 0, 0.95] }
+    ] },
+    { "boneId": "codo-derecho", "keys": [
+      { "t": 0, "rot": [0, 0, -0.4] },
+      { "t": 0.5, "rot": [0, 0, -0.5] },
+      { "t": 1, "rot": [0, 0, -0.4] }
+    ] },
+    { "boneId": "codo-izquierdo", "keys": [
+      { "t": 0, "rot": [0, 0, 0.4] },
+      { "t": 0.5, "rot": [0, 0, 0.5] },
+      { "t": 1, "rot": [0, 0, 0.4] }
+    ] }
+  ]
+}

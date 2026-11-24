@@ -24,8 +24,8 @@ type inputActionCatalog interface {
 	GetByInputIntent(intent string) (string, *port.CombatProfile)
 }
 
-var oneShotActionIntents = [...]string{"attack_light", "attack_projectile", "attack_heavy", "attack_quick_projectile"}
-var sustainedActionIntents = [...]string{"continuous_attack", "continuous_aura"}
+var oneShotActionIntents = [...]string{"attack_light", "attack_projectile", "attack_heavy", "attack_quick_projectile", "attack_shockwave", "attack_ki_shield"}
+var sustainedActionIntents = [...]string{"continuous_attack", "continuous_aura", "continuous_ki_shield"}
 
 // HandleInput applies a fresh input snapshot and starts one-shot or sustained actions on intent edges.
 func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
@@ -34,7 +34,7 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 		return buildError("input_error", "not_in_block"), false
 	}
 
-	var actionID string
+	var actionID, startedSustainedID, stoppedSustainedID string
 	stale := false
 	updated := sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) {
 		if in.Seq != 0 && in.Seq <= p.InputSeq {
@@ -51,21 +51,24 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 						if in.Intents[intent] && !p.Intents[intent] &&
 							(s.Conditions == nil || !s.Conditions.BlocksIntent(p.Conditions, intent)) {
 							if id, profile := catalog.GetByInputIntent(intent); profile != nil &&
-								profile.ControlType != "sustained" && profile.Impact != nil {
+								profile.ControlType != "sustained" && (profile.Impact != nil || profile.Defense != nil) {
 								actionID = id
 								break
 							}
 						}
 					}
+					previousID := p.ContinuousAttackID
 					if id, profile := s.selectSustainedAction(catalog, p, in.Intents); profile != nil {
-						if p.ContinuousAttackID != id {
+						if previousID != id {
 							p.ContinuousAttackID = id
 							p.ContinuousAttackElapsed = 0
 							p.ActionID, p.ActionSeq = id, p.ActionSeq+1
+							startedSustainedID, stoppedSustainedID = id, previousID
 						}
 						p.InCombatUntil = time.Now().Add(6 * time.Second)
 					} else {
 						p.ContinuousAttackID, p.ContinuousAttackElapsed = "", 0
+						stoppedSustainedID = previousID
 					}
 				}
 			}
@@ -84,7 +87,30 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 	if stale {
 		return "", true
 	}
+	if stoppedSustainedID != "" {
+		if profile := s.Combat.Get(stoppedSustainedID); profile != nil && profile.Defense != nil {
+			sess.RemoveKiShield(in.PlayerID)
+		}
+	}
+	if startedSustainedID != "" {
+		if profile := s.Combat.Get(startedSustainedID); profile != nil && profile.Defense != nil &&
+			!sess.CreateKiShield(in.PlayerID, profile.Defense.Shape, profile.Defense.Absorption, profile.Defense.AngleDegrees, profile.Defense.Duration, time.Now()) {
+			sess.UpdatePlayer(in.PlayerID, func(p *entity.Player) {
+				if p.ContinuousAttackID == startedSustainedID {
+					p.ContinuousAttackID, p.ContinuousAttackElapsed = "", 0
+				}
+			})
+			return buildError("input_error", "shield_rejected"), true
+		}
+	}
 	if actionID != "" {
+		if profile := s.Combat.Get(actionID); profile != nil && profile.Defense != nil {
+			response, _ := s.HandleKiShield(SwingPayload{
+				BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID,
+				ActionID: actionID, Seq: in.Seq,
+			})
+			return response, true
+		}
 		response, _ := s.HandleSwing(SwingPayload{
 			BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID,
 			ActionID: actionID, Seq: in.Seq,
@@ -96,10 +122,15 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 
 func (s *Services) selectSustainedAction(catalog inputActionCatalog, p *entity.Player, intents map[string]bool) (string, *port.CombatProfile) {
 	valid := func(id string, profile *port.CombatProfile) bool {
-		return profile != nil && profile.ControlType == "sustained" && profile.Impact != nil &&
-			profile.ManaCostPerSecond > 0 && profile.DamageInterval > 0 && p.Health > 0 && p.Mana > 0 &&
-			s.SwingPub != nil && !mediumBlocked(p.Medium, profile.BlockedMediums) &&
-			(s.Conditions == nil || (!s.Conditions.BlocksIntent(p.Conditions, profile.InputIntent) && !s.Conditions.BlocksAction(p.Conditions, id)))
+		if profile == nil || profile.ControlType != "sustained" || profile.ManaCostPerSecond <= 0 || p.Health <= 0 || p.Mana <= 0 ||
+			mediumBlocked(p.Medium, profile.BlockedMediums) ||
+			(s.Conditions != nil && (s.Conditions.BlocksIntent(p.Conditions, profile.InputIntent) || s.Conditions.BlocksAction(p.Conditions, id))) {
+			return false
+		}
+		if profile.Defense != nil {
+			return profile.Defense.Shape == "radial" && profile.Impact == nil
+		}
+		return profile.Impact != nil && profile.DamageInterval > 0 && s.SwingPub != nil
 	}
 	for _, intent := range sustainedActionIntents {
 		if intents[intent] && !p.Intents[intent] {
