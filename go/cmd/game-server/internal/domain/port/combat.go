@@ -22,7 +22,6 @@ type DefenseProfile struct {
 	Shape        string        `json:"shape"`
 	Absorption   float64       `json:"absorption"`
 	Duration     time.Duration `json:"-"`
-	DurationMs   int           `json:"durationMs"`
 	AngleDegrees float64       `json:"angleDegrees"`
 }
 
@@ -47,5 +46,4 @@ type CombatProfile struct {
 	Targeting         *TargetingProfile
 }
 
-// CombatCatalog resolves trusted combat rules from the shared action registry.
 type CombatCatalog interface { Get(actionID string) *CombatProfile }
