@@ -1,4 +1,6 @@
-/** Estado autoritativo usado para elegir el clip de animación presentado en el cliente. */
+/**
+ * @file Estado autoritativo usado para elegir el clip de animación presentado en el cliente.
+ */
 export interface RemoteAnimationState {
   medium: string;
   vx: number;
@@ -26,9 +28,18 @@ export function selectRemoteClip(state: RemoteAnimationState): string | null {
   if (state.action_id === 'attack' || state.action_id === 'golpe_pesado' || state.action_id === 'onda_de_choque' || state.action_id === 'escudo_de_ki') return 'attack';
   if (state.action_id === 'kamehameha' || state.action_id === 'esfera_rapida') return 'kamehameha';
   if (state.action_id === 'orbe_explosivo' || state.action_id === 'trueno') return state.action_id;
-  const moving = MOVE_INTENTS.some((intent) => state.intents?.[intent]) || Math.hypot(state.vx, state.vy) > 0.05;
-  if (state.medium === 'submerged_partial' || state.medium === 'submerged_full') return moving ? 'swim' : null;
-  if (state.medium === 'air') return moving ? 'fly' : state.vz > 0.05 ? 'jump' : null;
-  if (moving) return state.intents?.run_forward || state.intents?.run_backward ? 'run' : 'walk';
+  const moving =
+    MOVE_INTENTS.some((intent) => state.intents?.[intent]) || Math.hypot(state.vx, state.vy) > 0.05;
+
+  if (state.medium === 'submerged_partial' || state.medium === 'submerged_full') {
+    return moving ? 'swim' : null;
+  }
+  if (state.medium === 'air') {
+    if (moving) return 'fly';
+    return state.vz > 0.05 ? 'jump' : null;
+  }
+  if (moving) {
+    return state.intents?.run_forward || state.intents?.run_backward ? 'run' : 'walk';
+  }
   return null;
 }
