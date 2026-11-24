@@ -24,7 +24,7 @@ type inputActionCatalog interface {
 	GetByInputIntent(intent string) (string, *port.CombatProfile)
 }
 
-var oneShotActionIntents = [...]string{"attack_light", "attack_projectile", "attack_heavy", "attack_quick_projectile", "attack_shockwave", "attack_ki_shield"}
+var oneShotActionIntents = [...]string{"attack_light", "attack_projectile", "attack_heavy", "attack_quick_projectile", "attack_shockwave", "attack_ki_shield", "attack_dodge"}
 var sustainedActionIntents = [...]string{"continuous_attack", "continuous_aura", "continuous_ki_shield"}
 
 // HandleInput applies a fresh input snapshot and starts one-shot or sustained actions on intent edges.
@@ -51,7 +51,7 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 						if in.Intents[intent] && !p.Intents[intent] &&
 							(s.Conditions == nil || !s.Conditions.BlocksIntent(p.Conditions, intent)) {
 							if id, profile := catalog.GetByInputIntent(intent); profile != nil &&
-								profile.ControlType != "sustained" && (profile.Impact != nil || profile.Defense != nil) {
+								profile.ControlType != "sustained" && (profile.Impact != nil || profile.Defense != nil || profile.Movement != nil) {
 								actionID = id
 								break
 							}
@@ -104,6 +104,10 @@ func (s *Services) HandleInput(in InputPayload) (errJSON string, ok bool) {
 		}
 	}
 	if actionID != "" {
+		if profile := s.Combat.Get(actionID); profile != nil && profile.Movement != nil {
+			response, _ := s.HandleDodge(SwingPayload{BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID, ActionID: actionID, Seq: in.Seq})
+			return response, true
+		}
 		if profile := s.Combat.Get(actionID); profile != nil && profile.Defense != nil {
 			response, _ := s.HandleKiShield(SwingPayload{
 				BloqueID: in.BloqueID, EcoID: in.EcoID, PlayerID: in.PlayerID,
