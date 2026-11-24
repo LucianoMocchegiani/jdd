@@ -1,7 +1,6 @@
-import {
-  assert from 'node:assert/strict';
-  test from 'node:test';
-  import { isNewActionSequence, selectRemoteClip } from './remote-animation.ts';
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { isNewActionSequence, selectRemoteClip } from './remote-animation.ts';
 
 test('remote clips follow authoritative action and movement state', () => {
   const base = { medium: 'ground', vx: 0, vy: 0, vz: 0 };

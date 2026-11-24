@@ -41,12 +41,12 @@ func TestLoadSustainedKiBeamProfile(t *testing.T) {
 
 func TestLoadDashMovementProfile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "actions.json")
-	data := `{"actions":[{"id":"esquive_rapido","cooldownMs":2000,"control":{"inputIntent":"attack_dodge","type":"one_shot"},"movement":{"dashDistance":2,"dashDurationMs":180}}]}`
+	data := `{"actions":[{"id":"esquive_rapido","cooldownMs":2000,"control":{"inputIntent":"attack_dodge","type":"one_shot"},"movement":{"dashDistance":3.5,"dashDurationMs":280}}]}`
 	if err := os.WriteFile(path, []byte(data), 0600); err != nil { t.Fatal(err) }
 	catalog, err := LoadCatalog(path)
 	if err != nil { t.Fatal(err) }
 	p := catalog.Get("esquive_rapido")
-	if p == nil || p.Movement == nil || p.Movement.DashDistance != 2 || p.Movement.DashDuration != 180*time.Millisecond || p.Cooldown != 2*time.Second {
+	if p == nil || p.Movement == nil || p.Movement.DashDistance != 3.5 || p.Movement.DashDuration != 280*time.Millisecond || p.Cooldown != 2*time.Second {
 		t.Fatalf("unexpected dash profile: %+v", p)
 	}
 	if id, byIntent := catalog.GetByInputIntent("attack_dodge"); id != "esquive_rapido" || byIntent != p {
