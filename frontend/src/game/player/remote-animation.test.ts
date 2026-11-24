@@ -18,6 +18,9 @@ test('remote clips follow authoritative action and movement state', () => {
   assert.equal(selectRemoteClip({ ...base, action_id: 'esquive_rapido', intents: { move_right: true } }), 'esquive_rapido_right');
   assert.equal(selectRemoteClip({ ...base, action_id: 'esquive_rapido', intents: { move_backward: true } }), 'esquive_rapido_backward');
   assert.equal(selectRemoteClip({ ...base, action_id: 'esquive_rapido' }), 'esquive_rapido_forward');
+  for (const [vx, vy, direction] of [[0, -1, 'forward'], [0, 1, 'backward'], [-1, 0, 'left'], [1, 0, 'right']] as const) {
+    assert.equal(selectRemoteClip({ ...base, vx, vy, action_id: 'esquive_rapido' }), `esquive_rapido_${direction}`);
+  }
   assert.equal(selectRemoteClip({ ...base, action_id: 'kamehameha' }), 'kamehameha');
   assert.equal(selectRemoteClip({ ...base, action_id: 'esfera_rapida' }), 'kamehameha');
   assert.equal(selectRemoteClip({ ...base, action_id: 'orbe_explosivo' }), 'orbe_explosivo');
@@ -28,6 +31,7 @@ test('remote clips follow authoritative action and movement state', () => {
   assert.equal(selectRemoteClip({ ...base, intents: { continuous_aura: true } }), 'aura_de_ki');
   assert.equal(selectRemoteClip({ ...base, continuous_action_id: 'escudo_radial_de_ki', continuous_attack_active: true }), 'escudo_radial_de_ki');
   assert.equal(selectRemoteClip({ ...base, intents: { continuous_ki_shield: true } }), 'escudo_radial_de_ki');
+  assert.equal(selectRemoteClip({ ...base, medium: 'submerged_partial', vx: 1 }), 'swim');
   assert.equal(selectRemoteClip({ ...base, medium: 'submerged_full', vx: 1, intents: { move_left: true } }), 'swim');
   assert.equal(selectRemoteClip({ ...base, medium: 'air', intents: { move_forward: true } }), 'fly');
   assert.equal(selectRemoteClip({ ...base, medium: 'air', vz: 1 }), 'jump');
