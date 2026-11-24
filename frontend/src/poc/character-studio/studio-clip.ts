@@ -15,12 +15,12 @@ import type {
   Vec3,
 } from '@/poc/character-studio/types';
 import { DEFAULT_CLIP_DURATION } from '@/poc/character-studio/types';
-import attackClipRaw from '@/poc/attack.json?raw';
-import flyClipRaw from '@/poc/fly.json?raw';
-import jumpClipRaw from '@/poc/jump.json?raw';
-import kamehamehaClipRaw from '@/poc/kamehameha.json?raw';
-import swimClipRaw from '@/poc/swim.json?raw';
-import walkClipRaw from '@/poc/walk.json?raw';
+import attackClipRaw from '@/game/player/animations/attack.json?raw';
+import flyClipRaw from '@/game/player/animations/fly.json?raw';
+import jumpClipRaw from '@/game/player/animations/jump.json?raw';
+import kamehamehaClipRaw from '@/game/player/animations/kamehameha.json?raw';
+import swimClipRaw from '@/game/player/animations/swim.json?raw';
+import walkClipRaw from '@/game/player/animations/walk.json?raw';
 
 /** Rotación bind de un hueso (radianes XYZ). */
 function bindRotForBone(bone: StudioBone): Vec3 {
@@ -70,7 +70,7 @@ export function createBindClip(
   return clip;
 }
 
-/** Deja solo keyframe bind en t=0 (conserva metadatos del clip). */
+/** Clip bind en t=0 para cada hueso. */
 export function clearClipToBind(clip: StudioAnimationClip, bones: StudioBone[]): void {
   clip.tracks = [];
   for (const bone of bones) {
