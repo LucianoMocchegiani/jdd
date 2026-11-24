@@ -1,5 +1,3 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
 import { isNewActionSequence, selectRemoteClip } from './remote-animation.ts';
 
 test('remote clips follow authoritative action and movement state', () => {
@@ -9,6 +7,7 @@ test('remote clips follow authoritative action and movement state', () => {
   assert.equal(selectRemoteClip({ ...base, intents: { attack_light: true } }), null);
   assert.equal(selectRemoteClip({ ...base, action_id: 'attack' }), 'attack');
   assert.equal(selectRemoteClip({ ...base, action_id: 'golpe_pesado' }), 'attack');
+  assert.equal(selectRemoteClip({ ...base, action_id: 'onda_de_choque' }), 'attack');
   assert.equal(selectRemoteClip({ ...base, action_id: 'kamehameha' }), 'kamehameha');
   assert.equal(selectRemoteClip({ ...base, action_id: 'esfera_rapida' }), 'kamehameha');
   assert.equal(selectRemoteClip({ ...base, action_id: 'orbe_explosivo' }), 'orbe_explosivo');
