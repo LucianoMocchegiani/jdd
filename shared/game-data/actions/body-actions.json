@@ -31,7 +31,7 @@
     },
     {
       "id": "esquive_rapido",
-      "description": "Impulso corto en la dirección de movimiento o, si estás quieto, hacia donde mirás.",
+      "description": "Rodada evasiva en la dirección del movimiento o hacia donde mirás.",
       "cooldownMs": 2000,
       "control": {
         "inputIntent": "attack_dodge",
@@ -39,8 +39,8 @@
         "type": "one_shot",
         "when": { "not": { "medium": ["air", "submerged_partial", "submerged_full"] } }
       },
-      "movement": { "dashDistance": 2, "dashDurationMs": 180 },
-      "appearance": { "state": "run", "clip": "run" }
+      "movement": { "dashDistance": 3.5, "dashDurationMs": 280 },
+      "appearance": { "state": "dodge", "clip": "esquive_rapido" }
     },
     {
       "id": "kamehameha",

@@ -8,6 +8,7 @@ import { BODY_ACTIONS } from '@/game-data/actions';
 import { PARTICLE_SIZE_RATIO } from '@/game/terrain/particle-geometry';
 import auraDeKiClipRaw from '@/game/player/animations/aura_de_ki.json?raw';
 import escudoRadialClipRaw from '@/game/player/animations/escudo_radial_de_ki.json?raw';
+import esquiveRapidoClipRaw from '@/game/player/animations/esquive_rapido.json?raw';
 import rayoDeKiClipRaw from '@/game/player/animations/rayo_de_ki.json?raw';
 import orbeExplosivoClipRaw from '@/game/player/animations/orbe_explosivo.json?raw';
 import truenoClipRaw from '@/game/player/animations/trueno.json?raw';
@@ -60,6 +61,7 @@ export class PlayerCharacterVisual {
     this.renderer = new StudioRenderer(scene, cellSize);
     this.clips.set('aura_de_ki', clipFromJson(auraDeKiClipRaw));
     this.clips.set('escudo_radial_de_ki', clipFromJson(escudoRadialClipRaw));
+    this.clips.set('esquive_rapido', clipFromJson(esquiveRapidoClipRaw));
     this.clips.set('rayo_de_ki', clipFromJson(rayoDeKiClipRaw));
     this.clips.set('orbe_explosivo', clipFromJson(orbeExplosivoClipRaw));
     this.clips.set('trueno', clipFromJson(truenoClipRaw));
