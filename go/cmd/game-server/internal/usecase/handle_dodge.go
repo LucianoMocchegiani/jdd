@@ -1,8 +1,6 @@
 package usecase
 
 import (
-	"time"
-
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/sim/systems"
 )
