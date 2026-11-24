@@ -14,7 +14,7 @@ type Player struct {
 	ID                    string
 	EntityID              uint32
 	X, Y, Z               float64
-	VX, VY, VZ            float64
+	VX, VY, VZ             float64
 	Yaw, Pitch             float64
 	Medium                 string
 	DominantParticleName   string
@@ -34,6 +34,7 @@ type Player struct {
 	Conditions             []jdconditions.Instance
 	ConditionLastTickAt    map[string]time.Time
 	ConditionDamageTotal   float64
+	KiShield               *KiShield
 	GroundCellDebugLogged  bool
 	lastSwingSeq           int
 	lastSwingAt            time.Time
