@@ -6,6 +6,7 @@ import type { StudioAnimationClip, StudioDocument } from '@/poc/character-studio
 import { DEFAULT_PALETTE } from '@/poc/shared';
 import { BODY_ACTIONS } from '@/game-data/actions';
 import { PARTICLE_SIZE_RATIO } from '@/game/terrain/particle-geometry';
+import { resolveRemoteClipId } from '@/game/player/remote-animation';
 import auraDeKiClipRaw from '@/game/player/animations/aura_de_ki.json?raw';
 import escudoRadialClipRaw from '@/game/player/animations/escudo_radial_de_ki.json?raw';
 import esquiveRapidoClipRaw from '@/game/player/animations/esquive_rapido.json?raw';
