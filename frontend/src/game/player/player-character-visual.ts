@@ -7,6 +7,7 @@ import { DEFAULT_PALETTE } from '@/poc/shared';
 import { BODY_ACTIONS } from '@/game-data/actions';
 import { PARTICLE_SIZE_RATIO } from '@/game/terrain/particle-geometry';
 import { resolveRemoteClipId } from '@/game/player/remote-animation';
+import { createDirectionalPlayerClips } from '@/game/player/directional-clips';
 import auraDeKiClipRaw from '@/game/player/animations/aura_de_ki.json?raw';
 import escudoRadialClipRaw from '@/game/player/animations/escudo_radial_de_ki.json?raw';
 import esquiveRapidoClipRaw from '@/game/player/animations/esquive_rapido.json?raw';
@@ -63,6 +64,9 @@ export class PlayerCharacterVisual {
     this.clips.set('aura_de_ki', clipFromJson(auraDeKiClipRaw));
     this.clips.set('escudo_radial_de_ki', clipFromJson(escudoRadialClipRaw));
     this.clips.set('esquive_rapido', clipFromJson(esquiveRapidoClipRaw));
+    for (const clip of createDirectionalPlayerClips(this.clips.get('walk')!, this.clips.get('esquive_rapido')!)) {
+      this.clips.set(clip.id, clip);
+    }
     this.clips.set('rayo_de_ki', clipFromJson(rayoDeKiClipRaw));
     this.clips.set('orbe_explosivo', clipFromJson(orbeExplosivoClipRaw));
     this.clips.set('trueno', clipFromJson(truenoClipRaw));
