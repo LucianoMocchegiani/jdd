@@ -64,7 +64,8 @@ export class PlayerCharacterVisual {
     this.clips.set('aura_de_ki', clipFromJson(auraDeKiClipRaw));
     this.clips.set('escudo_radial_de_ki', clipFromJson(escudoRadialClipRaw));
     this.clips.set('esquive_rapido', clipFromJson(esquiveRapidoClipRaw));
-    for (const clip of (JSON.parse(directionalPlayerClipsRaw) as StudioAnimationClip[])) this.clips.set(clip.id, clipFromJson(JSON.stringify(clip)));
+    const directionalClips = (JSON.parse(directionalPlayerClipsRaw) as { clips: StudioAnimationClip[] }).clips;
+    for (const clip of directionalClips) this.clips.set(clip.id, clipFromJson(JSON.stringify(clip)));
     this.clips.set('rayo_de_ki', clipFromJson(rayoDeKiClipRaw));
     this.clips.set('orbe_explosivo', clipFromJson(orbeExplosivoClipRaw));
     this.clips.set('trueno', clipFromJson(truenoClipRaw));
@@ -75,20 +76,11 @@ export class PlayerCharacterVisual {
     scene.add(this.auraRing, this.auraGlow, this.beam);
   }
 
-  update(
-    deltaTime: number,
-    requestedClip: string | null,
-    x: number,
-    y: number,
-    z: number,
-    yaw: number,
-    tint: number | null,
-  ): void {
+  update(deltaTime: number, requestedClip: string | null, x: number, y: number, z: number, yaw: number, tint: number | null): void {
     const current = this.clips.get(this.clipId)!;
     const resolvedClipId = resolveRemoteClipId(requestedClip, this.clips);
     const requestedAnimation = resolvedClipId ? this.clips.get(resolvedClipId) : undefined;
-    const keepOneShot =
-      !current.loop && this.time < current.duration && (!requestedAnimation || requestedAnimation.loop);
+    const keepOneShot = !current.loop && this.time < current.duration && (!requestedAnimation || requestedAnimation.loop);
     const nextId = keepOneShot ? this.clipId : requestedAnimation ? resolvedClipId! : 'idle';
 
     if (nextId !== this.clipId) {
@@ -143,25 +135,20 @@ export class PlayerCharacterVisual {
     const color = this.damageFlashUntilMs > performance.now() ? 0xff5555 : tint;
     for (const mesh of this.renderer.getPickMeshes()) {
       const layer = String(mesh.userData.bucketKey).split(':')[0]! as keyof typeof DEFAULT_PALETTE;
-      (mesh.material as MeshStandardMaterial).color.setHex(
-        color ?? DEFAULT_PALETTE[layer] ?? DEFAULT_PALETTE.flesh,
-      );
+      (mesh.material as MeshStandardMaterial).color.setHex(color ?? DEFAULT_PALETTE[layer] ?? DEFAULT_PALETTE.flesh);
     }
   }
 
-  /** Actualiza el alcance del rayo con el resultado autoritativo de un pulso. */
   setBeamLength(length: number, seq: number): void {
     if (!Number.isFinite(length) || length < 0 || !Number.isSafeInteger(seq) || seq <= this.beamSeq) return;
     this.beamSeq = seq;
     this.beamLength = Math.min(length, 28);
   }
 
-  /** Mantiene un destello breve cuando el servidor confirma daño recibido. */
   flashDamage(): void {
     this.damageFlashUntilMs = performance.now() + 180;
   }
 
-  /** Ajusta transparencia para usar el rig como fantasma de depuración. */
   setOpacity(opacity: number): void {
     for (const mesh of this.renderer.getPickMeshes()) {
       const material = mesh.material as MeshStandardMaterial;
@@ -172,7 +159,6 @@ export class PlayerCharacterVisual {
     }
   }
 
-  /** Libera el renderer al desaparecer una réplica remota. */
   dispose(): void {
     this.renderer.dispose();
     for (const mesh of [this.auraRing, this.auraGlow, this.beam]) {
