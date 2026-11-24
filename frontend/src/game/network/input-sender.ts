@@ -53,9 +53,13 @@ export class NetworkInputSender {
     private readonly playerId: string,
   ) {}
 
+  /** Secuencia del último mensaje numerado enviado o reservado. */
   get currentSeq(): number { return this.seq; }
+
+  /** Reserva un número de la misma secuencia para comandos separados, como area_spell_cast. */
   reserveSequence(): number { return ++this.seq; }
 
+  /** Procesa un frame de input y envía el comando si venció el intervalo o cambió una acción. */
   tick(nowSec: number, intents: Record<string, boolean>, yaw: number, pitch?: number): void {
     const packed = packActiveIntents(intents);
     const hasMovement = Object.keys(packed).length > 0;
@@ -68,15 +72,20 @@ export class NetworkInputSender {
     if (!throttleElapsed && !jumpEdge && !attackEdge && !releaseEdge) return;
     const payloadKey = JSON.stringify({ wireMode, packed, yaw, pitch });
     if (wireMode === 'omit' && payloadKey === this.lastPayload && !jumpEdge && !attackEdge) return;
+
     this.lastSentAt = nowSec;
     this.lastPayload = payloadKey;
     this.seq += 1;
     if (wireMode === 'active' || wireMode === 'clear') this.hadMovementIntent = hasMovement;
     const cmd: InputCommand = { type: 'input', bloque_id: this.bloqueId, player_id: this.playerId, seq: this.seq, yaw };
     if (pitch !== undefined) cmd.pitch = pitch;
-    if (wireMode === 'active') { cmd.intents = packed; recordInputSent('active', packed); }
-    else if (wireMode === 'clear') { cmd.intents = {}; recordInputSent('clear', {}); }
-    else recordInputSent('omit');
+    if (wireMode === 'active') {
+      cmd.intents = packed;
+      recordInputSent('active', packed);
+    } else if (wireMode === 'clear') {
+      cmd.intents = {};
+      recordInputSent('clear', {});
+    } else recordInputSent('omit');
     this.client.send(cmd);
   }
 }
