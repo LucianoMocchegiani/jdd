@@ -1,3 +1,4 @@
+/** Estado autoritativo usado para elegir el clip de animación presentado en el cliente. */
 export interface RemoteAnimationState {
   medium: string;
   vx: number;
