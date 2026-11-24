@@ -4,6 +4,7 @@ package usecase
 import (
 	"encoding/json"
 	"math"
+	"time"
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/wshub"
@@ -56,7 +57,7 @@ func (s *Services) HandleSwingResult(ev SwingResultEvent) {
 	}
 	seen := make(map[string]struct{}, len(ev.PlayerHits)+1)
 	if ev.TargetPlayerID != "" && ev.TargetPlayerID != ev.PlayerID && validEntityID(ev.TargetEntityID) && finitePositiveDamage(ev.EntityDamage) {
-		applyPlayerDamage(sess, ev.TargetPlayerID, ev.TargetEntityID, ev.EntityDamage)
+		applyPlayerDamage(sess, ev.PlayerID, ev.TargetPlayerID, ev.TargetEntityID, ev.EntityDamage)
 		seen[ev.TargetPlayerID] = struct{}{}
 	}
 	for _, hit := range ev.PlayerHits {
@@ -67,7 +68,7 @@ func (s *Services) HandleSwingResult(ev SwingResultEvent) {
 			continue
 		}
 		seen[hit.PlayerID] = struct{}{}
-		applyPlayerDamage(sess, hit.PlayerID, hit.EntityID, hit.Damage)
+		applyPlayerDamage(sess, ev.PlayerID, hit.PlayerID, hit.EntityID, hit.Damage)
 	}
 	s.Hub.ForSession(sess.BloqueID, sess.EcoID, func(c *wshub.Conn) {
 		if c.PlayerID == ev.PlayerID {
@@ -84,13 +85,8 @@ func finitePositiveDamage(damage float64) bool {
 	return damage > 0 && !math.IsInf(damage, 0) && !math.IsNaN(damage)
 }
 
-func applyPlayerDamage(sess *entity.BlockSession, playerID string, entityID int, damage float64) {
-	sess.UpdatePlayer(playerID, func(p *entity.Player) {
-		if p.EntityID != uint32(entityID) || p.Health <= 0 {
-			return
-		}
-		p.Health = math.Max(0, p.Health-damage)
-	})
+func applyPlayerDamage(sess *entity.BlockSession, sourceID, playerID string, entityID int, damage float64) {
+	sess.ApplyPlayerDamageFrom(sourceID, playerID, entityID, damage, time.Now())
 }
 
 func buildParticleDestroyedWS(ev DestroyedEvent) string {

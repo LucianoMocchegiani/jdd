@@ -17,6 +17,14 @@ type DamageProfile struct {
 	Damage        float64 `json:"damage"`
 }
 
+// DefenseProfile configures a cone- or radial-shaped shield object.
+type DefenseProfile struct {
+	Shape        string        `json:"shape"`
+	Absorption   float64       `json:"absorption"`
+	Duration     time.Duration `json:"-"`
+	AngleDegrees float64       `json:"angleDegrees"`
+}
+
 // TargetingProfile configures how a player selects an impact point.
 type TargetingProfile struct {
 	Type   string  `json:"type"`
@@ -34,6 +42,7 @@ type CombatProfile struct {
 	DamageInterval    time.Duration
 	BlockedMediums    []string
 	Impact            *DamageProfile
+	Defense           *DefenseProfile
 	Targeting         *TargetingProfile
 }
 
