@@ -11,9 +11,9 @@ import (
 const baseManaReserve = 100
 
 type Player struct {
-	ID                     string
-	EntityID               uint32
-	X, Y, Z                float64
+	ID                    string
+	EntityID              uint32
+	X, Y, Z               float64
 	VX, VY, VZ             float64
 	Yaw, Pitch             float64
 	Medium                 string
@@ -52,12 +52,8 @@ func NewPlayer(playerID string, entityID uint32, x, y, z, yaw, pitch float64) *P
 func (p *Player) InCombat(now time.Time) bool { return now.Before(p.InCombatUntil) }
 
 func (p *Player) RegenerateMana(deltaSec float64, now time.Time) {
-	if deltaSec <= 0 || p.Mana >= p.MaxMana {
-		return
-	}
+	if deltaSec <= 0 || p.Mana >= p.MaxMana { return }
 	rate := 3.0
-	if p.InCombat(now) {
-		rate = 1.5
-	}
+	if p.InCombat(now) { rate = 1.5 }
 	p.Mana = math.Min(p.MaxMana, p.Mana+rate*deltaSec)
 }

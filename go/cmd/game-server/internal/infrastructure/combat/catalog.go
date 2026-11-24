@@ -35,11 +35,13 @@ type actionFile struct {
 	} `json:"actions"`
 }
 
+// Catalog stores validated combat profiles indexed by action ID and input intent.
 type Catalog struct {
 	profiles      map[string]*port.CombatProfile
 	byInputIntent map[string]string
 }
 
+// LoadCatalog reads action data and rejects invalid or duplicate combat profiles.
 func LoadCatalog(path string) (*Catalog, error) {
 	data, err := os.ReadFile(path)
 	if err != nil { return nil, err }
@@ -50,7 +52,9 @@ func LoadCatalog(path string) (*Catalog, error) {
 		if action.ID == "" { return nil, fmt.Errorf("action without id") }
 		if action.ManaCost < 0 || action.ManaCostPerSecond < 0 { return nil, fmt.Errorf("action %q has invalid mana cost", action.ID) }
 		if action.Impact != nil {
-			if action.Control.Type != "sustained" && action.CooldownMs <= 0 { return nil, fmt.Errorf("action %q has combat impact without positive cooldownMs", action.ID) }
+			if action.Control.Type != "sustained" && action.CooldownMs <= 0 {
+				return nil, fmt.Errorf("action %q has combat impact without positive cooldownMs", action.ID)
+			}
 			shape := action.Impact.Shape
 			if shape == "" { shape = "line"; action.Impact.Shape = shape }
 			if action.Impact.Origin == "" { action.Impact.Origin = "caster" }
@@ -66,9 +70,15 @@ func LoadCatalog(path string) (*Catalog, error) {
 		if action.Targeting != nil && (action.Targeting.Type != "ground_point" || action.Targeting.Range <= 0 || action.Targeting.Range > 100 || (action.Targeting.Effect != "orb" && action.Targeting.Effect != "thunder")) {
 			return nil, fmt.Errorf("action %q has invalid targeting profile", action.ID)
 		}
-		if action.Targeting != nil && (action.Impact == nil || action.Impact.Shape != "radial" || action.Impact.Origin != "target") { return nil, fmt.Errorf("action %q targeting requires a radial impact with target origin", action.ID) }
-		if action.Impact != nil && action.Impact.Origin == "target" && action.Targeting == nil { return nil, fmt.Errorf("action %q target-origin impact requires targeting", action.ID) }
-		if action.Control.Type == "sustained" && (action.ManaCostPerSecond <= 0 || action.DamageIntervalMs <= 0 || action.Impact == nil || action.Impact.Shape == "projectile") { return nil, fmt.Errorf("action %q has invalid sustained profile", action.ID) }
+		if action.Targeting != nil && (action.Impact == nil || action.Impact.Shape != "radial" || action.Impact.Origin != "target") {
+			return nil, fmt.Errorf("action %q targeting requires a radial impact with target origin", action.ID)
+		}
+		if action.Impact != nil && action.Impact.Origin == "target" && action.Targeting == nil {
+			return nil, fmt.Errorf("action %q target-origin impact requires targeting", action.ID)
+		}
+		if action.Control.Type == "sustained" && (action.ManaCostPerSecond <= 0 || action.DamageIntervalMs <= 0 || action.Impact == nil || action.Impact.Shape == "projectile") {
+			return nil, fmt.Errorf("action %q has invalid sustained profile", action.ID)
+		}
 		if _, exists := catalog.profiles[action.ID]; exists { return nil, fmt.Errorf("duplicate action id %q", action.ID) }
 		profile := &port.CombatProfile{
 			InputIntent: action.Control.InputIntent, ControlType: action.Control.Type,
@@ -77,7 +87,9 @@ func LoadCatalog(path string) (*Catalog, error) {
 			DamageInterval: time.Duration(action.DamageIntervalMs) * time.Millisecond,
 			BlockedMediums: action.Control.When.Not.Medium, Impact: action.Impact, Targeting: action.Targeting,
 		}
-		if action.Defense != nil { profile.Defense = &port.DefenseProfile{Shape: action.Defense.Shape, Absorption: action.Defense.Absorption, Duration: time.Duration(action.Defense.DurationMs) * time.Millisecond, AngleDegrees: action.Defense.AngleDegrees} }
+		if action.Defense != nil {
+			profile.Defense = &port.DefenseProfile{Shape: action.Defense.Shape, Absorption: action.Defense.Absorption, Duration: time.Duration(action.Defense.DurationMs) * time.Millisecond, AngleDegrees: action.Defense.AngleDegrees}
+		}
 		catalog.profiles[action.ID] = profile
 		if action.Control.InputIntent != "" && (action.Impact != nil || action.Targeting != nil || action.Defense != nil) {
 			if _, exists := catalog.byInputIntent[action.Control.InputIntent]; exists { return nil, fmt.Errorf("duplicate combat input intent %q", action.Control.InputIntent) }
@@ -87,6 +99,12 @@ func LoadCatalog(path string) (*Catalog, error) {
 	return catalog, nil
 }
 
+// Get returns the server-owned profile for an action, or nil when it is unknown.
 func (c *Catalog) Get(actionID string) *port.CombatProfile { return c.profiles[actionID] }
-func (c *Catalog) GetByInputIntent(intent string) (string, *port.CombatProfile) { id := c.byInputIntent[intent]; return id, c.profiles[id] }
+
+// GetByInputIntent resolves the action associated with a combat input intent.
+func (c *Catalog) GetByInputIntent(intent string) (string, *port.CombatProfile) {
+	id := c.byInputIntent[intent]
+	return id, c.profiles[id]
+}
 var _ port.CombatCatalog = (*Catalog)(nil)

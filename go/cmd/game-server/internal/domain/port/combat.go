@@ -46,4 +46,5 @@ type CombatProfile struct {
 	Targeting         *TargetingProfile
 }
 
+// CombatCatalog resolves trusted combat rules from the shared action registry.
 type CombatCatalog interface { Get(actionID string) *CombatProfile }
