@@ -68,7 +68,7 @@ func LoadCatalog(path string) (*Catalog, error) {
 		}
 		if action.Movement != nil {
 			m := action.Movement
-			if action.Control.Type != "one_shot" || action.CooldownMs <= 0 || m.DashDistance <= 0 || m.DashDistance > 5 || m.DashDurationMs < 50 || m.DashDurationMs > 500 || action.ManaCost != 0 || action.ManaCostPerSecond != 0 || action.Impact != nil || action.Defense != nil || action.Targeting != nil {
+			if action.Control.Type != "one_shot" || action.CooldownMs <= 0 || m.DashDistance <= 0 || m.DashDistance > 8 || m.DashDurationMs < 50 || m.DashDurationMs > 500 || action.ManaCost != 0 || action.ManaCostPerSecond != 0 || action.Impact != nil || action.Defense != nil || action.Targeting != nil {
 				return nil, fmt.Errorf("action %q has invalid movement profile", action.ID)
 			}
 		}

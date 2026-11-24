@@ -39,7 +39,7 @@
         "type": "one_shot",
         "when": { "not": { "medium": ["air", "submerged_partial", "submerged_full"] } }
       },
-      "movement": { "dashDistance": 3.5, "dashDurationMs": 280 },
+      "movement": { "dashDistance": 8, "dashDurationMs": 280 },
       "appearance": { "state": "dodge", "clip": "esquive_rapido" }
     },
     {

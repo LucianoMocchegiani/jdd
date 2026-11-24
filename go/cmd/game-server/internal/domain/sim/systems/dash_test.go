@@ -22,8 +22,9 @@ func TestStartPlanarDashUsesMovementOrFacingAndMovesAuthoritatively(t *testing.T
 		t.Run(tc.name, func(t *testing.T) {
 			p := entity.NewPlayer("p", 1, 0, 0, 1, 0, 0)
 			p.Intents = tc.intents
-			if !StartPlanarDash(p, 3.5, 0.28) { t.Fatal("dash did not start") }
-			if math.Abs(p.DashVX-12.5*tc.wantX) > 1e-9 || math.Abs(p.DashVY-12.5*tc.wantY) > 1e-9 {
+			if !StartPlanarDash(p, 8, 0.28) { t.Fatal("dash did not start") }
+			dashSpeed := 8.0 / 0.28
+			if math.Abs(p.DashVX-dashSpeed*tc.wantX) > 1e-9 || math.Abs(p.DashVY-dashSpeed*tc.wantY) > 1e-9 {
 				t.Fatalf("dash velocity=(%v,%v)", p.DashVX, p.DashVY)
 			}
 			RunPlayerTickWithEffects(p, collision.NewSolidGrid(), &session.Config{PlayerMoveSpeedCells: 1}, nil, 0.1, p.Intents, 1)
