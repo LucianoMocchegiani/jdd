@@ -2,17 +2,17 @@ package usecase
 
 import (
 	"encoding/json"
+	"math"
 	"time"
 
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/entity"
+	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/port"
+	"github.com/juego-de-dioses/jd/cmd/game-server/internal/domain/sim/systems"
 	"github.com/juego-de-dioses/jd/cmd/game-server/internal/infrastructure/wshub"
 	jdconditions "github.com/juego-de-dioses/jd/pkg/jd/conditions"
 )
 
-const (
-	tickHz      = 30
-	maxDeltaSec = 0.1
-)
+const ( tickHz = 30; maxDeltaSec = 0.1 )
 
 func (s *Services) RunTick(deltaSec float64) {
 	if deltaSec <= 0 { deltaSec = 1.0 / tickHz }
@@ -38,8 +38,7 @@ func (s *Services) RunTick(deltaSec float64) {
 				sess.UpdatePlayer(cmd.PlayerID, func(p *entity.Player) { p.Mana = math.Min(p.MaxMana, p.Mana+profile.ManaCostPerSecond*profile.DamageInterval.Seconds()) })
 			}
 		}
-		projectiles := sess.AdvanceProjectiles(deltaSec)
-		for _, projectile := range projectiles {
+		for _, projectile := range sess.AdvanceProjectiles(deltaSec) {
 			if projectile.ParticleID != "" && s.SwingPub != nil {
 				err := s.SwingPub.PublishSwing(port.SwingCommand{BloqueID: sess.BloqueID, EcoID: sess.EcoID, PlayerID: projectile.OwnerID,
 					ActionID: projectile.ActionID, EntityID: int(projectile.EntityID), Seq: projectile.Seq, ParticleID: projectile.ParticleID,
@@ -98,7 +97,6 @@ func BuildJoinOK(bloqueID string, ecoID int, ecoLabel, playerID, wireFormat stri
 	b, _ := json.Marshal(payload)
 	return string(b)
 }
-
 func BuildPlayerJoined(bloqueID, playerID string, x, y, z float64) string {
 	b, _ := json.Marshal(map[string]interface{}{"type": "player_joined", "bloque_id": bloqueID, "player_id": playerID, "position": map[string]float64{"x": x, "y": y, "z": z}})
 	return string(b)

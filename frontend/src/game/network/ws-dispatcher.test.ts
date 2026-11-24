@@ -22,6 +22,15 @@ test('parses continuous action identity and shield geometry for client feedback'
   }
 });
 
+test('validates multi-player swing result targets', () => {
+  const parsed = parseInboundMessage({
+    type: 'swing_result', player_id: 'caster', action_id: 'aura_de_ki', seq: 1, entity_id: 1,
+    hits: [], player_hits: [{ player_id: 'target', entity_id: 2, damage: 5 }, { player_id: 'invalid', entity_id: 0, damage: 5 }],
+  });
+  assert.equal(parsed?.type, 'swing_result');
+  if (parsed?.type === 'swing_result') assert.deepEqual(parsed.player_hits, [{ player_id: 'target', entity_id: 2, damage: 5 }]);
+});
+
 test('rejects non-finite incoming coordinates', () => {
   assert.equal(parseInboundMessage({
     type: 'player_state', server_tick: 1, player_id: 'p', bloque_id: 'b', x: Number.NaN,

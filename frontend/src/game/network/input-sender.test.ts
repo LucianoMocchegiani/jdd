@@ -31,6 +31,6 @@ test('sends newly added one-shot intents in input packets', () => {
 test('sends the held continuous radial shield intent', () => {
   const sent: Array<{ intents?: Record<string, true> }> = [];
   const client = { send: (command: { intents?: Record<string, true> }) => { sent.push(command); return true; } } as never;
-  new NetworkInputSender(client, 'block', 'player').tick(0, { continuous_ki_shield: true }, 0);
+  new NetworkInputSender(client, 'block', 'player').tick(1, { continuous_ki_shield: true }, 0);
   assert.deepEqual(sent[0]?.intents, { continuous_ki_shield: true });
 });
