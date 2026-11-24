@@ -41,7 +41,7 @@ function variant(base: StudioAnimationClip, id: string, label: string, direction
   };
 }
 
-/** Builds runtime directional clips from the authored walk and dodge poses. */
+// shortcut: variantes transformadas del clip base, reemplazar por poses autoradas cuando estén disponibles.
 export function createDirectionalPlayerClips(walk: StudioAnimationClip, dodge: StudioAnimationClip): StudioAnimationClip[] {
   return DIRECTIONS.flatMap((direction) => [
     variant(walk, `walk_${direction}`, `Caminar ${direction}`, direction),
