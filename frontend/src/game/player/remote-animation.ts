@@ -1,7 +1,3 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
-import { isNewActionSequence, selectRemoteClip } from './remote-animation.ts';
-
 /** Estado autoritativo usado para elegir el clip de animación presentado en el cliente. */
 export interface RemoteAnimationState {
   medium: string;
