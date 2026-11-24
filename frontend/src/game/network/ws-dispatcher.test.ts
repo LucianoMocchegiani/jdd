@@ -1,5 +1,6 @@
-import type { RealtimeInboundMessage, SessionEvent, WorldEvent, SwingResultPlayerHit } from '@/types/world-events';
-import { parseTerrainWsMessage } from '@/game/network/parse-terrain-ws';
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { parseInboundMessage } from './ws-dispatcher.ts';
 
 test('parses successful swing acknowledgements and rejects invalid sequences', () => {
   assert.deepEqual(parseInboundMessage({
