@@ -82,11 +82,11 @@ export class PlayerCharacterVisual {
     tint: number | null,
   ): void {
     const current = this.clips.get(this.clipId)!;
-    const requested = requestedClip === 'run' ? 'walk' : requestedClip;
-    const requestedAnimation = requested ? this.clips.get(requested) : undefined;
+    const resolvedClipId = resolveRemoteClipId(requestedClip, this.clips);
+    const requestedAnimation = resolvedClipId ? this.clips.get(resolvedClipId) : undefined;
     const keepOneShot =
       !current.loop && this.time < current.duration && (!requestedAnimation || requestedAnimation.loop);
-    const nextId = keepOneShot ? this.clipId : requestedAnimation ? requested! : 'idle';
+    const nextId = keepOneShot ? this.clipId : requestedAnimation ? resolvedClipId! : 'idle';
 
     if (nextId !== this.clipId) {
       this.clipId = nextId;
@@ -109,7 +109,7 @@ export class PlayerCharacterVisual {
       yaw: visualYaw,
       showBones: false,
     });
-    const beamActive = requested === 'rayo_de_ki';
+    const beamActive = requestedClip === 'rayo_de_ki';
     if (beamActive && !this.beamActive) this.beamLength = 28;
     this.beamActive = beamActive;
     this.beam.visible = beamActive;
@@ -126,7 +126,7 @@ export class PlayerCharacterVisual {
       const radius = (0.2 + 0.04 * Math.sin(this.time * 18)) * this.cellSize;
       this.beam.scale.set(radius, length, radius);
     }
-    const auraActive = requested === 'aura_de_ki';
+    const auraActive = requestedClip === 'aura_de_ki';
     this.auraRing.visible = this.auraGlow.visible = auraActive;
     if (auraActive) {
       const pulse = 0.94 + 0.06 * Math.sin(this.time * 12);
