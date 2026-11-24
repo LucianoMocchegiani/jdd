@@ -17,6 +17,12 @@ type DamageProfile struct {
 	Damage        float64 `json:"damage"`
 }
 
+// MovementProfile configures a short, server-authoritative dash.
+type MovementProfile struct {
+	DashDistance float64
+	DashDuration time.Duration
+}
+
 // DefenseProfile configures a cone- or radial-shaped shield object.
 type DefenseProfile struct {
 	Shape        string        `json:"shape"`
@@ -42,8 +48,9 @@ type CombatProfile struct {
 	DamageInterval    time.Duration
 	BlockedMediums    []string
 	Impact            *DamageProfile
+	Movement          *MovementProfile
 	Defense           *DefenseProfile
-	Targeting         *TargetingProfile
+	Targeting          *TargetingProfile
 }
 
 // CombatCatalog resolves trusted combat rules from the shared action registry.

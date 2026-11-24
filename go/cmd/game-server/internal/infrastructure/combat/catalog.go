@@ -24,8 +24,12 @@ type actionFile struct {
 				Not struct { Medium []string `json:"medium"` } `json:"not"`
 			} `json:"when"`
 		} `json:"control"`
-		Impact    *port.DamageProfile `json:"impact"`
-		Defense   *struct {
+		Impact *port.DamageProfile `json:"impact"`
+		Movement *struct {
+			DashDistance   float64 `json:"dashDistance"`
+			DashDurationMs int     `json:"dashDurationMs"`
+		} `json:"movement"`
+		Defense *struct {
 			Shape        string  `json:"shape"`
 			Absorption   float64 `json:"absorption"`
 			DurationMs   int     `json:"durationMs"`
@@ -62,6 +66,12 @@ func LoadCatalog(path string) (*Catalog, error) {
 				(shape == "projectile" && action.Impact.Origin == "caster" && action.Impact.Reach > 0 && action.Impact.Reach <= 1000 && action.Impact.Speed > 0 && action.Impact.Speed <= 100 && action.Impact.Radius > 0 && action.Impact.Radius <= 5 && action.Impact.DelayMs >= 0 && action.Impact.DelayMs <= 10000))
 			if !valid { return nil, fmt.Errorf("action %q has invalid impact", action.ID) }
 		}
+		if action.Movement != nil {
+			m := action.Movement
+			if action.Control.Type != "one_shot" || action.CooldownMs <= 0 || m.DashDistance <= 0 || m.DashDistance > 5 || m.DashDurationMs < 50 || m.DashDurationMs > 500 || action.ManaCost != 0 || action.ManaCostPerSecond != 0 || action.Impact != nil || action.Defense != nil || action.Targeting != nil {
+				return nil, fmt.Errorf("action %q has invalid movement profile", action.ID)
+			}
+		}
 		if action.Defense != nil {
 			d := action.Defense
 			validShape := (d.Shape == "cone" && d.AngleDegrees > 0 && d.AngleDegrees <= 180) || (d.Shape == "radial" && d.AngleDegrees == 0)
@@ -93,11 +103,14 @@ func LoadCatalog(path string) (*Catalog, error) {
 			DamageInterval: time.Duration(action.DamageIntervalMs) * time.Millisecond,
 			BlockedMediums: action.Control.When.Not.Medium, Impact: action.Impact, Targeting: action.Targeting,
 		}
+		if action.Movement != nil {
+			profile.Movement = &port.MovementProfile{DashDistance: action.Movement.DashDistance, DashDuration: time.Duration(action.Movement.DashDurationMs) * time.Millisecond}
+		}
 		if action.Defense != nil {
 			profile.Defense = &port.DefenseProfile{Shape: action.Defense.Shape, Absorption: action.Defense.Absorption, Duration: time.Duration(action.Defense.DurationMs) * time.Millisecond, AngleDegrees: action.Defense.AngleDegrees}
 		}
 		catalog.profiles[action.ID] = profile
-		if action.Control.InputIntent != "" && (action.Impact != nil || action.Targeting != nil || action.Defense != nil) {
+		if action.Control.InputIntent != "" && (action.Impact != nil || action.Targeting != nil || action.Defense != nil || action.Movement != nil) {
 			if _, exists := catalog.byInputIntent[action.Control.InputIntent]; exists { return nil, fmt.Errorf("duplicate combat input intent %q", action.Control.InputIntent) }
 			catalog.byInputIntent[action.Control.InputIntent] = action.ID
 		}
