@@ -5,9 +5,9 @@ export interface ParticleDestroyedEvent { type: 'particle_destroyed'; particle_i
 export type TerrainWsPhysicsType = 'solido' | 'liquido' | 'gas' | 'energia';
 export interface TerrainWsParticle { id: string; x: number; y: number; z: number; tipo_nombre: string; tipo_fisico: TerrainWsPhysicsType; }
 export interface TerrainWsTypeEntry { nombre: string; tipo_fisico: TerrainWsPhysicsType; color?: string | null; opacidad?: number | null; viscosidad?: number | null; }
+export interface TerrainTypesEvent { type: 'terrain_types'; bloque_id: string; types: TerrainWsTypeEntry[]; }
 export interface TerrainChunkEvent { type: 'terrain_chunk'; bloque_id: string; chunk_cx: number; chunk_cy: number; z_min: number; z_max: number; seq: number; particles: TerrainWsParticle[]; }
 export interface TerrainChunkDoneEvent { type: 'terrain_chunk_done'; bloque_id: string; seq: number; chunks_sent?: number; }
-export interface TerrainTypesEvent { type: 'terrain_types'; bloque_id: string; types: TerrainWsTypeEntry[]; }
 export type TerrainWsEvent = TerrainTypesEvent | TerrainChunkEvent | TerrainChunkDoneEvent;
 export interface PrepareJoinCommand { type: 'prepare_join'; bloque_id: string; player_id: string; position: CellPosition; yaw?: number; pitch?: number; entity_id?: number; wire_format?: 'json' | 'msgpack'; }
 export interface ActivatePlayerCommand { type: 'activate_player'; position: CellPosition; }

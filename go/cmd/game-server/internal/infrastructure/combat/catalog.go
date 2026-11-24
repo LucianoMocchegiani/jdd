@@ -52,9 +52,7 @@ func LoadCatalog(path string) (*Catalog, error) {
 		if action.ID == "" { return nil, fmt.Errorf("action without id") }
 		if action.ManaCost < 0 || action.ManaCostPerSecond < 0 { return nil, fmt.Errorf("action %q has invalid mana cost", action.ID) }
 		if action.Impact != nil {
-			if action.Control.Type != "sustained" && action.CooldownMs <= 0 {
-				return nil, fmt.Errorf("action %q has combat impact without positive cooldownMs", action.ID)
-			}
+			if action.Control.Type != "sustained" && action.CooldownMs <= 0 { return nil, fmt.Errorf("action %q has combat impact without positive cooldownMs", action.ID) }
 			shape := action.Impact.Shape
 			if shape == "" { shape = "line"; action.Impact.Shape = shape }
 			if action.Impact.Origin == "" { action.Impact.Origin = "caster" }
@@ -107,7 +105,10 @@ func LoadCatalog(path string) (*Catalog, error) {
 	return catalog, nil
 }
 
+// Get returns the server-owned profile for an action, or nil when it is unknown.
 func (c *Catalog) Get(actionID string) *port.CombatProfile { return c.profiles[actionID] }
+
+// GetByInputIntent resolves the action associated with a combat input intent.
 func (c *Catalog) GetByInputIntent(intent string) (string, *port.CombatProfile) {
 	id := c.byInputIntent[intent]
 	return id, c.profiles[id]
