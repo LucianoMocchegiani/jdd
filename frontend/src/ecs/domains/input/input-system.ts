@@ -30,7 +30,7 @@ export const INTENT_KEY_CODES: Record<string, readonly string[]> = {
   attack_dodge: [],
   target_orbe: ['KeyR'],
   target_trueno: ['KeyT'],
-  target_teleport: ['KeyY'],
+  target_teleport: [],
 };
 
 /** Lee controles locales y actualiza `InputComponent` antes de enviarlos. */
