@@ -75,7 +75,7 @@ func (s *Services) HandleAreaSpell(in AreaSpellPayload) (string, bool) {
 					p.VX, p.VY, p.VZ = 0, 0, 0
 					p.DashRemaining, p.DashVX, p.DashVY = 0, 0, 0
 				})
-			}),
+			})
 	}
 
 	return s.executeOneShotAction(sess, in.PlayerID, in.ActionID, in.Seq, profile,
