@@ -38,7 +38,7 @@ func (s *Services) RunTick(deltaSec float64) {
 			p.RegenerateMana(deltaSec, now)
 			systems.ResolvePlayerContact(p, sess.SolidGrid, s.SessionCfg, s.Medium)
 			if s.Conditions != nil {
-				p.ConditionDamageTotal += s.Conditions.Update(&p.Conditions, &p.LastContactParticle, &p.ConditionLastTickAt, p.DominantParticleName, now)
+				applyConditionDamage(p, s.Conditions.Update(&p.Conditions, &p.LastContactParticle, &p.ConditionLastTickAt, p.DominantParticleName, now))
 			}
 			intents, speed := p.Intents, 1.0
 			if s.Conditions != nil {
@@ -75,8 +75,10 @@ func (s *Services) RunTick(deltaSec float64) {
 				err := s.SwingPub.PublishSwing(port.SwingCommand{
 					BloqueID: sess.BloqueID, EcoID: sess.EcoID, PlayerID: projectile.OwnerID,
 					ActionID: projectile.ActionID, EntityID: int(projectile.EntityID), Seq: projectile.Seq,
-					ParticleID: projectile.ParticleID, ParticleX: projectile.ParticleX,
-					ParticleY: projectile.ParticleY, ParticleZ: projectile.ParticleZ,
+					ParticleID: projectile.ParticleID,
+					ParticleX: projectile.ParticleX,
+					ParticleY: projectile.ParticleY,
+					ParticleZ: projectile.ParticleZ,
 				})
 				if err == nil {
 					sess.AcknowledgeProjectileParticleHit(projectile.ID)
@@ -100,6 +102,11 @@ func (s *Services) RunTick(deltaSec float64) {
 		}
 	}
 	s.DrainTerrainFanout()
+}
+
+func applyConditionDamage(p *entity.Player, damage float64) {
+	p.ConditionDamageTotal += damage
+	p.Health = math.Max(0, p.Health-damage)
 }
 
 func BuildAllPlayerStates(sess *entity.BlockSession, tick int) []string {
